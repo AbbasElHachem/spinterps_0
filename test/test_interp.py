@@ -16,43 +16,60 @@ from spinterps import SpInterpMain
 
 def main():
 
-    main_dir = Path(r'Q:\Synchronize_LDs')
+    #     main_dir = Path(r'Q:\Synchronize_LDs')
+    main_dir = Path(
+        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo')
     os.chdir(main_dir)
 
+#     in_data_file = os.path.join(
+#             r'P:\Synchronize\IWS\DWD_meteo_hist_pres',
+#             r'Mulde_preciptiation_infilling_1950_2015',
+#             r'02_combined_station_outputs',
+#             r'infilled_var_df_infill_stns.csv')
+#
+#     in_vgs_file = os.path.join(
+#         r'Mulde_precipitation_kriging_20190417',
+#         r'vg_strs.csv')
+#
+#     in_stns_coords_file = os.path.join(
+#         os.path.dirname(in_data_file),
+#         r'infilled_var_df_infill_stns_coords.csv')
     in_data_file = os.path.join(
-            r'P:\Synchronize\IWS\DWD_meteo_hist_pres',
-            r'Mulde_preciptiation_infilling_1950_2015',
-            r'02_combined_station_outputs',
-            r'infilled_var_df_infill_stns.csv')
+        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo',
+        r'ppt_all_netatmo_daily_stns_combined_reduced_test_kriging.csv')
 
     in_vgs_file = os.path.join(
-        r'Mulde_precipitation_kriging_20190417',
+        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo',
         r'vg_strs.csv')
 
     in_stns_coords_file = os.path.join(
         os.path.dirname(in_data_file),
-        r'infilled_var_df_infill_stns_coords.csv')
+        r'coords_ppt_all_netatmo_hourly_stns_combined_reduced_test_kriging.csv')
 
     index_type = 'date'
 
-    out_dir = r'test_spinterp'
+    out_dir = r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo'
+#     out_dir = r'test_spinterp'
     var_units = 'mm'  # u'\u2103'  # 'centigrade'
     var_name = 'precipitation'
 
-    out_krig_net_cdf_file = r'mulde_precipitation_kriging_%s_to_%s_1km_test.nc'
-
+#     out_krig_net_cdf_file = r'mulde_precipitation_kriging_%s_to_%s_1km_test.nc'
+    out_krig_net_cdf_file = r'netatmo_precipitation_kriging_%s_to_%s_1km_test.nc'
     freq = 'D'
-    strt_date = r'1950-01-01'
-    end_date = r'1950-12-31'
+    strt_date = r'2018-01-01'
+    end_date = r'2018-01-31'
 
     out_krig_net_cdf_file = out_krig_net_cdf_file % (strt_date, end_date)
 
+#     in_drift_rasters_list = (
+#         [r'P:\Synchronize\IWS\2016_DFG_SPATE\data\spate_engine_data\Mulde\hydmod\raster\srtm_mosaic_mulde_gkz3_1km.tif'])
     in_drift_rasters_list = (
-        [r'P:\Synchronize\IWS\2016_DFG_SPATE\data\spate_engine_data\Mulde\hydmod\raster\srtm_mosaic_mulde_gkz3_1km.tif'])
-
+        [r'X:\hiwi\ElHachem\Peru_Project\ancahs_dem\srtm_mosacis_deu_clip_1km.tif'])
     in_bounds_shp_file = (
-        os.path.join(r'P:\Synchronize\IWS\2016_DFG_SPATE\data\spate_engine_data\Mulde\hydmod\raster',
-                     r'taudem_out_mulde_20190416\watersheds.shp'))
+        r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo\shapefile_BW\shapefile_BW_boundaries.shp")
+
+#     in_bounds_shp_file = (
+#         r"X:\exchange\ElHachem\Netatmo\Landesgrenze_ETRS89\Landesgrenze_10000_ETRS89_lon_lat.shp")
 
     align_ras_file = in_drift_rasters_list[0]
 
@@ -66,15 +83,15 @@ def main():
 
     idw_exps = [1, 3, 5]
     n_cpus = 7
-    buffer_dist = 20e3
+    buffer_dist = 2e3
     sec_buffer_dist = 2e3
 
     in_sep = ';'
     in_date_fmt = '%Y-%m-%d'
 
     ord_krige_flag = True
-    sim_krige_flag = True
-    edk_krige_flag = True
+    sim_krige_flag = False
+    edk_krige_flag = False
     idw_flag = True
     plot_figs_flag = True
     verbose = True
@@ -166,9 +183,10 @@ if __name__ == '__main__':
 
         # save all console activity to out_log_file
         out_log_file = os.path.join(
-            r'P:\Synchronize\python_script_logs\\%s_log_%s.log' % (
-            os.path.basename(__file__),
-            datetime.now().strftime('%Y%m%d%H%M%S')))
+            r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo\\%s_log_%s.log' % (
+                # r'P:\Synchronize\python_script_logs\\%s_log_%s.log' % (
+                os.path.basename(__file__),
+                datetime.now().strftime('%Y%m%d%H%M%S')))
 
         log_link = StdFileLoggerCtrl(out_log_file)
 

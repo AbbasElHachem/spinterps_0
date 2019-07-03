@@ -18,26 +18,29 @@ from spinterps import (
 
 def main():
 
-    main_dir = Path(r'P:\Downloads\spinterp_pt_extract')
+    #     main_dir = Path(r'P:\Downloads\spinterp_pt_extract')
+    main_dir = Path(
+        r'X:\hiwi\ElHachem\Prof_Bardossy\Handook_Water_resources_Management')
     os.chdir(main_dir)
 
-    path_to_shp = 'neckar_46_stns_20180624.shp'
+#     path_to_shp = 'neckar_46_stns_20180624.shp'
+    path_to_shp = r"X:\hiwi\ElHachem\Prof_Bardossy\Handook_Water_resources_Management\Nile_qgis\nile_basin\nile_basin.shp"
     label_field = 'field_1'
 
-    path_to_ras = r'tem_spinterp.nc'
-    input_ras_type = 'nc'
+#     path_to_ras = r'tem_spinterp.nc'
+#     input_ras_type = 'nc'
 
-#     path_to_ras = (
-#         r'lower_de_gauss_z3_2km_atkis_19_extended_hydmod_lulc_ratios.tif')
-#     input_ras_type = 'gtiff'
+    path_to_ras = (
+        r"C:\Users\hachem\Downloads\7504448\global-et0_monthly.tif\et0_month\et0_01.tif")
+    input_ras_type = 'gtiff'
 
     nc_x_crds_label = 'X'
     nc_y_crds_label = 'Y'
     nc_variable_labels = ['OK', 'SK']
     nc_time_label = 'time'
 
-    path_to_output = 'test.h5'
-
+#     path_to_output = 'test.h5'
+    path_to_output = ''
     verbose = True
 
     EP = ExtractPoints(verbose=verbose)
@@ -117,8 +120,8 @@ if __name__ == '__main__':
         # save all console activity to out_log_file
         out_log_file = os.path.join(
             r'P:\Synchronize\python_script_logs\\%s_log_%s.log' % (
-            os.path.basename(__file__),
-            datetime.now().strftime('%Y%m%d%H%M%S')))
+                os.path.basename(__file__),
+                datetime.now().strftime('%Y%m%d%H%M%S')))
 
         log_link = StdFileLoggerCtrl(out_log_file)
 

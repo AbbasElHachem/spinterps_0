@@ -17,14 +17,14 @@ from spinterps import FitVariograms
 def get_mean_temp_paths():
 
     in_vals_df_loc = os.path.join(
-             r'Mulde_temperature_avg_norm_cop_infill_1950_to_2015_20190417',
-             r'02_combined_station_outputs',
-             r'infilled_var_df_infill_stns.csv')
+        r'Mulde_temperature_avg_norm_cop_infill_1950_to_2015_20190417',
+        r'02_combined_station_outputs',
+        r'infilled_var_df_infill_stns.csv')
 
     in_stn_coords_df_loc = os.path.join(
-             r'Mulde_temperature_avg_norm_cop_infill_1950_to_2015_20190417',
-             r'02_combined_station_outputs',
-            r'infilled_var_df_infill_stns_coords.csv')
+        r'Mulde_temperature_avg_norm_cop_infill_1950_to_2015_20190417',
+        r'02_combined_station_outputs',
+        r'infilled_var_df_infill_stns_coords.csv')
 
     out_dir = r'Mulde_temperature_avg_kriging_20190417'
 
@@ -34,14 +34,14 @@ def get_mean_temp_paths():
 def get_min_temp_paths():
 
     in_vals_df_loc = os.path.join(
-             r'Mulde_temperature_min_norm_cop_infill_1950_to_2015_20190417',
-             r'02_combined_station_outputs',
-             r'infilled_var_df_infill_stns.csv')
+        r'Mulde_temperature_min_norm_cop_infill_1950_to_2015_20190417',
+        r'02_combined_station_outputs',
+        r'infilled_var_df_infill_stns.csv')
 
     in_stn_coords_df_loc = os.path.join(
-             r'Mulde_temperature_min_norm_cop_infill_1950_to_2015_20190417',
-             r'02_combined_station_outputs',
-            r'infilled_var_df_infill_stns_coords.csv')
+        r'Mulde_temperature_min_norm_cop_infill_1950_to_2015_20190417',
+        r'02_combined_station_outputs',
+        r'infilled_var_df_infill_stns_coords.csv')
 
     out_dir = r'Mulde_temperature_min_kriging_20190417'
 
@@ -51,14 +51,14 @@ def get_min_temp_paths():
 def get_max_temp_paths():
 
     in_vals_df_loc = os.path.join(
-             r'Mulde_temperature_max_norm_cop_infill_1950_to_2015_20190417',
-             r'02_combined_station_outputs',
-             r'infilled_var_df_infill_stns.csv')
+        r'Mulde_temperature_max_norm_cop_infill_1950_to_2015_20190417',
+        r'02_combined_station_outputs',
+        r'infilled_var_df_infill_stns.csv')
 
     in_stn_coords_df_loc = os.path.join(
-             r'Mulde_temperature_max_norm_cop_infill_1950_to_2015_20190417',
-             r'02_combined_station_outputs',
-            r'infilled_var_df_infill_stns_coords.csv')
+        r'Mulde_temperature_max_norm_cop_infill_1950_to_2015_20190417',
+        r'02_combined_station_outputs',
+        r'infilled_var_df_infill_stns_coords.csv')
 
     out_dir = r'Mulde_temperature_max_kriging_20190417'
 
@@ -66,31 +66,41 @@ def get_max_temp_paths():
 
 
 def get_ppt_paths():
-
     in_vals_df_loc = os.path.join(
-             r'Mulde_preciptiation_infilling_1950_2015',
-             r'02_combined_station_outputs',
-             r'infilled_var_df_infill_stns.csv')
+        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo',
+        r'ppt_all_netatmo_daily_stns_combined_reduced_test_kriging.csv')
 
     in_stn_coords_df_loc = os.path.join(
-             r'Mulde_preciptiation_infilling_1950_2015',
-             r'02_combined_station_outputs',
-            r'infilled_var_df_infill_stns_coords.csv')
+        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo',
+        r'coords_ppt_all_netatmo_hourly_stns_combined_reduced_test_kriging.csv')
 
-    out_dir = r'Mulde_precipitation_kriging_20190417'
+    out_dir = r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo'
+
+#     in_vals_df_loc = os.path.join(
+#              r'Mulde_preciptiation_infilling_1950_2015',
+#              r'02_combined_station_outputs',
+#              r'infilled_var_df_infill_stns.csv')
+#
+#     in_stn_coords_df_loc = os.path.join(
+#              r'Mulde_preciptiation_infilling_1950_2015',
+#              r'02_combined_station_outputs',
+#             r'infilled_var_df_infill_stns_coords.csv')
+#
+#     out_dir = r'Mulde_precipitation_kriging_20190417'
 
     return in_vals_df_loc, in_stn_coords_df_loc, out_dir
 
 
 def main():
 
-    main_dir = Path(r'P:\Synchronize\IWS\DWD_meteo_hist_pres')
+    main_dir = Path(
+        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo')
     os.chdir(main_dir)
 
     vg_vars = ['ppt']
 
-    strt_date = '1950-01-01'
-    end_date = '2015-12-31'
+    strt_date = '2018-01-01'
+    end_date = '2018-01-31'
     min_valid_stns = 20
 
     drop_stns = []
@@ -100,9 +110,9 @@ def main():
     fil_nug_vg = 'Nug'
     n_best = 4
     ngp = 5
-    figs_flag = False
+    figs_flag = True
 
-    n_cpus = 30
+    n_cpus = 4
 
     sep = ';'
 
@@ -184,9 +194,10 @@ if __name__ == '__main__':
 
         # save all console activity to out_log_file
         out_log_file = os.path.join(
-            r'P:\Synchronize\python_script_logs\\%s_log_%s.log' % (
-            os.path.basename(__file__),
-            datetime.now().strftime('%Y%m%d%H%M%S')))
+            r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo\\%s_log_%s.log' % (
+                # r'P:\Synchronize\python_script_logs\\%s_log_%s.log' % (
+                os.path.basename(__file__),
+                datetime.now().strftime('%Y%m%d%H%M%S')))
 
         log_link = StdFileLoggerCtrl(out_log_file)
 
