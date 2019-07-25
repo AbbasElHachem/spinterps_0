@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on %(date)s
-
-@author: %(username)s
+Function to plot all variograms once fitting was done
 """
 import os
 import timeit
@@ -40,14 +38,14 @@ def exp_vg(h_arr, arg):
 
 def lin_vg(h_arr, arg):
     # arg = (range, sill)
-    lin_vg = arg[1] * (h_arr/arg[0])
+    lin_vg = arg[1] * (h_arr / arg[0])
     lin_vg[h_arr > arg[0]] = arg[1]
     return lin_vg
 
 
 def gau_vg(h_arr, arg):
     # arg = (range, sill)
-    a = -3 * ((h_arr**2/arg[0]**2))
+    a = -3 * ((h_arr**2 / arg[0]**2))
     gau_vg = (arg[1] * (1 - np.exp(a)))
     return gau_vg
 
@@ -64,7 +62,7 @@ def hol_vg(h_arr, arg):
     idxs = np.where(h_arr > 0)
     a = (pi * h_arr[idxs]) / arg[0]
 #    try:
-    hol_vg[idxs] = (arg[1] * (1 - (np.sin(a)/a)))
+    hol_vg[idxs] = (arg[1] * (1 - (np.sin(a) / a)))
 #    except:
 #            import IPython.core.debugger
 #            dbg = IPython.core.debugger.Pdb()
@@ -86,7 +84,8 @@ if __name__ == '__main__':
     print('Started on %s \n' % time.asctime())
     START = timeit.default_timer()  # to get the runtime of the program
 
-    main_dir = os.path.join(r'P:\Synchronize\Python3Codes\krig_idw_nebs\test_ppt')
+    main_dir = os.path.join(
+        r'P:\Synchronize\Python3Codes\krig_idw_nebs\test_ppt')
 
     in_vgs_file = (r'ppt_fitted_variograms__nk_1.000__evg_name_'
                    r'robust__ngp_5__h_typ_var.csv')
@@ -135,7 +134,6 @@ if __name__ == '__main__':
     #    dbg.set_trace()
     #    tre = 1
 
-
     STOP = timeit.default_timer()  # Ending time
     print(('\nDone with everything on %s. Total run time was'
-           ' about %0.4f seconds' % (time.asctime(), STOP-START)))
+           ' about %0.4f seconds' % (time.asctime(), STOP - START)))
