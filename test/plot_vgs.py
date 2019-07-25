@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Function to plot all variograms once fitting was done
+Function to plot all variograms once fitting was done 
 """
 import os
 import timeit
