@@ -42,7 +42,7 @@ class SpInterpSteps:
             '_interp_y_crds_msh',
             '_index_type',
             '_nc_file_path',
-            ]
+        ]
 
         self._debug = False
 

@@ -16,61 +16,53 @@ from spinterps import SpInterpMain
 
 def main():
 
-    #     main_dir = Path(r'Q:\Synchronize_LDs')
     main_dir = Path(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo')
     os.chdir(main_dir)
 
-#     in_data_file = os.path.join(
-#             r'P:\Synchronize\IWS\DWD_meteo_hist_pres',
-#             r'Mulde_preciptiation_infilling_1950_2015',
-#             r'02_combined_station_outputs',
-#             r'infilled_var_df_infill_stns.csv')
-#
-#     in_vgs_file = os.path.join(
-#         r'Mulde_precipitation_kriging_20190417',
-#         r'vg_strs.csv')
-#
-#     in_stns_coords_file = os.path.join(
-#         os.path.dirname(in_data_file),
-#         r'infilled_var_df_infill_stns_coords.csv')
     in_data_file = os.path.join(
-        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo',
-        r'ppt_all_netatmo_daily_stns_combined_reduced_test_kriging.csv')
+        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+        r'all_netatmo_ppt_data_monthly_.csv')
+
+#     in_data_file = os.path.join(
+#         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+#         r'all_dwd_ppt_data_monthly_.csv')
 
     in_vgs_file = os.path.join(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo',
         r'vg_strs.csv')
+#     in_vgs_file = os.path.join(
+#         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo',
+#         r'vg_strs_dwd.csv')
+
+#     in_stns_coords_file = os.path.join(
+#         os.path.dirname(in_data_file),
+#         r'station_coordinates_names_hourly_only_in_BW_utm32.csv')
 
     in_stns_coords_file = os.path.join(
         os.path.dirname(in_data_file),
-        r'coords_ppt_all_netatmo_hourly_stns_combined_reduced_test_kriging.csv')
-
+        r'netatmo_bw_1hour_coords_utm32.csv')
     index_type = 'date'
 
     out_dir = r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo'
-#     out_dir = r'test_spinterp'
+
     var_units = 'mm'  # u'\u2103'  # 'centigrade'
     var_name = 'precipitation'
 
-#     out_krig_net_cdf_file = r'mulde_precipitation_kriging_%s_to_%s_1km_test.nc'
-    out_krig_net_cdf_file = r'netatmo_precipitation_kriging_%s_to_%s_1km_test.nc'
-    freq = 'D'
-    strt_date = r'2018-01-01'
-    end_date = r'2018-01-31'
+    out_krig_net_cdf_file = r'dwd_precipitation_kriging_%s_to_%s_1km_test_2.nc'
+    freq = 'M'
+    strt_date = r'2015-01-01'
+    end_date = r'2019-06-01'
 
     out_krig_net_cdf_file = out_krig_net_cdf_file % (strt_date, end_date)
 
-#     in_drift_rasters_list = (
-#         [r'P:\Synchronize\IWS\2016_DFG_SPATE\data\spate_engine_data\Mulde\hydmod\raster\srtm_mosaic_mulde_gkz3_1km.tif'])
     in_drift_rasters_list = (
-        [r'X:\hiwi\ElHachem\Peru_Project\ancahs_dem\srtm_mosacis_deu_clip_1km.tif'])
-    in_bounds_shp_file = (
-        r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo\shapefile_BW\shapefile_BW_boundaries.shp")
+        [r'X:\hiwi\ElHachem\Peru_Project\ancahs_dem\srtm_mosacis_deu_clip_1km_utm32.tif'])
 
 #     in_bounds_shp_file = (
-#         r"X:\exchange\ElHachem\Netatmo\Landesgrenze_ETRS89\Landesgrenze_10000_ETRS89_lon_lat.shp")
-
+#         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo\shapefile_BW\shapefile_BW_boundaries.shp")
+    in_bounds_shp_file = (
+        r"X:\exchange\ElHachem\Netatmo\Landesgrenze_ETRS89\Landesgrenze_10000_ETRS89.shp")
     align_ras_file = in_drift_rasters_list[0]
 
     nc_time_units = 'days since 1900-01-01 00:00:00.0'
@@ -92,10 +84,12 @@ def main():
     ord_krige_flag = True
     sim_krige_flag = False
     edk_krige_flag = False
-    idw_flag = True
+    idw_flag = False
     plot_figs_flag = True
     verbose = True
     interp_around_polys_flag = True
+
+    DWD_stations = False
 
 #     ord_krige_flag = False
 #     sim_krige_flag = False
@@ -123,6 +117,13 @@ def main():
         sep=in_sep,
         index_col=0,
         encoding='utf-8')
+    if DWD_stations:
+        # added by Abbas, for DWD stations
+        stndwd_ix = ['0' * (5 - len(str(stn_id))) + str(stn_id)
+                     if len(str(stn_id)) < 5 else str(stn_id)
+                     for stn_id in in_stns_coords_df.index]
+
+        in_stns_coords_df.index = stndwd_ix
 
     in_data_df.index = pd.to_datetime(in_data_df.index, format=in_date_fmt)
     in_vgs_df.index = pd.to_datetime(in_vgs_df.index, format=in_date_fmt)
@@ -183,9 +184,8 @@ if __name__ == '__main__':
 
         # save all console activity to out_log_file
         out_log_file = os.path.join(
-            r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo\\%s_log_%s.log' % (
-                # r'P:\Synchronize\python_script_logs\\%s_log_%s.log' % (
-                os.path.basename(__file__),
+            r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo\\%s_log_%s.log'
+            % (os.path.basename(__file__),
                 datetime.now().strftime('%Y%m%d%H%M%S')))
 
         log_link = StdFileLoggerCtrl(out_log_file)

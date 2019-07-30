@@ -66,27 +66,29 @@ def get_max_temp_paths():
 
 
 def get_ppt_paths():
+
+    #     in_vals_df_loc = os.path.join(
+    #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+    #         r'all_dwd_ppt_data_monthly_.csv')
+
     in_vals_df_loc = os.path.join(
-        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo',
-        r'ppt_all_netatmo_daily_stns_combined_reduced_test_kriging.csv')
+        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+        r'all_netatmo_ppt_data_monthly_.csv')
 
-    in_stn_coords_df_loc = os.path.join(
-        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo',
-        r'coords_ppt_all_netatmo_hourly_stns_combined_reduced_test_kriging.csv')
-
-    out_dir = r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo'
+#     in_stn_coords_df_loc = os.path.join(
+#         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+#         r'netatmo_bw_1hour_coords_utm32.csv')
 
 #     in_vals_df_loc = os.path.join(
-#              r'Mulde_preciptiation_infilling_1950_2015',
-#              r'02_combined_station_outputs',
-#              r'infilled_var_df_infill_stns.csv')
+#         r'E:\download_DWD_data_recent\all_dwd_ppt_data_daily_1995_2019.csv')
 #
+    in_stn_coords_df_loc = os.path.join(
+        r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW\netatmo_bw_1hour_coords_utm32.csv")
+
 #     in_stn_coords_df_loc = os.path.join(
-#              r'Mulde_preciptiation_infilling_1950_2015',
-#              r'02_combined_station_outputs',
-#             r'infilled_var_df_infill_stns_coords.csv')
-#
-#     out_dir = r'Mulde_precipitation_kriging_20190417'
+#         r"E:\download_DWD_data_recent\station_coordinates_names_hourly_only_in_BW_utm32.csv")
+
+    out_dir = r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo'
 
     return in_vals_df_loc, in_stn_coords_df_loc, out_dir
 
@@ -99,12 +101,12 @@ def main():
 
     vg_vars = ['ppt']
 
-    strt_date = '2018-01-01'
-    end_date = '2018-01-31'
+    strt_date = '2015-01-01'
+    end_date = '2019-06-01'
     min_valid_stns = 20
 
     drop_stns = []
-    mdr = 0.7
+    mdr = 0.4
     perm_r_list = [1, 2]
     fit_vgs = ['Sph', 'Exp']
     fil_nug_vg = 'Nug'
@@ -112,6 +114,7 @@ def main():
     ngp = 5
     figs_flag = True
 
+    DWD_stations = False
     n_cpus = 4
 
     sep = ';'
@@ -153,6 +156,14 @@ def main():
 
         in_coords_df = pd.read_csv(
             in_stn_coords_df_loc, sep=sep, index_col=0, encoding='utf-8')
+
+        if DWD_stations:
+            # added by Abbas, for DWD stations
+            stndwd_ix = ['0' * (5 - len(str(stn_id))) + str(stn_id)
+                         if len(str(stn_id)) < 5 else str(stn_id)
+                         for stn_id in in_coords_df.index]
+
+            in_coords_df.index = stndwd_ix
 
         in_coords_df.index = list(map(str, in_coords_df.index))
 

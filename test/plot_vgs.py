@@ -86,7 +86,7 @@ if __name__ == '__main__':
     START = timeit.default_timer()  # to get the runtime of the program
 
     main_dir = os.path.join(
-        r'P:\Synchronize\Python3Codes\krig_idw_nebs\test_ppt')
+        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo')
 
     in_vgs_file = (r'ppt_fitted_variograms__nk_1.000__evg_name_'
                    r'robust__ngp_5__h_typ_var.csv')
