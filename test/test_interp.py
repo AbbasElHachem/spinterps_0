@@ -30,7 +30,7 @@ def main():
 
     in_vgs_file = os.path.join(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo',
-        r'vg_strs.csv')
+        r'vg_strs_netatmo.csv')
 #     in_vgs_file = os.path.join(
 #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo',
 #         r'vg_strs_dwd.csv')
@@ -49,7 +49,7 @@ def main():
     var_units = 'mm'  # u'\u2103'  # 'centigrade'
     var_name = 'precipitation'
 
-    out_krig_net_cdf_file = r'dwd_precipitation_kriging_%s_to_%s_1km_test_2.nc'
+    out_krig_net_cdf_file = r'netatmo_netatmo_precipitation_kriging_%s_to_%s_1km_test_2.nc'
     freq = 'M'
     strt_date = r'2015-01-01'
     end_date = r'2019-06-01'
@@ -62,7 +62,7 @@ def main():
 #     in_bounds_shp_file = (
 #         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo\shapefile_BW\shapefile_BW_boundaries.shp")
     in_bounds_shp_file = (
-        r"X:\exchange\ElHachem\Netatmo\Landesgrenze_ETRS89\Landesgrenze_10000_ETRS89.shp")
+        r"F:\data_from_exchange\Netatmo\Landesgrenze_ETRS89\Landesgrenze_10000_ETRS89.shp")
     align_ras_file = in_drift_rasters_list[0]
 
     nc_time_units = 'days since 1900-01-01 00:00:00.0'
@@ -73,10 +73,16 @@ def main():
     min_var_val = 0
     max_var_val = None
 
+    min_nebor_dist_thresh = 0
+
     idw_exps = [1, 3, 5]
-    n_cpus = 7
+    n_cpus = 5
     buffer_dist = 2e3
     sec_buffer_dist = 2e3
+
+    neighbor_selection_method = 'nrst'
+    n_neighbors = 100
+    n_pies = 8
 
     in_sep = ';'
     in_date_fmt = '%Y-%m-%d'
@@ -117,6 +123,7 @@ def main():
         sep=in_sep,
         index_col=0,
         encoding='utf-8')
+
     if DWD_stations:
         # added by Abbas, for DWD stations
         stndwd_ix = ['0' * (5 - len(str(stn_id))) + str(stn_id)
@@ -125,12 +132,27 @@ def main():
 
         in_stns_coords_df.index = stndwd_ix
 
-    in_data_df.index = pd.to_datetime(in_data_df.index, format=in_date_fmt)
-    in_vgs_df.index = pd.to_datetime(in_vgs_df.index, format=in_date_fmt)
+    # added by Abbas
+
+    in_data_df = in_data_df[in_data_df > 20]
+    in_data_df = in_data_df[in_data_df < 400]
+    in_data_df.dropna(inplace=True, how='all')
+
+    if index_type == 'date':
+        in_data_df.index = pd.to_datetime(in_data_df.index, format=in_date_fmt)
+        in_vgs_df.index = pd.to_datetime(in_vgs_df.index, format=in_date_fmt)
+
+    elif index_type == 'obj':
+        in_data_df.index = pd.Index(in_data_df.index, dtype=object)
+        in_vgs_df.index = pd.Index(in_vgs_df.index, dtype=object)
+
+    else:
+        raise ValueError(f'Incorrect index_type: {index_type}!')
 
     spinterp_cls = SpInterpMain(verbose)
 
-    spinterp_cls.set_data(in_data_df, in_stns_coords_df, index_type=index_type)
+    spinterp_cls.set_data(in_data_df, in_stns_coords_df, index_type,
+                          min_nebor_dist_thresh)
     spinterp_cls.set_vgs_ser(in_vgs_df.iloc[:, 0], index_type=index_type)
     spinterp_cls.set_out_dir(out_dir)
 
@@ -149,6 +171,9 @@ def main():
         interp_around_polys_flag,
         sec_buffer_dist)
     spinterp_cls.set_alignment_raster(align_ras_file)
+
+    spinterp_cls.set_neighbor_selection_method(
+        neighbor_selection_method, n_neighbors, n_pies)
 
     spinterp_cls.set_misc_settings(
         n_cpus,
