@@ -71,9 +71,13 @@ def get_ppt_paths():
     #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
     #         r'all_dwd_ppt_data_monthly_.csv')
 
+    #     in_vals_df_loc = os.path.join(
+    #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+    #         r'all_netatmo_ppt_data_monthly_.csv')
+
     in_vals_df_loc = os.path.join(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-        r'all_netatmo_ppt_data_monthly_.csv')
+        r'edf_ppt_all_netatmo_hourly_stns_combined_.csv')
 #     in_stn_coords_df_loc = os.path.join(
 #         r"F:\download_DWD_data_recent\station_coordinates_names_hourly_only_in_BW_utm32.csv")
 
@@ -98,7 +102,7 @@ def main():
     min_valid_stns = 20
 
     drop_stns = []
-    mdr = 0.3
+    mdr = 0.5
     perm_r_list = [1, 2]
     fit_vgs = ['Sph', 'Exp']
     fil_nug_vg = 'Nug'
@@ -148,7 +152,7 @@ def main():
         in_vals_df.dropna(how='all', axis=0, inplace=True)
 
         # added by Abbas, for monthly sums
-        in_vals_df = in_vals_df[in_vals_df < 400]
+        # in_vals_df = in_vals_df[(20 < in_vals_df) & (in_vals_df < 300)]
 
         in_coords_df = pd.read_csv(
             in_stn_coords_df_loc, sep=sep, index_col=0, encoding='utf-8')
