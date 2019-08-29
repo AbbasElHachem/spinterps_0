@@ -67,22 +67,35 @@ def get_max_temp_paths():
 
 def get_ppt_paths():
 
+    # MONTHLY
     #     in_vals_df_loc = os.path.join(
     #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-    #         r'all_dwd_ppt_data_monthly_.csv')
+    #         r'edf_ppt_all_dwd_monthly_stns_combined_.csv')
+    #     in_vals_df_loc = os.path.join(
+    #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+    #         r'edf_ppt_all_netatmo_monthly_gd_stns_combined_.csv')
 
+    # DAILY
     #     in_vals_df_loc = os.path.join(
     #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-    #         r'all_netatmo_ppt_data_monthly_.csv')
+    #         r'all_netatmo_ppt_data_daily_.csv')
+    #     in_vals_df_loc = os.path.join(
+    #         r'F:\download_DWD_data_recent',
+    #         r'all_dwd_daily_ppt_data_combined_2014_2019_.csv')
+    # CDF VALUES
+    #     in_vals_df_loc = os.path.join(
+    #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+    #         r'edf_ppt_all_netamo_daily_gd_stns_combined_.csv')
 
     in_vals_df_loc = os.path.join(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-        r'edf_ppt_all_netatmo_hourly_stns_combined_.csv')
-#     in_stn_coords_df_loc = os.path.join(
-#         r"F:\download_DWD_data_recent\station_coordinates_names_hourly_only_in_BW_utm32.csv")
+        r'edf_ppt_all_dwd_daily_all_stns_combined_.csv')
 
     in_stn_coords_df_loc = os.path.join(
-        r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW\netatmo_bw_1hour_coords_utm32.csv")
+        r"F:\download_DWD_data_recent\station_coordinates_names_hourly_only_in_BW_utm32.csv")
+
+#     in_stn_coords_df_loc = os.path.join(
+#         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW\netatmo_bw_1hour_coords_utm32.csv")
 
     out_dir = r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo'
 
@@ -97,12 +110,12 @@ def main():
 
     vg_vars = ['ppt']
 
-    strt_date = '2015-01-01'
-    end_date = '2019-07-01'
+    strt_date = '2014-01-01'
+    end_date = '2019-08-01'
     min_valid_stns = 20
 
     drop_stns = []
-    mdr = 0.5
+    mdr = 0.8
     perm_r_list = [1, 2]
     fit_vgs = ['Sph', 'Exp']
     fil_nug_vg = 'Nug'
@@ -110,7 +123,7 @@ def main():
     ngp = 5
     figs_flag = True
 
-    DWD_stations = False
+    DWD_stations = True
 
     n_cpus = 4
 
@@ -140,19 +153,36 @@ def main():
         else:
             raise RuntimeError(f'Unknown vg_var: {vg_var}!')
 
+        # added by Abbas
+        path_to_netatmo_gd_stns_file = (
+            r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
+            r"\plots_NetAtmo_ppt_DWD_ppt_correlation_"
+            r"\keep_stns_all_neighbor_95_per_60min_.csv")
+
+        # added by Abbas
+        in_df_stns = pd.read_csv(path_to_netatmo_gd_stns_file, index_col=0,
+                                 sep=';')
+        good_netatmo_stns = list(in_df_stns.values.ravel())
+
         in_vals_df = pd.read_csv(
             in_vals_df_loc, sep=sep, index_col=0, encoding='utf-8')
 
         in_vals_df.index = pd.to_datetime(in_vals_df.index, format='%Y-%m-%d')
         in_vals_df = in_vals_df.loc[strt_date:end_date, :]
 
+#         in_vals_df = in_vals_df.loc[:, good_netatmo_stns]
         if drop_stns:
             in_vals_df.drop(labels=drop_stns, axis=1, inplace=True)
 
         in_vals_df.dropna(how='all', axis=0, inplace=True)
 
+        # added by Abbas, for edf
+        in_vals_df = in_vals_df[in_vals_df >= 0]
         # added by Abbas, for monthly sums
-        # in_vals_df = in_vals_df[(20 < in_vals_df) & (in_vals_df < 300)]
+        #in_vals_df = in_vals_df[(20 < in_vals_df) & (in_vals_df < 300)]
+
+#         in_vals_df = in_vals_df[(0 <= in_vals_df) &
+#                                 (in_vals_df <= 200)]  # daily sums
 
         in_coords_df = pd.read_csv(
             in_stn_coords_df_loc, sep=sep, index_col=0, encoding='utf-8')

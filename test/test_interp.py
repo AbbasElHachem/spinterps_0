@@ -19,22 +19,42 @@ def main():
     main_dir = Path(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo')
     os.chdir(main_dir)
+    #==========================================================================
+#     in_data_file = os.path.join(
+#         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+#         r'all_netatmo_ppt_data_monthly_.csv')
 
     in_data_file = os.path.join(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-        r'all_netatmo_ppt_data_monthly_.csv')
+        r'all_netatmo_ppt_data_daily_.csv')
 
+#     in_data_file = os.path.join(
+#         r'F:\download_DWD_data_recent',
+#         r'all_dwd_daily_ppt_data_combined_2014_2019_.csv')
+    #==========================================================================
+    # added by abbas
+    path_to_netatmo_gd_stns_file = (
+        r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
+        r"\plots_NetAtmo_ppt_DWD_ppt_correlation_"
+        r"\keep_stns_all_neighbor_95_per_60min_.csv")
+    #==========================================================================
 #     in_data_file = os.path.join(
 #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
 #         r'all_dwd_ppt_data_monthly_.csv')
+#     in_data_file = os.path.join(
+#         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+#         r'edf_ppt_all_dwd_monthly_stns_combined_.csv')
+    #==========================================================================
+#     in_vgs_file = os.path.join(
+#         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo',
+#         r'vg_strs_netatmo_edf_high_range_gd_stns.csv')
 
     in_vgs_file = os.path.join(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo',
-        r'vg_strs_netatmo.csv')
-#     in_vgs_file = os.path.join(
-#         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo',
-#         r'vg_strs_dwd.csv')
+        r'vg_strs_netatmo_daily_gd_stns_201805_201810_mid_range.csv')
 
+    #==========================================================================
+#
 #     in_stns_coords_file = os.path.join(
 #         os.path.dirname(in_data_file),
 #         r'station_coordinates_names_hourly_only_in_BW_utm32.csv')
@@ -42,17 +62,18 @@ def main():
     in_stns_coords_file = os.path.join(
         os.path.dirname(in_data_file),
         r'netatmo_bw_1hour_coords_utm32.csv')
+    #==========================================================================
     index_type = 'date'
 
     out_dir = r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo'
 
-    var_units = 'mm'  # u'\u2103'  # 'centigrade'
-    var_name = 'precipitation'
+    var_units = 'mm'  # 'mm'  # u'\u2103'  # 'centigrade'
+    var_name = 'precipitation'  # 'precipitation'
 
-    out_krig_net_cdf_file = r'netatmo_netatmo_precipitation_kriging_%s_to_%s_1km_test_2.nc'
-    freq = 'M'
-    strt_date = r'2015-01-01'
-    end_date = r'2019-06-01'
+    out_krig_net_cdf_file = r'Netatmo_netatmo_daily_precipitation_kriging_%s_to_%s_1km_mid_rg_gd_stns.nc'
+    freq = 'D'
+    strt_date = r'2018-05-01'
+    end_date = r'2018-10-01'
 
     out_krig_net_cdf_file = out_krig_net_cdf_file % (strt_date, end_date)
 
@@ -76,12 +97,12 @@ def main():
     min_nebor_dist_thresh = 0
 
     idw_exps = [1, 3, 5]
-    n_cpus = 5
+    n_cpus = 6
     buffer_dist = 2e3
     sec_buffer_dist = 2e3
 
     neighbor_selection_method = 'nrst'
-    n_neighbors = 100
+    n_neighbors = 20
     n_pies = 8
 
     in_sep = ';'
@@ -104,6 +125,10 @@ def main():
 #     plot_figs_flag = False
 #     verbose = False
 #     interp_around_polys_flag = False
+
+    in_df_stns = pd.read_csv(path_to_netatmo_gd_stns_file, index_col=0,
+                             sep=';')
+    good_stns = list(in_df_stns.values.ravel())
 
     in_data_df = pd.read_csv(
         in_data_file,
@@ -133,9 +158,8 @@ def main():
         in_stns_coords_df.index = stndwd_ix
 
     # added by Abbas
-
-    in_data_df = in_data_df[in_data_df > 20]
-    in_data_df = in_data_df[in_data_df < 400]
+    in_data_df = in_data_df.loc[:, good_stns]
+    in_data_df = in_data_df[in_data_df <= 200]
     in_data_df.dropna(inplace=True, how='all')
 
     if index_type == 'date':
