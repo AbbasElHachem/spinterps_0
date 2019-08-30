@@ -39,29 +39,47 @@ out_plots_path = main_dir / r'oridinary_kriging_compare_DWD_Netatmo'
 
 path_to_data = main_dir / r'oridinary_kriging_compare_DWD_Netatmo/needed_dfs'
 
-path_netatmo_extremes_df = path_to_data / r'netatmo_daily_maximum_100_days.csv'
-path_dwd_extremes_df = path_to_data / r'dwd_daily_maximum_100_days.csv'
-
-path_to_dwd_daily_vgs = path_to_data / r'vgs_strs_dwd_daily_ppt_.csv'
-
+# DAILY DATA
+path_netatmo_daily_extremes_df = path_to_data / \
+    r'netatmo_daily_maximum_100_days.csv'
+path_dwd_daily_extremes_df = path_to_data / r'dwd_daily_maximum_100_days.csv'
+path_to_dwd_daily_vgs = path_to_data / r'vg_strs_dwd_daily_ppt_.csv'
+path_to_dwd_daily_edf_vgs = path_to_data / r'vg_strs_dwd_daily_edf_.csv'
 path_to_dwd_daily_data = (path_to_data /
                           r'all_dwd_daily_ppt_data_combined_2014_2019_.csv')
-
 path_to_netatmo_daily_data = path_to_data / r'all_netatmo_ppt_data_daily_.csv'
-
 path_to_dwd_daily_edf = (path_to_data /
                          r'edf_ppt_all_dwd_daily_all_stns_combined_.csv')
-
 path_to_netatmo_daily_edf = (path_to_data /
                              r'edf_ppt_all_netamo_daily_all_stns_combined_.csv')
 
+# HOURLY DATA
+path_netatmo_hourly_extremes_df = path_to_data / \
+    r'netatmo_hourly_maximum_100_hours.csv'
+path_dwd_hourly_extremes_df = path_to_data / \
+    r'dwd_hourly_maximum_100_hours.csv'
+path_to_dwd_hourly_vgs = path_to_data / r'vg_strs_dwd_hourly_ppt_.csv'
+path_to_dwd_hourly_edf_vgs = path_to_data / r'vg_strs_dwd_hourly_edf_.csv'
 
+path_to_dwd_hourly_data = (path_to_data /
+                           r'all_dwd_hourly_ppt_data_combined_2014_2019_.csv')
+path_to_netatmo_hourly_data = path_to_data / \
+    r'ppt_all_netatmo_hourly_stns_combined_new.csv'
+path_to_dwd_hourly_edf = (path_to_data /
+                          r'edf_ppt_all_dwd_hourly_all_stns_combined_.csv')
+
+path_to_netatmo_hourly_edf = (path_to_data /
+                              r'edf_ppt_all_netamo_daily_all_stns_combined_.csv')
+
+
+# COORDINATES
 path_to_dwd_coords = (path_to_data /
                       r'station_coordinates_names_hourly_only_in_BW_utm32.csv')
 
 path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 
-path_tp_netatmo_gd_stns = (path_to_data /
+# NETATMO FIRST FILTER
+path_to_netatmo_gd_stns = (path_to_data /
                            r'keep_stns_all_neighbor_92_per_60min_.csv')
 
 path_to_shpfile = (
@@ -90,28 +108,63 @@ yk = -5 + 10 * np.random.random(int(n_pts * 0.1))
 strt_date = '2014-01-01'
 end_date = '2019-08-01'
 
-use_netatmo_stns_for_kriging = True
-use_dwd_stns_for_kriging = False
+use_netatmo_stns_for_kriging = False
+use_dwd_stns_for_kriging = True
 
 normal_kriging = False
 qunatile_kriging = True
 
+use_daily_data = True
+use_hourly_data = False
+
 cross_validate = False
 
 use_netatmo_gd_stns = True
+
+use_temporal_filter_after_kriging = True
 # =============================================================================
+if use_daily_data:
+    path_to_netatmo_ppt_data = path_to_netatmo_daily_data
+    path_to_dwd_ppt_data = path_to_dwd_daily_data
+    path_to_netatmo_edf = path_to_netatmo_daily_edf
+    path_to_dwd_edf = path_to_dwd_daily_edf
+
+    path_netatmo_extremes_df = path_netatmo_daily_extremes_df
+    path_dwd_extremes_df = path_dwd_daily_extremes_df
+    plot_label = r'(mm_per_day)'
+
+if use_hourly_data:
+    path_to_netatmo_ppt_data = path_to_netatmo_hourly_data
+    path_to_dwd_ppt_data = path_to_dwd_hourly_data
+    path_to_netatmo_edf = path_to_netatmo_hourly_edf
+    path_to_dwd_edf = path_to_dwd_hourly_edf
+
+    path_netatmo_extremes_df = path_netatmo_hourly_extremes_df
+    path_dwd_extremes_df = path_netatmo_hourly_extremes_df
+    plot_label = r'(mm_per_hour)'
+
 if normal_kriging:
-    netatmo_data_to_use = path_to_netatmo_daily_data
-    dwd_data_to_use = path_to_dwd_daily_data
-    plot_unit = r'(mm_per_day)'
+    netatmo_data_to_use = path_to_netatmo_ppt_data
+    dwd_data_to_use = path_to_dwd_ppt_data
+    if use_daily_data:
+        path_to_dwd_vgs = path_to_dwd_daily_vgs
+    if use_hourly_data:
+        path_to_dwd_vgs = path_to_dwd_hourly_vgs
+    plot_unit = plot_label
     title_ = r'Amounts'
 
 if qunatile_kriging:
-    netatmo_data_to_use = path_to_netatmo_daily_edf
-    dwd_data_to_use = path_to_dwd_daily_edf
+    netatmo_data_to_use = path_to_netatmo_edf
+    dwd_data_to_use = path_to_dwd_edf
+    if use_daily_data:
+        path_to_dwd_vgs = path_to_dwd_daily_edf_vgs
+    if use_hourly_data:
+        path_to_dwd_vgs = path_to_dwd_hourly_edf_vgs
     plot_unit = 'CDF'
     title_ = r'Quantiles'
 
+if use_temporal_filter_after_kriging:
+    title_ = title_ + '_Temporal_filter_used_'
 #==============================================================================
 # # Netatmo DATA and COORDS
 #==============================================================================
@@ -139,8 +192,7 @@ netatmo_in_vals_df = netatmo_in_vals_df.loc[:, cmn_stns]
 #==============================================================================
 
 if use_netatmo_gd_stns:
-    path_to_netatmo_gd_stns = path_to_data / \
-        r'keep_stns_all_neighbor_92_per_60min_.csv'
+
     df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
                              index_col=0,
                              sep=';',
@@ -152,7 +204,6 @@ if use_netatmo_gd_stns:
         netatmo_in_vals_df.columns)
     netatmo_in_vals_df = netatmo_in_vals_df.loc[:, cmn_stns]
     title_ = title_ + r'_using_Netatmo_good_stations_'
-#
 
 #==============================================================================
 # # DWD DATA AND COORDS
@@ -170,8 +221,8 @@ dwd_in_vals_df.index = pd.to_datetime(
 dwd_in_vals_df = dwd_in_vals_df.loc[strt_date:end_date, :]
 dwd_in_vals_df.dropna(how='all', axis=0, inplace=True)
 # daily sums
-dwd_in_vals_df = dwd_in_vals_df[(0 <= dwd_in_vals_df) &
-                                (dwd_in_vals_df <= 300)]
+# dwd_in_vals_df = dwd_in_vals_df[(0 <= dwd_in_vals_df) &
+#                                 (dwd_in_vals_df <= 300)]
 
 # added by Abbas, for DWD stations
 stndwd_ix = ['0' * (5 - len(str(stn_id))) + str(stn_id)
@@ -188,20 +239,23 @@ dwd_in_coords_df.index = list(map(str, dwd_in_coords_df.index))
 netatmo_in_extremes_df = pd.read_csv(path_netatmo_extremes_df,
                                      index_col=0,
                                      sep=';',
-                                     encoding='utf-8')
+                                     encoding='utf-8',
+                                     header=None)
 
 dwd_in_extremes_df = pd.read_csv(path_dwd_extremes_df,
                                  index_col=0,
                                  sep=';',
-                                 encoding='utf-8')
+                                 encoding='utf-8',
+                                 header=None)
 
 #==============================================================================
 # # VG MODELS
 #==============================================================================
-df_vgs = pd.read_csv(path_to_dwd_daily_vgs,
+df_vgs = pd.read_csv(path_to_dwd_vgs,
                      index_col=0,
                      sep=';',
                      encoding='utf-8')
+
 df_vgs.index = pd.to_datetime(df_vgs.index, format='%Y-%m-%d')
 df_vgs_models = df_vgs.iloc[:, 0]
 df_vgs_models.dropna(how='all', inplace=True)
@@ -244,7 +298,6 @@ def _plot_interp(
         grd_min = interp_fld.min()
         grd_max = interp_fld.max()
 
-    # TODO: added by Abbas for EDF plotting
     pclr = ax.pcolormesh(
         _interp_x_crds_plt_msh,
         _interp_y_crds_plt_msh,
@@ -341,8 +394,6 @@ for event_date, event_value in dwd_in_extremes_df.iterrows():
                 yk=y_dwd,
                 model=vgs_model)
 
-            ordinary_kriging.krige()
-
         if use_dwd_stns_for_kriging:
             print('using DWD stations to find Netatmo values')
             measured_vals = netatmo_vals
@@ -361,7 +412,12 @@ for event_date, event_value in dwd_in_extremes_df.iterrows():
                 xk=x_netatmo,
                 yk=y_netatmo,
                 model=vgs_model)
+
+        try:
             ordinary_kriging.krige()
+        except Exception as msg:
+            print('Error while Kriging', msg)
+            continue
 
         print('\nDistances are:\n', ordinary_kriging.in_dists)
         print('\nVariances are:\n', ordinary_kriging.in_vars)
@@ -372,13 +428,39 @@ for event_date, event_value in dwd_in_extremes_df.iterrows():
         print('\nmus are:\n', ordinary_kriging.mus)
         print('\n\n')
 
-        spr_corr = spearmanr(measured_vals, ordinary_kriging.zk)[0]
-        pear_corr = pearsonr(measured_vals, ordinary_kriging.zk)[0]
+        # interpolated vals
+        interpolated_vals = ordinary_kriging.zk
+
+        # calcualte standard deviation of estimated values
+        std_est_vals = np.sqrt(ordinary_kriging.est_vars)
+        # calculate difference observed and estimated values
+        diff_obsv_interp = np.abs(measured_vals - interpolated_vals)
+
+        # use additional temporal filter
+        idx_good_stns = np.where(diff_obsv_interp <= 3 * std_est_vals)
+        idx_bad_stns = np.where(diff_obsv_interp > 3 * std_est_vals)
+
+        if use_temporal_filter_after_kriging:
+            # use additional filter
+
+            try:
+                measured_vals = np.take(measured_vals,
+                                        idx_good_stns).ravel()
+                interpolated_vals = np.take(interpolated_vals,
+                                            idx_good_stns).ravel()
+
+            except Exception as msg:
+                print(msg)
+
+        event_date = event_date.replace('-', '_').replace(':', '_')
+
+        spr_corr = spearmanr(measured_vals, interpolated_vals)[0]
+        pear_corr = pearsonr(measured_vals, interpolated_vals)[0]
 
         plt.ioff()
         fig, ax = plt.subplots(figsize=(16, 12), dpi=100)
 
-        ax.scatter(measured_vals, ordinary_kriging.zk,
+        ax.scatter(measured_vals, interpolated_vals,
                    color='r', marker='*', alpha=0.75, s=25,
                    label=(('Nbr used %s stns %d \n'
                            'Nbr used %s stns %d')
@@ -386,15 +468,15 @@ for event_date, event_value in dwd_in_extremes_df.iterrows():
                              used_stns, used_vals.shape[0])))
 
         ax.set_xlim(
-            [-0.1, max(measured_vals.max(), ordinary_kriging.zk.max()) + .2])
+            [-0.1, max(measured_vals.max(), interpolated_vals.max()) + .2])
         ax.set_ylim(
-            [-0.1, max(measured_vals.max(), ordinary_kriging.zk.max()) + .2])
+            [-0.1, max(measured_vals.max(), interpolated_vals.max()) + .2])
 
-        ax.plot([0, max(measured_vals.max(), ordinary_kriging.zk.max()) + .2],
-                [0, max(measured_vals.max(), ordinary_kriging.zk.max()) + .2],
+        ax.plot([0, max(measured_vals.max(), interpolated_vals.max()) + .2],
+                [0, max(measured_vals.max(), interpolated_vals.max()) + .2],
                 color='k', alpha=0.25, linestyle='--')
 
-        ax.set_title(('Observed vs Interpolated Rainfall %s %s '
+        ax.set_title(('Observed vs Interpolated Rainfall %s \n %s \n '
                       '%s \n'
                       'Event Date:%s and Variogram model: %s\n'
                       'Pearson Corr: %0.2f and Spearman Corr: %0.2f'
@@ -406,18 +488,25 @@ for event_date, event_value in dwd_in_extremes_df.iterrows():
 
         ax.legend(loc=0)
         ax.grid(alpha=0.5)
-
-        plt.savefig(out_plots_path /
-                    (r"observed_vs_interpolated_%s_%s_%s_%s.png"
-                     % (title_, plot_unit, event_date, plot_title_acc)),
-                    frameon=True, papertype='a4',
-                    bbox_inches='tight', pad_inches=.2)
+        try:
+            plt.savefig(out_plots_path /
+                        (r"observed_vs_interpolated_%s_%s_%s_%s.png"
+                         % (title_, plot_unit, event_date, plot_title_acc)),
+                        frameon=True, papertype='a4',
+                        bbox_inches='tight', pad_inches=.2)
+        except Exception as msg:
+            print('Error while saving', msg)
+            continue
         plt.clf()
         plt.close('all')
 
     else:
         print('no Variogram for this event')
         continue
+
+stop = timeit.default_timer()  # Ending time
+print('\n\a\a\a Done with everything on %s. Total run time was about %0.4f seconds \a\a\a' %
+      (time.asctime(), stop - start))
 
 # if ordinary:
 #     print('\a Ordinary Kriging...')
@@ -612,7 +701,3 @@ for event_date, event_value in dwd_in_extremes_df.iterrows():
 #     print('\nest_vars are:\n', sindicator_kriging.est_covars)
 #     print('\nlambdas are:\n', sindicator_kriging.lambdas)
 #     print('\n\n')
-
-stop = timeit.default_timer()  # Ending time
-print('\n\a\a\a Done with everything on %s. Total run time was about %0.4f seconds \a\a\a' %
-      (time.asctime(), stop - start))

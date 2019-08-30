@@ -82,24 +82,58 @@ def get_ppt_paths():
     #     in_vals_df_loc = os.path.join(
     #         r'F:\download_DWD_data_recent',
     #         r'all_dwd_daily_ppt_data_combined_2014_2019_.csv')
+
+    # Hourly
+    #     in_vals_df_loc = os.path.join(
+    #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+    #         r'all_netatmo_ppt_data_daily_.csv')
+    #     in_vals_df_loc = os.path.join(
+    #         r'F:\download_DWD_data_recent',
+    #         r'all_dwd_hourly_ppt_data_combined_2014_2019_.csv')
+
     # CDF VALUES
     #     in_vals_df_loc = os.path.join(
     #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
     #         r'edf_ppt_all_netamo_daily_gd_stns_combined_.csv')
 
+    #     in_vals_df_loc = os.path.join(
+    #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+    #         r'edf_ppt_all_dwd_daily_all_stns_combined_.csv')
+
     in_vals_df_loc = os.path.join(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-        r'edf_ppt_all_dwd_daily_all_stns_combined_.csv')
+        r'edf_ppt_all_dwd_hourly_.csv')
 
+    # COORDS
     in_stn_coords_df_loc = os.path.join(
         r"F:\download_DWD_data_recent\station_coordinates_names_hourly_only_in_BW_utm32.csv")
 
 #     in_stn_coords_df_loc = os.path.join(
 #         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW\netatmo_bw_1hour_coords_utm32.csv")
 
+    # added by Abbas
+
+    path_to_netatmo_gd_stns_file = (
+        r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
+        r"\plots_NetAtmo_ppt_DWD_ppt_correlation_"
+        r"\keep_stns_all_neighbor_95_per_60min_.csv")
+
+    # Netatmo extremes
+    path_to_netatmo_ppt_extreme = (
+        r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
+        r"\NetAtmo_BW"
+        r"\netatmo_hourly_maximum_100_hours.csv")
+    # DWD extremes
+    path_to_dwd_ppt_extreme = (
+        r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
+        r"\NetAtmo_BW"
+        r"\dwd_hourly_maximum_100_hours.csv")
+
     out_dir = r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo'
 
-    return in_vals_df_loc, in_stn_coords_df_loc, out_dir
+    return (in_vals_df_loc, in_stn_coords_df_loc, out_dir,
+            path_to_netatmo_gd_stns_file, path_to_netatmo_ppt_extreme,
+            path_to_dwd_ppt_extreme)
 
 
 def main():
@@ -122,6 +156,10 @@ def main():
     n_best = 4
     ngp = 5
     figs_flag = True
+
+    fit_for_extreme_events = True
+
+    use_netatmo_good_stns = False
 
     DWD_stations = True
 
@@ -148,21 +186,21 @@ def main():
         elif vg_var == 'ppt':
             (in_vals_df_loc,
              in_stn_coords_df_loc,
-             out_dir) = get_ppt_paths()
+             out_dir,
+             path_to_netatmo_gd_stns_file,
+             path_to_netatmo_ppt_extreme,
+             path_to_dwd_ppt_extreme) = get_ppt_paths()
 
         else:
             raise RuntimeError(f'Unknown vg_var: {vg_var}!')
 
         # added by Abbas
-        path_to_netatmo_gd_stns_file = (
-            r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
-            r"\plots_NetAtmo_ppt_DWD_ppt_correlation_"
-            r"\keep_stns_all_neighbor_95_per_60min_.csv")
 
-        # added by Abbas
-        in_df_stns = pd.read_csv(path_to_netatmo_gd_stns_file, index_col=0,
-                                 sep=';')
-        good_netatmo_stns = list(in_df_stns.values.ravel())
+        if use_netatmo_good_stns:
+            in_df_stns = pd.read_csv(path_to_netatmo_gd_stns_file,
+                                     index_col=0,
+                                     sep=';')
+            good_netatmo_stns = list(in_df_stns.values.ravel())
 
         in_vals_df = pd.read_csv(
             in_vals_df_loc, sep=sep, index_col=0, encoding='utf-8')
@@ -170,7 +208,9 @@ def main():
         in_vals_df.index = pd.to_datetime(in_vals_df.index, format='%Y-%m-%d')
         in_vals_df = in_vals_df.loc[strt_date:end_date, :]
 
-#         in_vals_df = in_vals_df.loc[:, good_netatmo_stns]
+        if use_netatmo_good_stns:
+            in_vals_df = in_vals_df.loc[:, good_netatmo_stns]
+
         if drop_stns:
             in_vals_df.drop(labels=drop_stns, axis=1, inplace=True)
 
@@ -178,14 +218,17 @@ def main():
 
         # added by Abbas, for edf
         in_vals_df = in_vals_df[in_vals_df >= 0]
-        # added by Abbas, for monthly sums
-        #in_vals_df = in_vals_df[(20 < in_vals_df) & (in_vals_df < 300)]
-
-#         in_vals_df = in_vals_df[(0 <= in_vals_df) &
-#                                 (in_vals_df <= 200)]  # daily sums
 
         in_coords_df = pd.read_csv(
             in_stn_coords_df_loc, sep=sep, index_col=0, encoding='utf-8')
+
+        if fit_for_extreme_events:
+            df_extremes = pd.read_csv(path_to_dwd_ppt_extreme,
+                                      sep=';', index_col=0, parse_dates=True,
+                                      infer_datetime_format=True,
+                                      header=None)
+
+            in_vals_df = in_vals_df.loc[df_extremes.index, :]
 
         if DWD_stations:
             # added by Abbas, for DWD stations
