@@ -20,13 +20,19 @@ from spinterps import (OrdinaryKriging)
 
 import timeit
 import time
+import shapefile
+import pyproj
 import pandas as pd
 import matplotlib.pyplot as plt
+
+
+from pathlib import Path
+
+from scipy.interpolate import griddata
 from scipy.stats import spearmanr as spearmanr
 from scipy.stats import pearsonr as pearsonr
-from pathlib import Path
-import shapefile
 
+plt.ioff()
 plt.rcParams.update({'font.size': 12})
 plt.rcParams.update({'axes.labelsize': 12})
 
@@ -51,7 +57,16 @@ path_to_netatmo_daily_data = path_to_data / r'all_netatmo_ppt_data_daily_.csv'
 path_to_dwd_daily_edf = (path_to_data /
                          r'edf_ppt_all_dwd_daily_all_stns_combined_.csv')
 path_to_netatmo_daily_edf = (path_to_data /
-                             r'edf_ppt_all_netamo_daily_all_stns_combined_.csv')
+                             r'edf_ppt_all_netatmo_daily_.csv')
+
+# done after filterting based on kriging
+path_to_netatmo_daily_data_temp_filter = (
+    path_to_data /
+    r'all_netatmo_ppt_data_daily_temporal_filter.csv')
+path_to_netatmo_daily_edf_temp_filte = (
+    path_to_data /
+    r'all_netatmo_edf_data_daily_temporal_filter.csv')
+
 
 # HOURLY DATA
 path_netatmo_hourly_extremes_df = path_to_data / \
@@ -80,10 +95,10 @@ path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 
 # NETATMO FIRST FILTER
 path_to_netatmo_gd_stns = (path_to_data /
-                           r'keep_stns_all_neighbor_92_per_60min_.csv')
+                           r'keep_stns_all_neighbor_90_per_60min_.csv')
 
 path_to_shpfile = (
-    r"X:\exchange\ElHachem\Netatmo\Landesgrenze_ETRS89\Landesgrenze_10000_ETRS89_lon_lat.shp")
+    r"F:\data_from_exchange\Netatmo\Landesgrenze_ETRS89\Landesgrenze_10000_ETRS89_lon_lat.shp")
 
 # =============================================================================
 # random points and values
@@ -108,11 +123,11 @@ yk = -5 + 10 * np.random.random(int(n_pts * 0.1))
 strt_date = '2014-01-01'
 end_date = '2019-08-01'
 
-use_netatmo_stns_for_kriging = False
-use_dwd_stns_for_kriging = True
+use_netatmo_stns_for_kriging = True
+use_dwd_stns_for_kriging = False
 
-normal_kriging = False
-qunatile_kriging = True
+normal_kriging = True
+qunatile_kriging = False
 
 use_daily_data = True
 use_hourly_data = False
@@ -121,12 +136,12 @@ cross_validate = False
 
 use_netatmo_gd_stns = True
 
-use_temporal_filter_after_kriging = True
+use_temporal_filter_after_kriging = False  # run it to filter Netatmo
 # =============================================================================
 if use_daily_data:
-    path_to_netatmo_ppt_data = path_to_netatmo_daily_data
+    path_to_netatmo_ppt_data = path_to_netatmo_daily_data  # _temp_filter
     path_to_dwd_ppt_data = path_to_dwd_daily_data
-    path_to_netatmo_edf = path_to_netatmo_daily_edf
+    path_to_netatmo_edf = path_to_netatmo_daily_edf  # _temp_filte
     path_to_dwd_edf = path_to_dwd_daily_edf
 
     path_netatmo_extremes_df = path_netatmo_daily_extremes_df
@@ -142,6 +157,10 @@ if use_hourly_data:
     path_netatmo_extremes_df = path_netatmo_hourly_extremes_df
     path_dwd_extremes_df = path_netatmo_hourly_extremes_df
     plot_label = r'(mm_per_hour)'
+
+if use_temporal_filter_after_kriging:
+    path_to_netatmo_ppt_data = path_to_netatmo_daily_data_temp_filter
+    path_to_netatmo_edf = path_to_netatmo_daily_edf_temp_filte
 
 if normal_kriging:
     netatmo_data_to_use = path_to_netatmo_ppt_data
@@ -205,6 +224,8 @@ if use_netatmo_gd_stns:
     netatmo_in_vals_df = netatmo_in_vals_df.loc[:, cmn_stns]
     title_ = title_ + r'_using_Netatmo_good_stations_'
 
+if use_temporal_filter_after_kriging:
+    df_stns_netatmo_gd_event = netatmo_in_vals_df
 #==============================================================================
 # # DWD DATA AND COORDS
 #==============================================================================
@@ -263,56 +284,103 @@ df_vgs_models.dropna(how='all', inplace=True)
 #==============================================================================
 #
 #==============================================================================
+wgs82 = "+init=EPSG:4326"
+utm32 = "+init=EPSG:32632"
 
 
+def convert_coords_fr_wgs84_to_utm32_(epgs_initial_str, epsg_final_str,
+                                      first_coord, second_coord):
+    """
+    Purpose: Convert points from one reference system to a second
+    --------
+        In our case the function is used to transform WGS84 to UTM32
+        (or vice versa), for transforming the DWD and Netatmo station
+        coordinates to same reference system.
+
+        Used for calculating the distance matrix between stations
+
+    Keyword argument:
+    -----------------
+        epsg_initial_str: EPSG code as string for initial reference system
+        epsg_final_str: EPSG code as string for final reference system
+        first_coord: numpy array of X or Longitude coordinates
+        second_coord: numpy array of Y or Latitude coordinates
+
+    Returns:
+    -------
+        x, y: two numpy arrays containing the transformed coordinates in 
+        the final coordinates system
+    """
+    initial_epsg = pyproj.Proj(epgs_initial_str)
+    final_epsg = pyproj.Proj(epsg_final_str)
+    x, y = pyproj.transform(initial_epsg, final_epsg,
+                            first_coord, second_coord)
+    return x, y
+
+
+#==============================================================================
+#
+#==============================================================================
 def _plot_interp(
-        _interp_x_crds_plt_msh,
-        _interp_y_crds_plt_msh,
-        interp_fld,
-        _index_type,
-        curr_x_coords,
-        curr_y_coords,
+        _interp_x_crds_,
+        _interp_y_crds_,
+        _interp_z_vals_,
+        obs_x_coords,
+        obs_y_coords,
         interp_time,
         model,
         interp_type,
         out_figs_dir,
-        data_vals,
         _nc_vlab,
         _nc_vunits):
 
-    if _index_type == 'date':
-        time_str = interp_time.strftime('%Y_%m_%d_T_%H_%M')
+    plt.ioff()
 
-    elif _index_type == 'obj':
-        time_str = interp_time
+    time_str = interp_time
 
-    out_fig_name = f'{interp_type.lower()}_{time_str}.png'
+    out_fig_name = f'{interp_type}_{time_str}.png'
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(12, 8), dpi=150)
 
-    if not np.all(np.isfinite(interp_fld)):
-        grd_min = np.nanmin(data_vals)
-        grd_max = np.nanmax(data_vals)
+    # read and plot shapefile (BW or Germany) should be lon lat
 
-    else:
-        grd_min = interp_fld.min()
-        grd_max = interp_fld.max()
+    shp_de = shapefile.Reader(path_to_shpfile)
+    xshapefile, yshapefile = [], []
+    for shape_ in shp_de.shapeRecords():
+        lon = [i[0] for i in shape_.shape.points[:][::-1]]
+        lat = [i[1] for i in shape_.shape.points[:][::-1]]
+        x0, y0 = convert_coords_fr_wgs84_to_utm32_(
+            wgs82, utm32, lon, lat)
+        xshapefile.append(x0)
+        yshapefile.append(y0)
+        ax.scatter(x0, y0, marker='.', c='lightgrey',
+                   alpha=0.25, s=1)
 
-    pclr = ax.pcolormesh(
-        _interp_x_crds_plt_msh,
-        _interp_y_crds_plt_msh,
-        interp_fld,
-        cmap=plt.get_cmap('viridis'),
-        vmin=0,  # grd_min,
-        vmax=60)  # grd_max)
+    xmesh, ymesh = np.meshgrid(np.linspace(np.min(xshapefile),
+                                           np.max(xshapefile), 100),
+                               np.linspace(np.min(yshapefile),
+                                           np.max(yshapefile), 100))
+
+    zi = griddata((_interp_x_crds_,
+                   _interp_y_crds_),
+                  _interp_z_vals_,
+                  (xmesh, ymesh), method='cubic')
+
+#     # norm = colors.BoundaryNorm(boundaries=np.array([0, 180, 60]), ncolors=256)
+    pclr = ax.pcolormesh(xmesh, ymesh, zi,
+                         cmap=plt.get_cmap('viridis'),
+                         # extend='max', , 1000,origin='lower'
+                         vmin=0,
+                         vmax=np.int(interpolated_vals.max()) + 1
+                         )
 
     cb = fig.colorbar(pclr)
 
     cb.set_label(_nc_vlab + ' (' + _nc_vunits + ')')
 
     ax.scatter(
-        curr_x_coords,
-        curr_y_coords,
+        obs_x_coords,
+        obs_y_coords,
         label='obs. pts.',
         marker='+',
         c='r',
@@ -320,27 +388,17 @@ def _plot_interp(
 
     ax.legend(framealpha=0.5)
 
-    # read and plot shapefile (BW or Germany) should be lon lat
-
-    shp_de = shapefile.Reader(path_to_shpfile)
-    for shape_ in shp_de.shapeRecords():
-        lon = [i[0] for i in shape_.shape.points[:][::-1]]
-        lat = [i[1] for i in shape_.shape.points[:][::-1]]
-
-        ax.scatter(lon, lat, marker='.', c='lightgrey',
-                   alpha=0.25, s=1)
-
     ax.set_xlabel('Easting')
     ax.set_ylabel('Northing')
-
-    title = (
-        f'Time: {time_str}\n(VG: {model})\n'
-        f'Min.: {grd_min:0.4f}, Max.: {grd_max:0.4f}')
+    # ax.set_xticks([xmesh[0]])
+    # ax.set_yticks([ymesh[0]])
+    title = (f'Time: {time_str}\n(VG: {model})\n')
+#         f'Min.: {grd_min:0.4f}, Max.: {grd_max:0.4f}')
 
     ax.set_title(title)
 
-    plt.setp(ax.get_xmajorticklabels(), rotation=70)
-    ax.set_aspect('equal', 'datalim')
+    #plt.setp(ax.get_xmajorticklabels(), rotation=70)
+    #ax.set_aspect('equal', 'datalim')
 
     plt.savefig(str(out_figs_dir / out_fig_name), bbox_inches='tight')
     plt.close()
@@ -354,14 +412,35 @@ start = timeit.default_timer()  # to get the runtime of the program
 # # ordinary kriging
 #==============================================================================
 
-for event_date, event_value in dwd_in_extremes_df.iterrows():
 
+for event_date, event_value in dwd_in_extremes_df.iterrows():
+    # if event_date == '2018-05-14':
+    #   raise Exception
     if ((event_date in df_vgs_models.index) and
         (event_date in dwd_in_vals_df.index) and
             (event_date in netatmo_in_vals_df.index)):
         print('Event date is', event_date)
 
         vgs_model = df_vgs_models.loc[event_date]
+        # check if variogram is 'good'
+        if 'Nug' in vgs_model and (
+                'Exp' not in vgs_model and 'Sph' not in vgs_model):
+            print('**Variogram not valid, looking for alternative\n**',
+                  vgs_model)
+            try:
+                for i in range(4):
+                    vgs_model = df_vgs.loc[event_date, str(i)]
+                    if type(vgs_model) == np.float:
+                        continue
+                    if 'Nug' in vgs_model and ('Exp' not in vgs_model or
+                                               'Sph' not in vgs_model):
+                        continue
+                    else:
+                        break
+            except Exception as msg:
+                print(msg)
+                print('Only Nugget variogram for this day')
+            print('**Changed Variogram model to**\n', vgs_model)
         # DWD data and coords
         dwd_df = dwd_in_vals_df.loc[event_date, :].dropna(how='all')
         dwd_vals = dwd_df.values
@@ -370,11 +449,13 @@ for event_date, event_value in dwd_in_extremes_df.iterrows():
 
         # Netatmo data and coords
         netatmo_df = netatmo_in_vals_df.loc[event_date, :].dropna(how='all')
+        #netatmo_df = netatmo_df[2 < netatmo_df]
         netatmo_vals = netatmo_df.values
         netatmo_coords = netatmo_in_coords_df.loc[netatmo_df.index]
         x_netatmo, y_netatmo = netatmo_coords.X.values, netatmo_coords.Y.values
 
-        print('\a Ordinary Kriging...')
+        # TODO: add filter on minimum number of stations
+        print('\a\a\a Doing Ordinary Kriging \a\a\a')
 
         if use_netatmo_stns_for_kriging:
             print('using Netatmo stations to find DWD values')
@@ -386,6 +467,7 @@ for event_date, event_value in dwd_in_extremes_df.iterrows():
             measured_stns = 'DWD'
             used_stns = 'Netatmo'
             plot_title_acc = '_using_Netatmo_stations_to_find_DWD_values_'
+
             ordinary_kriging = OrdinaryKriging(
                 xi=x_netatmo,
                 yi=y_netatmo,
@@ -419,38 +501,53 @@ for event_date, event_value in dwd_in_extremes_df.iterrows():
             print('Error while Kriging', msg)
             continue
 
-        print('\nDistances are:\n', ordinary_kriging.in_dists)
-        print('\nVariances are:\n', ordinary_kriging.in_vars)
-        print('\nRight hand sides are:\n', ordinary_kriging.rhss)
-        print('\nzks are:', ordinary_kriging.zk)
-        print('\nest_vars are:\n', ordinary_kriging.est_vars)
-        print('\nlambdas are:\n', ordinary_kriging.lambdas)
-        print('\nmus are:\n', ordinary_kriging.mus)
-        print('\n\n')
+        # print('\nDistances are:\n', ordinary_kriging.in_dists)
+        # print('\nVariances are:\n', ordinary_kriging.in_vars)
+        # print('\nRight hand sides are:\n', ordinary_kriging.rhss)
+        # print('\nzks are:', ordinary_kriging.zk)
+        # print('\nest_vars are:\n', ordinary_kriging.est_vars)
+        # print('\nlambdas are:\n', ordinary_kriging.lambdas)
+        # print('\nmus are:\n', ordinary_kriging.mus)
+        # print('\n\n')
 
         # interpolated vals
         interpolated_vals = ordinary_kriging.zk
-
-        # calcualte standard deviation of estimated values
-        std_est_vals = np.sqrt(ordinary_kriging.est_vars)
-        # calculate difference observed and estimated values
-        diff_obsv_interp = np.abs(measured_vals - interpolated_vals)
-
-        # use additional temporal filter
-        idx_good_stns = np.where(diff_obsv_interp <= 3 * std_est_vals)
-        idx_bad_stns = np.where(diff_obsv_interp > 3 * std_est_vals)
-
         if use_temporal_filter_after_kriging:
-            # use additional filter
 
-            try:
-                measured_vals = np.take(measured_vals,
-                                        idx_good_stns).ravel()
-                interpolated_vals = np.take(interpolated_vals,
-                                            idx_good_stns).ravel()
+            # calcualte standard deviation of estimated values
+            std_est_vals = np.sqrt(ordinary_kriging.est_vars)
+            # calculate difference observed and estimated values
+            diff_obsv_interp = np.abs(measured_vals - interpolated_vals)
 
-            except Exception as msg:
-                print(msg)
+            # use additional temporal filter
+            idx_good_stns = np.where(diff_obsv_interp <= 3 * std_est_vals)
+            idx_bad_stns = np.where(diff_obsv_interp > 3 * std_est_vals)
+
+            if len(idx_bad_stns[0]) > 0:
+                print('Number of Stations with bad index \n',
+                      len(idx_bad_stns[0]))
+                print('Number of Stations with good index \n',
+                      len(idx_good_stns[0]))
+                print('**Removing bad stations and saving to new df**')
+
+                # use additional filter
+                try:
+                    ids_netatmo_stns_gd = np.take(netatmo_df.index,
+                                                  idx_good_stns).ravel()
+                    ids_netatmo_stns_bad = np.take(netatmo_df.index,
+                                                   idx_bad_stns).ravel()
+
+                    df_stns_netatmo_gd_event.loc[event_date,
+                                                 ids_netatmo_stns_bad] = np.nan
+
+
+#                     measured_vals = np.take(measured_vals,
+#                                             idx_good_stns).ravel()
+#                     interpolated_vals = np.take(interpolated_vals,
+#                                                 idx_good_stns).ravel()
+
+                except Exception as msg:
+                    print(msg)
 
         event_date = event_date.replace('-', '_').replace(':', '_')
 
@@ -500,9 +597,27 @@ for event_date, event_value in dwd_in_extremes_df.iterrows():
         plt.clf()
         plt.close('all')
 
+#         _plot_interp(
+#             x_dwd,
+#             y_dwd,
+#             interpolated_vals,
+#             x_netatmo,
+#             y_netatmo,
+#             event_date,
+#             vgs_model,
+#             'OK',
+#             out_plots_path,
+#             plot_unit,
+#             '')
+
     else:
         print('no Variogram for this event')
         continue
+
+if use_temporal_filter_after_kriging:
+    df_stns_netatmo_gd_event.to_csv(out_plots_path / (
+        r'all_netatmo_ppt_data_daily_temporal_filter.csv'), sep=';',
+        float_format='%.2f')
 
 stop = timeit.default_timer()  # Ending time
 print('\n\a\a\a Done with everything on %s. Total run time was about %0.4f seconds \a\a\a' %

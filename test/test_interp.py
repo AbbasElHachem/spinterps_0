@@ -51,7 +51,7 @@ def main():
 
     in_vgs_file = os.path.join(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo',
-        r'vg_strs_netatmo_daily_gd_stns_201805_201810_mid_range.csv')
+        r'vg_strs_dwd_daily_ppt_.csv')
 
     #==========================================================================
 #
