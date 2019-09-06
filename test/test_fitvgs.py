@@ -100,9 +100,14 @@ def get_ppt_paths():
     #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
     #         r'edf_ppt_all_dwd_daily_all_stns_combined_.csv')
 
+    #     in_vals_df_loc = os.path.join(
+    #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+    #         r'edf_ppt_all_dwd_hourly_.csv')
+
+    # Cold - Warm season distributions DWD
     in_vals_df_loc = os.path.join(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-        r'edf_ppt_all_dwd_hourly_.csv')
+        r'df_dwd_distributions_cold_season_hourly.csv')
 
     # COORDS
     in_stn_coords_df_loc = os.path.join(
@@ -157,7 +162,7 @@ def main():
     ngp = 5
     figs_flag = True
 
-    fit_for_extreme_events = True
+    fit_for_extreme_events = False
 
     use_netatmo_good_stns = False
 
@@ -217,7 +222,7 @@ def main():
         in_vals_df.dropna(how='all', axis=0, inplace=True)
 
         # added by Abbas, for edf
-        in_vals_df = in_vals_df[in_vals_df >= 0]
+        #in_vals_df = in_vals_df[in_vals_df >= 0]
 
         in_coords_df = pd.read_csv(
             in_stn_coords_df_loc, sep=sep, index_col=0, encoding='utf-8')

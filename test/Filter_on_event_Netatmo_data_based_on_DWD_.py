@@ -64,10 +64,9 @@ path_to_dwd_hourly_data = (path_to_data /
 path_to_netatmo_hourly_data = path_to_data / \
     r'ppt_all_netatmo_hourly_stns_combined_new.csv'
 path_to_dwd_hourly_edf = (path_to_data /
-                          r'edf_ppt_all_dwd_hourly_all_stns_combined_.csv')
-
+                          r'edf_ppt_all_dwd_hourly_.csv')
 path_to_netatmo_hourly_edf = (path_to_data /
-                              r'edf_ppt_all_netamo_daily_all_stns_combined_.csv')
+                              r'edf_ppt_all_netatmo_hourly_.csv')
 
 
 # COORDINATES
@@ -81,39 +80,20 @@ path_to_netatmo_gd_stns = (path_to_data /
                            r'keep_stns_all_neighbor_90_per_60min_.csv')
 
 # =============================================================================
-# random points and values
-n_pts = 160
-n_pts_nebs = 63
-xi = -5 + 10 * np.random.random(n_pts_nebs)
-yi = -5 + 10 * np.random.random(n_pts_nebs)
-zi = -50 + 100 * np.random.random(n_pts_nebs)
-# zi = np.array([1., 1., 1., 1., 1.])
-# si = a + b * zi
-si = -50 + 100 * np.random.random(n_pts_nebs)
-
-xk = -5 + 10 * np.random.random(int(n_pts * 0.1))
-yk = -5 + 10 * np.random.random(int(n_pts * 0.1))
-# sk = -5 + 10 * np.random.random(int(n_pts * 0.1))
-#
-# n_drifts = 1
-# si_md = -50 + 100 * np.random.random((n_drifts, n_pts_nebs))
-# sk_md = -5 + 10 * np.random.random((n_drifts, int(n_pts * 0.1)))
-# =============================================================================
 
 strt_date = '2014-01-01'
 end_date = '2019-08-01'
 
 use_dwd_stns_for_kriging = True
 
-normal_kriging = True
-qunatile_kriging = False
+normal_kriging = False
+qunatile_kriging = True
 
-use_daily_data = True
-use_hourly_data = False
+use_daily_data = False
+use_hourly_data = True
 
 use_netatmo_gd_stns = True
 
-use_temporal_filter_after_kriging = True  # run it to filter Netatmo
 # =============================================================================
 if use_daily_data:
     path_to_netatmo_ppt_data = path_to_netatmo_daily_data  # _temp_filter
@@ -190,8 +170,6 @@ if use_netatmo_gd_stns:
         netatmo_in_vals_df.columns)
     netatmo_in_vals_df = netatmo_in_vals_df.loc[:, cmn_stns]
 
-if use_temporal_filter_after_kriging:
-    df_stns_netatmo_gd_event = netatmo_in_vals_df
 
 #==============================================================================
 # # DWD DATA AND COORDS
@@ -285,6 +263,17 @@ def convert_coords_fr_wgs84_to_utm32_(epgs_initial_str, epsg_final_str,
     return x, y
 
 
+#==============================================================================
+# DF to hold results
+#==============================================================================
+
+
+df_stns_netatmo_gd_event = netatmo_in_vals_df
+
+
+#==============================================================================
+#
+#==============================================================================
 print('\a\a\a\a Started on %s \a\a\a\a\n' % time.asctime())
 start = timeit.default_timer()  # to get the runtime of the program
 
@@ -293,7 +282,7 @@ start = timeit.default_timer()  # to get the runtime of the program
 #==============================================================================
 
 
-for event_date, event_value in dwd_in_extremes_df.iterrows():
+for event_date in df_vgs_models.index:
 
     if ((event_date in df_vgs_models.index) and
         (event_date in dwd_in_vals_df.index) and
@@ -371,47 +360,48 @@ for event_date, event_value in dwd_in_extremes_df.iterrows():
 
         # interpolated vals
         interpolated_vals = ordinary_kriging.zk
-        if use_temporal_filter_after_kriging:
 
-            # calcualte standard deviation of estimated values
-            std_est_vals = np.sqrt(ordinary_kriging.est_vars)
-            # calculate difference observed and estimated values
-            diff_obsv_interp = np.abs(measured_vals - interpolated_vals)
+        # calcualte standard deviation of estimated values
+        std_est_vals = np.sqrt(ordinary_kriging.est_vars)
+        # calculate difference observed and estimated values
+        diff_obsv_interp = np.abs(measured_vals - interpolated_vals)
 
-            # use additional temporal filter
-            idx_good_stns = np.where(diff_obsv_interp <= 3 * std_est_vals)
-            idx_bad_stns = np.where(diff_obsv_interp > 3 * std_est_vals)
+        #======================================================================
+        # # use additional temporal filter
+        #======================================================================
+        idx_good_stns = np.where(diff_obsv_interp <= 3 * std_est_vals)
+        idx_bad_stns = np.where(diff_obsv_interp > 3 * std_est_vals)
 
-            if len(idx_bad_stns[0]) > 0:
-                print('Number of Stations with bad index \n',
-                      len(idx_bad_stns[0]))
-                print('Number of Stations with good index \n',
-                      len(idx_good_stns[0]))
-                print('**Removing bad stations and saving to new df**')
+        if len(idx_bad_stns[0]) > 0:
+            print('Number of Stations with bad index \n',
+                  len(idx_bad_stns[0]))
+            print('Number of Stations with good index \n',
+                  len(idx_good_stns[0]))
+            print('**Removing bad stations and saving to new df**')
 
-                # use additional filter
-                try:
-                    ids_netatmo_stns_gd = np.take(netatmo_df.index,
-                                                  idx_good_stns).ravel()
-                    ids_netatmo_stns_bad = np.take(netatmo_df.index,
-                                                   idx_bad_stns).ravel()
+            # use additional filter
+            try:
+                ids_netatmo_stns_gd = np.take(netatmo_df.index,
+                                              idx_good_stns).ravel()
+                ids_netatmo_stns_bad = np.take(netatmo_df.index,
+                                               idx_bad_stns).ravel()
 
-                    df_stns_netatmo_gd_event.loc[
-                        event_date,
-                        ids_netatmo_stns_bad] = np.nan
+                df_stns_netatmo_gd_event.loc[
+                    event_date,
+                    ids_netatmo_stns_bad] = np.nan
 
-                except Exception as msg:
-                    print(msg)
+            except Exception as msg:
+                print(msg)
 
     else:
         print('no Variogram for this event')
         continue
 
-if use_temporal_filter_after_kriging:
-    df_stns_netatmo_gd_event.to_csv(out_plots_path / (
-        r'all_netatmo_%s_temporal_filter.csv'
-        % out_save_csv), sep=';',
-        float_format='%.2f')
+
+df_stns_netatmo_gd_event.to_csv(out_plots_path / (
+    r'all_netatmo_%s_temporal_filter.csv'
+    % out_save_csv), sep=';',
+    float_format='%.2f')
 
 stop = timeit.default_timer()  # Ending time
 print('\n\a\a\a Done with everything on %s.'
