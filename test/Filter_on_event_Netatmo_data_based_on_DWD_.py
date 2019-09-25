@@ -322,6 +322,8 @@ for event_date in df_vgs_models.index:
         netatmo_coords = netatmo_in_coords_df.loc[netatmo_df.index]
         x_netatmo, y_netatmo = netatmo_coords.X.values, netatmo_coords.Y.values
 
+        # TODO:
+        x_dwd_netatmo_comb = np.concatenate((x_dwd, x_netatmo))
         print('\a\a\a Doing Ordinary Kriging \a\a\a')
 
         if use_dwd_stns_for_kriging:

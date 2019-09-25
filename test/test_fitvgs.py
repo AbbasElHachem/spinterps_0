@@ -16,17 +16,15 @@ from spinterps import FitVariograms
 
 def get_mean_temp_paths():
 
-    in_vals_df_loc = os.path.join(
-        r'Mulde_temperature_avg_norm_cop_infill_1950_to_2015_20190417',
-        r'02_combined_station_outputs',
-        r'infilled_var_df_infill_stns.csv')
+    in_vals_df_loc = (
+        r'F:\DWD_download_Temperature_data'
+        r'\all_dwd_daily_temp_data_combined_2014_2019.csv')
 
-    in_stn_coords_df_loc = os.path.join(
-        r'Mulde_temperature_avg_norm_cop_infill_1950_to_2015_20190417',
-        r'02_combined_station_outputs',
-        r'infilled_var_df_infill_stns_coords.csv')
+    in_stn_coords_df_loc = (
+        r"F:\DWD_download_Temperature_data"
+        r"\Dwd_temperature_stations_coords_in_BW_utm32.csv")
 
-    out_dir = r'Mulde_temperature_avg_kriging_20190417'
+    out_dir = r'F:\DWD_temperature_kriging'
 
     return in_vals_df_loc, in_stn_coords_df_loc, out_dir
 
@@ -70,10 +68,10 @@ def get_ppt_paths():
     # MONTHLY
     #     in_vals_df_loc = os.path.join(
     #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-    #         r'edf_ppt_all_dwd_monthly_stns_combined_.csv')
-    #     in_vals_df_loc = os.path.join(
-    #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-    #         r'edf_ppt_all_netatmo_monthly_gd_stns_combined_.csv')
+    #         r'all_dwd_ppt_data_daily_.csv')
+    #         in_vals_df_loc = os.path.join(
+    #             r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+    #             r'edf_ppt_all_netatmo_monthly_gd_stns_combined_.csv')
 
     # DAILY
     #     in_vals_df_loc = os.path.join(
@@ -96,18 +94,18 @@ def get_ppt_paths():
     #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
     #         r'edf_ppt_all_netamo_daily_gd_stns_combined_.csv')
 
-    #     in_vals_df_loc = os.path.join(
-    #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-    #         r'edf_ppt_all_dwd_daily_all_stns_combined_.csv')
+    in_vals_df_loc = os.path.join(
+        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+        r'edf_ppt_all_dwd_daily_.csv')
 
     #     in_vals_df_loc = os.path.join(
     #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
     #         r'edf_ppt_all_dwd_hourly_.csv')
 
     # Cold - Warm season distributions DWD
-    in_vals_df_loc = os.path.join(
-        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-        r'df_dwd_distributions_cold_season_hourly.csv')
+#     in_vals_df_loc = os.path.join(
+#         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+#         r'df_dwd_distributions_cold_season_hourly.csv')
 
     # COORDS
     in_stn_coords_df_loc = os.path.join(
@@ -121,23 +119,25 @@ def get_ppt_paths():
     path_to_netatmo_gd_stns_file = (
         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
         r"\plots_NetAtmo_ppt_DWD_ppt_correlation_"
-        r"\keep_stns_all_neighbor_95_per_60min_.csv")
+        r"\keep_stns_all_neighbor_90_per_60min_.csv")
 
     # Netatmo extremes
     path_to_netatmo_ppt_extreme = (
         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
         r"\NetAtmo_BW"
-        r"\netatmo_hourly_maximum_100_hours.csv")
+        r"\netatmo_daily_maximum_100_days.csv")
     # DWD extremes
     path_to_dwd_ppt_extreme = (
         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
         r"\NetAtmo_BW"
-        r"\dwd_hourly_maximum_100_hours.csv")
+        r"\dwd_daily_maximum_100_days.csv")
 
     out_dir = r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo'
 
-    return (in_vals_df_loc, in_stn_coords_df_loc, out_dir,
-            path_to_netatmo_gd_stns_file, path_to_netatmo_ppt_extreme,
+    return (in_vals_df_loc, in_stn_coords_df_loc,
+            out_dir,
+            path_to_netatmo_gd_stns_file,
+            path_to_netatmo_ppt_extreme,
             path_to_dwd_ppt_extreme)
 
 
@@ -147,22 +147,22 @@ def main():
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo')
     os.chdir(main_dir)
 
-    vg_vars = ['ppt']
+    vg_vars = ['ppt']  # ['ppt']
 
-    strt_date = '2014-01-01'
-    end_date = '2019-08-01'
+    strt_date = '2015-01-01'
+    end_date = '2019-09-01'
     min_valid_stns = 20
 
     drop_stns = []
     mdr = 0.8
     perm_r_list = [1, 2]
     fit_vgs = ['Sph', 'Exp']
-    fil_nug_vg = 'Nug'
+    fil_nug_vg = 'Nug'  #
     n_best = 4
     ngp = 5
     figs_flag = True
 
-    fit_for_extreme_events = False
+    fit_for_extreme_events = True
 
     use_netatmo_good_stns = False
 
@@ -210,7 +210,8 @@ def main():
         in_vals_df = pd.read_csv(
             in_vals_df_loc, sep=sep, index_col=0, encoding='utf-8')
 
-        in_vals_df.index = pd.to_datetime(in_vals_df.index, format='%Y-%m-%d')
+        in_vals_df.index = pd.to_datetime(in_vals_df.index,
+                                          format='%Y-%m-%d')
         in_vals_df = in_vals_df.loc[strt_date:end_date, :]
 
         if use_netatmo_good_stns:
@@ -237,9 +238,11 @@ def main():
 
         if DWD_stations:
             # added by Abbas, for DWD stations
+
             stndwd_ix = ['0' * (5 - len(str(stn_id))) + str(stn_id)
                          if len(str(stn_id)) < 5 else str(stn_id)
                          for stn_id in in_coords_df.index]
+            #stndwd_ix = [stn for stn in stndwd_ix if stn in in_vals_df.columns]
 
             in_coords_df.index = stndwd_ix
 
@@ -248,6 +251,11 @@ def main():
         if drop_stns:
             in_coords_df.drop(labels=drop_stns, axis=0, inplace=True)
 
+        if in_coords_df.shape[0] > in_vals_df.shape[1]:
+
+            in_vals_df = in_vals_df.loc[:, in_coords_df.index]
+        else:
+            in_coords_df = in_coords_df.loc[in_vals_df.columns, :]
         fit_vg_cls = FitVariograms()
 
         fit_vg_cls.set_data(in_vals_df, in_coords_df)
@@ -269,6 +277,7 @@ def main():
         fit_vg_cls.fit_vgs()
 
         fit_vg_cls.save_fin_vgs_df()
+
         fit_vg_cls = None
 
     return
@@ -283,7 +292,7 @@ if __name__ == '__main__':
 
         # save all console activity to out_log_file
         out_log_file = os.path.join(
-            r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo\\%s_log_%s.log' % (
+            r'F:\DWD_temperature_kriging\\%s_log_%s.log' % (
                 # r'P:\Synchronize\python_script_logs\\%s_log_%s.log' % (
                 os.path.basename(__file__),
                 datetime.now().strftime('%Y%m%d%H%M%S')))

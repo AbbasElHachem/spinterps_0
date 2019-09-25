@@ -42,7 +42,7 @@ os.chdir(main_dir)
 
 out_plots_path = main_dir / r'oridinary_kriging_compare_DWD_Netatmo'
 
-path_to_data = main_dir / r'oridinary_kriging_compare_DWD_Netatmo/needed_dfs'
+path_to_data = main_dir / r'NetAtmo_BW'
 
 # DAILY DATA
 path_to_dwd_daily_data = (path_to_data /
@@ -56,7 +56,7 @@ path_to_dwd_hourly_data = (path_to_data /
                            r'all_dwd_hourly_ppt_data_combined_2014_2019_.csv')
 
 path_to_netatmo_hourly_data = (path_to_data /
-                               r'ppt_all_netatmo_hourly_stns_combined_new.csv')
+                               r'ppt_all_netatmo_hourly_stns_combined_new_no_freezing.csv')
 
 # COORDINATES
 path_to_dwd_coords = (path_to_data /
@@ -65,8 +65,9 @@ path_to_dwd_coords = (path_to_data /
 path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 
 # NETATMO FIRST FILTER
-path_to_netatmo_gd_stns = (path_to_data /
-                           r'keep_stns_all_neighbor_90_per_60min_.csv')
+path_to_netatmo_gd_stns = (
+    r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\plots_NetAtmo_ppt_DWD_ppt_correlation_"
+    r'\keep_stns_all_neighbor_90_per_60min_s0.csv')
 
 # =============================================================================
 strt_date = '2015-01-01'
@@ -76,8 +77,8 @@ warm_season_month = [5, 6, 7, 8, 9]  # mai till sep
 cold_season_month = [10, 11, 12, 1, 2, 3, 4]  # oct till april
 
 
-list_ppt_values = np.round(np.arange(0.5, 50.00, 0.5), 2)
-
+#list_ppt_values = np.round(np.arange(0.5, 50.00, 0.5), 2)
+list_percentiles = np.round(np.arange(0.5, 1.00, 0.01), 4)
 
 min_valid_stns = 10
 
@@ -224,22 +225,22 @@ shuffled_dwd_stns_10stn = all_dwd_stns[:10]
 
 
 df_interpolated_dwd_netatmos_comb = pd.DataFrame(
-    index=list_ppt_values,
-    columns=[dwd_stn_data_season.columns[shuffled_dwd_stns_10stn]])
+    index=list_percentiles,
+    columns=[shuffled_dwd_stns_10stn])
 
 df_interpolated_dwd_only = pd.DataFrame(
-    index=list_ppt_values,
-    columns=[dwd_stn_data_season.columns[shuffled_dwd_stns_10stn]])
+    index=list_percentiles,
+    columns=[shuffled_dwd_stns_10stn])
 
 df_interpolated_netatmo_only = pd.DataFrame(
-    index=list_ppt_values,
-    columns=[dwd_stn_data_season.columns[shuffled_dwd_stns_10stn]])
+    index=list_percentiles,
+    columns=[shuffled_dwd_stns_10stn])
 #==============================================================================
 # START KRIGING
 #==============================================================================
 
 
-for stn_dwd_id in dwd_stn_data_season.columns[shuffled_dwd_stns_10stn]:
+for stn_dwd_id in shuffled_dwd_stns_10stn:
 
     print('interpolating for DWD Station', stn_dwd_id)
 
@@ -250,11 +251,11 @@ for stn_dwd_id in dwd_stn_data_season.columns[shuffled_dwd_stns_10stn]:
     all_dwd_stns_except_interp_loc = [
         stn for stn in dwd_stn_data_season.columns if stn != stn_dwd_id]
 
-    for _ppt_value_ in list_ppt_values:
+    for _cdf_percentile_ in list_percentiles:
 
-        _ppt_value_ = np.round(_ppt_value_, 1)
+        _cdf_percentile_ = np.round(_cdf_percentile_, 3)
 
-        print('**Calculating for Ppt: ',  _ppt_value_, ' **\n')
+        print('**Calculating for Qantile: ',  _cdf_percentile_, ' **\n')
         # DWD qunatiles
         ppt_dwd_vals = []
         dwd_xcoords = []
@@ -266,7 +267,8 @@ for stn_dwd_id in dwd_stn_data_season.columns[shuffled_dwd_stns_10stn]:
             stn_data_df = dwd_stn_data_season.loc[:, stn_id].dropna()
             ppt_stn_vals = np.round(stn_data_df.values, 1)
             ppt_cold_season, edf_cold_season = build_edf_fr_vals(ppt_stn_vals)
-            ppt_for_percentile = edf_cold_season[ppt_cold_season == _ppt_value_]
+            ppt_for_percentile = ppt_cold_season[edf_cold_season ==
+                                                 _cdf_percentile_]
 
             # plt.scatter(ppt_cold_season, edf_cold_season)
             if ppt_for_percentile.shape[0] > 0:
@@ -304,8 +306,8 @@ for stn_dwd_id in dwd_stn_data_season.columns[shuffled_dwd_stns_10stn]:
                 ppt_cold_season, edf_cold_season = build_edf_fr_vals(
                     ppt_stn_vals)
 
-                ppt_for_percentile = edf_cold_season[ppt_cold_season ==
-                                                     _ppt_value_]
+                ppt_for_percentile = ppt_cold_season[edf_cold_season ==
+                                                     _cdf_percentile_]
                 if ppt_for_percentile.shape[0] > 0:
                     ppt_netatmo_vals.append(
                         np.round(np.unique(ppt_for_percentile), 2)[0])
@@ -445,17 +447,16 @@ for stn_dwd_id in dwd_stn_data_season.columns[shuffled_dwd_stns_10stn]:
         print('+++ Saving result to DF +++\n')
 
         df_interpolated_dwd_netatmos_comb.loc[
-            _ppt_value_,
+            _cdf_percentile_,
             stn_dwd_id] = interpolated_vals_dwd_netatmo
 
         df_interpolated_dwd_only.loc[
-            _ppt_value_,
+            _cdf_percentile_,
             stn_dwd_id] = interpolated_vals_dwd_only
 
         df_interpolated_netatmo_only.loc[
-            _ppt_value_,
+            _cdf_percentile_,
             stn_dwd_id] = interpolated_vals_netatmo_only
-    # break
 
 
 df_interpolated_dwd_netatmos_comb.dropna(how='all', inplace=True)
@@ -463,18 +464,18 @@ df_interpolated_dwd_only.dropna(how='all', inplace=True)
 df_interpolated_netatmo_only.dropna(how='all', inplace=True)
 
 df_interpolated_dwd_netatmos_comb.to_csv(out_plots_path / (
-    'interpolated_ppt_dwd_%s_data_basedon_quantiles_%s_season_using_dwd_netamo.csv'
+    'interpolated_quantiles_dwd_%s_data_basedon_quantiles_%s_season_using_dwd_netamo.csv'
     % (time_res, data_season)),
     sep=';', float_format='%0.2f')
 
 
 df_interpolated_dwd_only.to_csv(out_plots_path / (
-    'interpolated_ppt_dwd_%s_data_basedon_qunatiles_%s_season_using_dwd_only.csv'
+    'interpolated_quantiles_dwd_%s_data_basedon_qunatiles_%s_season_using_dwd_only.csv'
     % (time_res, data_season)),
     sep=';', float_format='%0.2f')
 
 df_interpolated_netatmo_only.to_csv(out_plots_path / (
-    'interpolated_dwd_%s_data_basedon_qunatiles_%s_season_using_netatmo_only.csv'
+    'interpolated_quantiles_%s_data_basedon_qunatiles_%s_season_using_netatmo_only.csv'
     % (time_res, data_season)),
     sep=';', float_format='%0.2f')
 

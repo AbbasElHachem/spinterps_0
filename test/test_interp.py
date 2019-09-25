@@ -24,9 +24,19 @@ def main():
 #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
 #         r'all_netatmo_ppt_data_monthly_.csv')
 
+#     in_vals_df_loc = (
+#         r'F:\DWD_download_Temperature_data'
+#         r'\all_dwd_daily_temp_data_combined_2014_2019.csv')
+#
+#     in_stn_coords_df_loc = (
+#         r"F:\DWD_download_Temperature_data"
+#         r"\Dwd_temperature_stations_coords_in_BW_utm32.csv")
+#
+#     out_dir = r'F:\DWD_temperature_kriging'
+
     in_data_file = os.path.join(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-        r'all_netatmo_ppt_data_daily_.csv')
+        r'all_netatmo_ppt_data_monthly_.csv')
 
 #     in_data_file = os.path.join(
 #         r'F:\download_DWD_data_recent',
@@ -36,7 +46,7 @@ def main():
     path_to_netatmo_gd_stns_file = (
         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
         r"\plots_NetAtmo_ppt_DWD_ppt_correlation_"
-        r"\keep_stns_all_neighbor_95_per_60min_.csv")
+        r"\keep_stns_all_neighbor_90_per_60min_s0.csv")
     #==========================================================================
 #     in_data_file = os.path.join(
 #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
@@ -51,7 +61,7 @@ def main():
 
     in_vgs_file = os.path.join(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo',
-        r'vg_strs_dwd_daily_ppt_.csv')
+        r'vg_strs_dwd_monthly_ppt.csv')
 
     #==========================================================================
 #
@@ -70,10 +80,10 @@ def main():
     var_units = 'mm'  # 'mm'  # u'\u2103'  # 'centigrade'
     var_name = 'precipitation'  # 'precipitation'
 
-    out_krig_net_cdf_file = r'Netatmo_netatmo_daily_precipitation_kriging_%s_to_%s_1km_mid_rg_gd_stns.nc'
-    freq = 'D'
-    strt_date = r'2018-05-01'
-    end_date = r'2018-10-01'
+    out_krig_net_cdf_file = r'Netatmo_dwd_monthly_precipitation_kriging_%s_to_%s_1km_mid_rg_only_gd_stns_90per2.nc'
+    freq = 'M'
+    strt_date = r'2015-01-01'
+    end_date = r'2019-09-01'
 
     out_krig_net_cdf_file = out_krig_net_cdf_file % (strt_date, end_date)
 
@@ -97,7 +107,7 @@ def main():
     min_nebor_dist_thresh = 0
 
     idw_exps = [1, 3, 5]
-    n_cpus = 6
+    n_cpus = 4
     buffer_dist = 2e3
     sec_buffer_dist = 2e3
 
@@ -159,7 +169,7 @@ def main():
 
     # added by Abbas
     in_data_df = in_data_df.loc[:, good_stns]
-    in_data_df = in_data_df[in_data_df <= 200]
+
     in_data_df.dropna(inplace=True, how='all')
 
     if index_type == 'date':

@@ -54,8 +54,9 @@ path_to_netatmo_daily_data = (path_to_data /
 path_to_dwd_hourly_data = (path_to_data /
                            r'all_dwd_hourly_ppt_data_combined_2014_2019_.csv')
 
-path_to_netatmo_hourly_data = (path_to_data /
-                               r'ppt_all_netatmo_hourly_stns_combined_new.csv')
+path_to_netatmo_hourly_data = (
+    path_to_data /
+    r'ppt_all_netatmo_hourly_stns_combined_new_no_freezing.csv')
 
 # COORDINATES
 path_to_dwd_coords = (path_to_data /
@@ -68,8 +69,8 @@ path_to_netatmo_gd_stns = (path_to_data /
                            r'keep_stns_all_neighbor_90_per_60min_.csv')
 
 # =============================================================================
-strt_date = '2014-01-01'
-end_date = '2019-08-01'
+strt_date = '2015-01-01'
+end_date = '2019-09-01'
 
 warm_season_month = [5, 6, 7, 8, 9]  # mai till sep
 cold_season_month = [10, 11, 12, 1, 2, 3, 4]  # oct till april
@@ -92,7 +93,8 @@ ngp = 5
 use_daily_data = True
 use_hourly_data = False
 
-use_netatmo_gd_stns = True
+use_netatmo_gd_stns = False
+
 do_it_for_cold_season = True  # True
 do_it_for_warm_season = False  # False
 
@@ -102,6 +104,7 @@ if use_daily_data:
     path_to_netatmo_ppt_data = path_to_netatmo_daily_data
     idx_time_fmt = '%Y-%m-%d'
     time_res = 'daily'
+
 if use_hourly_data:
     path_to_dwd_ppt_data = path_to_dwd_hourly_data
     path_to_netatmo_ppt_data = path_to_netatmo_hourly_data
@@ -171,7 +174,7 @@ if use_netatmo_gd_stns:
 
 
 def build_edf_fr_vals(ppt_data):
-    # Construct EDF, need to check if it works
+    # Construct EDF
     """ construct empirical distribution function given data values """
     data_sorted = np.sort(ppt_data, axis=0)[::-1]
     x0 = np.round(np.squeeze(data_sorted)[::-1], 2)
@@ -201,29 +204,37 @@ def select_season(df,  # df to slice, index should be datetime
 #==============================================================================
 if do_it_for_cold_season:
 
-    dwd_stn_data_season = select_season(dwd_ppt_data_df, cold_season_month)
-    netatmo_stn_data_season = select_season(
-        netatmo_ppt_data_df, cold_season_month)
+    dwd_stn_data_season = select_season(dwd_ppt_data_df,
+                                        cold_season_month)
+    netatmo_stn_data_season = select_season(netatmo_ppt_data_df,
+                                            cold_season_month)
     data_season = 'cold'
 
 if do_it_for_warm_season:
-    dwd_stn_data_season = select_season(dwd_ppt_data_df, warm_season_month)
-    netatmo_stn_data_season = select_season(
-        netatmo_ppt_data_df, warm_season_month)
+    dwd_stn_data_season = select_season(dwd_ppt_data_df,
+                                        warm_season_month)
+    netatmo_stn_data_season = select_season(netatmo_ppt_data_df,
+                                            warm_season_month)
 
     data_season = 'warm'
 #==============================================================================
 # CREATE DFS HOLD RESULT KRIGING PER NETATMO STATION
 #==============================================================================
+# dwd_groups_steps = np.arange(0, len(dwd_stn_data_season.columns), 10)
+#
+# for stns_grp in dwd_groups_steps:
 
-df_interpolated_dwd_netatmos_comb = pd.DataFrame(index=list_percentiles,
-                                                 columns=[dwd_stn_data_season.columns[10:20]])
+df_interpolated_dwd_netatmos_comb = pd.DataFrame(
+    index=list_percentiles,
+    columns=[dwd_stn_data_season.columns[10:20]])
 
-df_interpolated_dwd_only = pd.DataFrame(index=list_percentiles,
-                                        columns=[dwd_stn_data_season.columns[10:20]])
+df_interpolated_dwd_only = pd.DataFrame(
+    index=list_percentiles,
+    columns=[dwd_stn_data_season.columns[10:20]])
 
-df_interpolated_netatmo_only = pd.DataFrame(index=list_percentiles,
-                                            columns=[dwd_stn_data_season.columns[10:20]])
+df_interpolated_netatmo_only = pd.DataFrame(
+    index=list_percentiles,
+    columns=[dwd_stn_data_season.columns[10:20]])
 #==============================================================================
 # START KRIGING
 #==============================================================================
