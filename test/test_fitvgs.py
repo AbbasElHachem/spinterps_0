@@ -94,13 +94,13 @@ def get_ppt_paths():
     #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
     #         r'edf_ppt_all_netamo_daily_gd_stns_combined_.csv')
 
-    in_vals_df_loc = os.path.join(
-        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-        r'edf_ppt_all_dwd_daily_.csv')
-
     #     in_vals_df_loc = os.path.join(
     #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-    #         r'edf_ppt_all_dwd_hourly_.csv')
+    #         r'edf_ppt_all_dwd_daily_.csv')
+
+    in_vals_df_loc = os.path.join(
+        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+        r'edf_ppt_all_dwd_hourly_.csv')
 
     # Cold - Warm season distributions DWD
 #     in_vals_df_loc = os.path.join(
@@ -127,11 +127,14 @@ def get_ppt_paths():
         r"\NetAtmo_BW"
         r"\netatmo_daily_maximum_100_days.csv")
     # DWD extremes
+#     path_to_dwd_ppt_extreme = (
+#         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
+#         r"\NetAtmo_BW"
+#         r"\dwd_daily_maximum_100_days.csv")
     path_to_dwd_ppt_extreme = (
         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
         r"\NetAtmo_BW"
-        r"\dwd_daily_maximum_100_days.csv")
-
+        r"\dwd_hourly_maximum_100_hours.csv")
     out_dir = r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo'
 
     return (in_vals_df_loc, in_stn_coords_df_loc,

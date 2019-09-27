@@ -80,7 +80,7 @@ def main():
     var_units = 'mm'  # 'mm'  # u'\u2103'  # 'centigrade'
     var_name = 'precipitation'  # 'precipitation'
 
-    out_krig_net_cdf_file = r'Netatmo_dwd_monthly_precipitation_kriging_%s_to_%s_1km_mid_rg_only_gd_stns_90per2.nc'
+    out_krig_net_cdf_file = r'Netatmo_dwd_monthly_precipitation_kriging_%s_to_%s_1km_mid_rg_.nc'
     freq = 'M'
     strt_date = r'2015-01-01'
     end_date = r'2019-09-01'
@@ -158,6 +158,7 @@ def main():
         sep=in_sep,
         index_col=0,
         encoding='utf-8')
+    in_stns_coords_df.drop_duplicates(['X', 'Y'], keep='first', inplace=True)
 
     if DWD_stations:
         # added by Abbas, for DWD stations

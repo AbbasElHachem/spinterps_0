@@ -48,17 +48,17 @@ path_to_data = main_dir / r'NetAtmo_BW'
 
 # DAILY DATA
 path_to_dwd_daily_data = (path_to_data /
-                          r'all_dwd_daily_ppt_data_combined_2014_2019_.csv')
+                          r'edf_ppt_all_dwd_daily_.csv')
 
 path_to_netatmo_daily_data = (path_to_data /
-                              r'all_netatmo_ppt_data_daily_.csv')
+                              r'edf_ppt_all_netatmo_daily_.csv')
 
 # HOURLY DATA
 path_to_dwd_hourly_data = (path_to_data /
-                           r'all_dwd_hourly_ppt_data_combined_2014_2019_.csv')
+                           r'edf_ppt_all_dwd_hourly_.csv')
 
 path_to_netatmo_hourly_data = (path_to_data /
-                               r'ppt_all_netatmo_hourly_stns_combined_new_no_freezing.csv')
+                               r'edf_ppt_all_netatmo_hourly_.csv')
 
 # COORDINATES
 path_to_dwd_coords = (path_to_data /
@@ -71,16 +71,24 @@ path_to_netatmo_gd_stns = (
     r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\plots_NetAtmo_ppt_DWD_ppt_correlation_"
     r'\keep_stns_all_neighbor_90_per_60min_s0.csv')
 
+# DWD Extreme Events Daily and Hourly
+
+# DAILY and Hourly DATA
+path_to_dwd_daily_data_extremes = (path_to_data /
+                                   r'dwd_daily_maximum_100_days.csv')
+
+path_to_dwd_hourly_data_extremes = (path_to_data /
+                                    r'dwd_hourly_maximum_100_hours.csv')
 # =============================================================================
 strt_date = '2015-01-01'
 end_date = '2019-09-01'
 
-warm_season_month = [5, 6, 7, 8, 9]  # mai till sep
-cold_season_month = [10, 11, 12, 1, 2, 3, 4]  # oct till april
+# warm_season_month = [5, 6, 7, 8, 9]  # mai till sep
+# cold_season_month = [10, 11, 12, 1, 2, 3, 4]  # oct till april
 
 
 #list_ppt_values = np.round(np.arange(0.5, 50.00, 0.5), 2)
-list_percentiles = np.round(np.arange(0.5, 1.000001, 0.0025), 4)
+#list_percentiles = np.round(np.arange(0.5, 1.000001, 0.0025), 4)
 
 min_valid_stns = 10
 
@@ -97,18 +105,23 @@ use_daily_data = True
 use_hourly_data = False
 
 use_netatmo_gd_stns = True
-do_it_for_cold_season = False  # True
-do_it_for_warm_season = True  # False
+
 
 # =============================================================================
 if use_daily_data:
     path_to_dwd_ppt_data = path_to_dwd_daily_data
     path_to_netatmo_ppt_data = path_to_netatmo_daily_data
+
+    path_to_dwd_ppt_data_extremes = path_to_dwd_daily_data_extremes
+
     idx_time_fmt = '%Y-%m-%d'
     time_res = 'daily'
 if use_hourly_data:
     path_to_dwd_ppt_data = path_to_dwd_hourly_data
     path_to_netatmo_ppt_data = path_to_netatmo_hourly_data
+
+    path_to_dwd_ppt_data_extremes = path_to_dwd_hourly_data_extremes
+
     idx_time_fmt = '%Y-%m-%d %H:%M:%S'
     time_res = 'hourly'
 
@@ -168,6 +181,16 @@ if use_netatmo_gd_stns:
                                                   netatmo_in_coords_df.index]
 
 #==============================================================================
+# Extreme Events Data
+#==============================================================================
+dwd_ppt_data_df_extremes = pd.read_csv(
+    path_to_dwd_ppt_data_extremes, sep=';', index_col=0, encoding='utf-8')
+dwd_ppt_data_df_extremes.index = pd.to_datetime(
+    dwd_ppt_data_df_extremes.index, format=idx_time_fmt)
+
+dwd_ppt_data_df_extremes = dwd_ppt_data_df_extremes.loc[strt_date:end_date, :]
+
+#==============================================================================
 #
 #==============================================================================
 
@@ -208,22 +231,6 @@ def select_season(df,  # df to slice, index should be datetime
 
 
 #==============================================================================
-# GET DATAFRAME PER SEASON
-#==============================================================================
-if do_it_for_cold_season:
-
-    dwd_stn_data_season = select_season(dwd_ppt_data_df, cold_season_month)
-    netatmo_stn_data_season = select_season(
-        netatmo_ppt_data_df, cold_season_month)
-    data_season = 'cold'
-
-if do_it_for_warm_season:
-    dwd_stn_data_season = select_season(dwd_ppt_data_df, warm_season_month)
-    netatmo_stn_data_season = select_season(
-        netatmo_ppt_data_df, warm_season_month)
-
-    data_season = 'warm'
-#==============================================================================
 # SELECT GROUP OF 10 DWD STATIONS RANDOMLY
 #==============================================================================
 
@@ -234,7 +241,7 @@ def chunks(l, n):
         yield l[i:i + n]
 
 
-all_dwd_stns = dwd_stn_data_season.columns.tolist()
+all_dwd_stns = dwd_ppt_data_df.columns.tolist()
 shuffle(all_dwd_stns)
 shuffled_dwd_stns_10stn = np.array(list(chunks(all_dwd_stns, 10)))
 
@@ -244,42 +251,42 @@ shuffled_dwd_stns_10stn = np.array(list(chunks(all_dwd_stns, 10)))
 for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
     stn_comb = shuffled_dwd_stns_10stn[idx_lst_comb]
 
-    print('Interpolating for following DWD stations:',
-          len(stn_comb), '\n',
+    print('Interpolating for following DWD stations: \n',
           pprint.pformat(stn_comb))
 
     df_interpolated_dwd_netatmos_comb = pd.DataFrame(
-        index=list_percentiles,
+        index=dwd_ppt_data_df_extremes.index,
         columns=[stn_comb])
 
     df_interpolated_dwd_only = pd.DataFrame(
-        index=list_percentiles,
+        index=dwd_ppt_data_df_extremes.index,
         columns=[stn_comb])
 
     df_interpolated_netatmo_only = pd.DataFrame(
-        index=list_percentiles,
+        index=dwd_ppt_data_df_extremes.index,
         columns=[stn_comb])
 
     #=========================================================================
     # START KRIGING
     #=========================================================================
-    nbr_stns = len(stn_comb)
+
     for stn_dwd_id in stn_comb:
-        nbr_stns -= 1
+
         print('interpolating for DWD Station', stn_dwd_id)
-        print('\n Number of Stations', nbr_stns)
+
         x_dwd_interpolate = np.array([dwd_in_coords_df.loc[stn_dwd_id, 'X']])
         y_dwd_interpolate = np.array([dwd_in_coords_df.loc[stn_dwd_id, 'Y']])
 
         # drop stn
         all_dwd_stns_except_interp_loc = [
-            stn for stn in dwd_stn_data_season.columns if stn != stn_dwd_id]
+            stn for stn in dwd_ppt_data_df.columns if stn != stn_dwd_id]
 
-        for _cdf_percentile_ in list_percentiles:
+        for event_date in dwd_ppt_data_df_extremes.index:
 
-            _cdf_percentile_ = np.round(_cdf_percentile_, 4)
+            _cdf_percentile_ = dwd_ppt_data_df_extremes.loc[event_date]
 
-            print('**Calculating for Qantile: ',  _cdf_percentile_, ' **\n')
+            print('**Calculating for Date ',
+                  event_date, ' Quantile: ',  _cdf_percentile_, ' **\n')
 
             #==================================================================
             # # DWD qunatiles
@@ -292,28 +299,22 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
             for stn_id in all_dwd_stns_except_interp_loc:
                 # print('station is', stn_id)
 
-                stn_data_df = dwd_stn_data_season.loc[:, stn_id].dropna(
+                stn_data_df = dwd_ppt_data_df.loc[end_date, stn_id].dropna(
                     how='all')
                 if stn_data_df.values.shape[0] > 0:
-                    ppt_stn_vals = np.round(stn_data_df.values, 1)
-                    ppt_cold_season, edf_cold_season = build_edf_fr_vals(
-                        ppt_stn_vals)
-                    try:
-                        ppt_for_percentile = ppt_cold_season[edf_cold_season == find_nearest(
-                            edf_cold_season, _cdf_percentile_)]
-                    except Exception as ms:
-                        print(ms)
+                    edf_stn_vals = np.round(stn_data_df.values, 1)
+
                     # plt.scatter(ppt_cold_season, edf_cold_season)
-                    if ppt_for_percentile.shape[0] > 0:
+                    if edf_stn_vals.shape[0] > 0:
                         ppt_dwd_vals.append(
-                            np.round(np.unique(ppt_for_percentile), 2)[0])
+                            np.round(np.unique(edf_stn_vals), 2)[0])
                         dwd_xcoords.append(dwd_in_coords_df.loc[stn_id, 'X'])
                         dwd_ycoords.append(dwd_in_coords_df.loc[stn_id, 'Y'])
                         dwd_stn_ids.append(stn_id)
 
-                    elif ppt_for_percentile.shape[0] > 1:
+                    elif edf_stn_vals.shape[0] > 1:
                         ppt_dwd_vals.append(
-                            np.round(np.mean(np.unique(ppt_for_percentile)), 2))
+                            np.round(np.mean(np.unique(edf_stn_vals)), 2))
                         dwd_xcoords.append(dwd_in_coords_df.loc[stn_id, 'X'])
                         dwd_ycoords.append(dwd_in_coords_df.loc[stn_id, 'Y'])
                         dwd_stn_ids.append(stn_id)
@@ -330,32 +331,27 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
             netatmo_ycoords = []
             netatmo_stn_ids = []
 
-            for netatmo_stn_id in netatmo_stn_data_season.columns:
+            for netatmo_stn_id in netatmo_ppt_data_df.columns:
                 # print('Netatmo station is', netatmo_stn_id)
-                stn_data_df = netatmo_stn_data_season.loc[:, netatmo_stn_id].dropna(
+                stn_data_df = netatmo_ppt_data_df.loc[event_date, netatmo_stn_id].dropna(
                     how='all')
-                ppt_stn_vals = np.round(stn_data_df.values, 1)
 
-                if len(stn_data_df.index) > 5:
+                if stn_data_df.values.shape[0] > 0:
 
-                    ppt_cold_season, edf_cold_season = build_edf_fr_vals(
-                        ppt_stn_vals)
+                    edf_stn_vals = np.round(stn_data_df.values, 1)
 
-                    ppt_for_percentile = ppt_cold_season[edf_cold_season == find_nearest(
-                        edf_cold_season, _cdf_percentile_)]
-
-                    if ppt_for_percentile.shape[0] > 0:
+                    if edf_stn_vals.shape[0] > 0:
                         ppt_netatmo_vals.append(
-                            np.round(np.unique(ppt_for_percentile), 2)[0])
+                            np.round(np.unique(edf_stn_vals), 2)[0])
                         netatmo_xcoords.append(
                             netatmo_in_coords_df.loc[netatmo_stn_id, 'X'])
                         netatmo_ycoords.append(
                             netatmo_in_coords_df.loc[netatmo_stn_id, 'Y'])
                         netatmo_stn_ids.append(netatmo_stn_id)
 
-                    elif ppt_for_percentile.shape[0] > 1:
+                    elif edf_stn_vals.shape[0] > 1:
                         ppt_netatmo_vals.append(
-                            np.round(np.mean(np.unique(ppt_for_percentile)), 2))
+                            np.round(np.mean(np.unique(edf_stn_vals)), 2))
                         netatmo_xcoords.append(
                             netatmo_in_coords_df.loc[netatmo_stn_id, 'X'])
                         netatmo_ycoords.append(
@@ -476,14 +472,6 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
                 interpolated_vals_dwd_only = ordinary_kriging_dwd_only.zk.copy()
                 interpolated_vals_netatmo_only = ordinary_kriging_netatmo_only.zk.copy()
 
-                if interpolated_vals_dwd_netatmo < 0:
-                    interpolated_vals_dwd_netatmo = np.nan
-
-                if interpolated_vals_dwd_only < 0:
-                    interpolated_vals_dwd_only = np.nan
-
-                if interpolated_vals_netatmo_only < 0:
-                    interpolated_vals_netatmo_only = np.nan
             else:
                 print('no good variogram found, adding nans to df')
                 interpolated_vals_dwd_netatmo = np.nan
@@ -510,20 +498,23 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
 
     df_interpolated_dwd_netatmos_comb.to_csv(out_plots_path / (
         'interpolated_quantiles_dwd_%s_data_basedon_quantiles_%s_season_using_dwd_netamo_grp_%d.csv'
-        % (time_res, data_season, idx_lst_comb)),
-        sep=';', float_format='%0.4f')
+        % (time_res, str(event_date).replace(':', '_').replace(' ', '_'),
+           idx_lst_comb)),
+        sep=';', float_format='%0.2f')
 
     df_interpolated_dwd_only.to_csv(out_plots_path / (
         'interpolated_quantiles_dwd_%s_data_basedon_qunatiles_%s_season_using_dwd_only_grp_%d.csv'
-        % (time_res, data_season, idx_lst_comb)),
-        sep=';', float_format='%0.4f')
+        % (time_res,  str(event_date).replace(':', '_').replace(' ', '_'),
+           idx_lst_comb)),
+        sep=';', float_format='%0.2f')
 
     df_interpolated_netatmo_only.to_csv(out_plots_path / (
         'interpolated_quantiles_%s_data_basedon_qunatiles_%s_season_using_netatmo_only_grp_%d.csv'
-        % (time_res, data_season, idx_lst_comb)),
-        sep=';', float_format='%0.4f')
+        % (time_res,  str(event_date).replace(':', '_').replace(' ', '_'),
+            idx_lst_comb)),
+        sep=';', float_format='%0.2f')
 
-    break
+
 stop = timeit.default_timer()  # Ending time
 print('\n\a\a\a Done with everything on %s \a\a\a' %
       (time.asctime()))
