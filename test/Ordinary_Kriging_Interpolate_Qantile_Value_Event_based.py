@@ -104,7 +104,7 @@ ngp = 5
 use_daily_data = True
 use_hourly_data = False
 
-use_netatmo_gd_stns = True
+use_netatmo_gd_stns = False
 
 
 # =============================================================================
@@ -184,7 +184,8 @@ if use_netatmo_gd_stns:
 # Extreme Events Data
 #==============================================================================
 dwd_ppt_data_df_extremes = pd.read_csv(
-    path_to_dwd_ppt_data_extremes, sep=';', index_col=0, encoding='utf-8')
+    path_to_dwd_ppt_data_extremes, sep=';', index_col=0, encoding='utf-8',
+    header=None)
 dwd_ppt_data_df_extremes.index = pd.to_datetime(
     dwd_ppt_data_df_extremes.index, format=idx_time_fmt)
 
@@ -243,7 +244,7 @@ def chunks(l, n):
 
 all_dwd_stns = dwd_ppt_data_df.columns.tolist()
 shuffle(all_dwd_stns)
-shuffled_dwd_stns_10stn = np.array(list(chunks(all_dwd_stns, 10)))
+shuffled_dwd_stns_10stn = np.array(list(chunks(all_dwd_stns, 2)))
 
 #==============================================================================
 # CREATE DFS HOLD RESULT KRIGING PER NETATMO STATION
@@ -282,85 +283,75 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
             stn for stn in dwd_ppt_data_df.columns if stn != stn_dwd_id]
 
         for event_date in dwd_ppt_data_df_extremes.index:
+            _stn_id_event_ = str(dwd_ppt_data_df_extremes.loc[event_date, 2])
+            if len(_stn_id_event_) < 5:
+                _stn_id_event_ = (5 - len(_stn_id_event_)) * \
+                    '0' + _stn_id_event_
 
-            _cdf_percentile_ = dwd_ppt_data_df_extremes.loc[event_date]
-
+            _ppt_event_ = dwd_ppt_data_df_extremes.loc[event_date, 1]
+            _edf_event_ = dwd_ppt_data_df.loc[event_date, _stn_id_event_]
             print('**Calculating for Date ',
-                  event_date, ' Quantile: ',  _cdf_percentile_, ' **\n')
+                  event_date, ' Rainfall: ',  _ppt_event_,
+                  'Quantile: ', _edf_event_, ' **\n')
 
             #==================================================================
             # # DWD qunatiles
             #==================================================================
-            ppt_dwd_vals = []
+            edf_dwd_vals = []
             dwd_xcoords = []
             dwd_ycoords = []
             dwd_stn_ids = []
 
             for stn_id in all_dwd_stns_except_interp_loc:
-                # print('station is', stn_id)
+                #print('station is', stn_id)
 
-                stn_data_df = dwd_ppt_data_df.loc[end_date, stn_id].dropna(
-                    how='all')
-                if stn_data_df.values.shape[0] > 0:
-                    edf_stn_vals = np.round(stn_data_df.values, 1)
+                edf_stn_vals = dwd_ppt_data_df.loc[event_date, stn_id]
 
-                    # plt.scatter(ppt_cold_season, edf_cold_season)
-                    if edf_stn_vals.shape[0] > 0:
-                        ppt_dwd_vals.append(
-                            np.round(np.unique(edf_stn_vals), 2)[0])
-                        dwd_xcoords.append(dwd_in_coords_df.loc[stn_id, 'X'])
-                        dwd_ycoords.append(dwd_in_coords_df.loc[stn_id, 'Y'])
-                        dwd_stn_ids.append(stn_id)
-
-                    elif edf_stn_vals.shape[0] > 1:
-                        ppt_dwd_vals.append(
-                            np.round(np.mean(np.unique(edf_stn_vals)), 2))
-                        dwd_xcoords.append(dwd_in_coords_df.loc[stn_id, 'X'])
-                        dwd_ycoords.append(dwd_in_coords_df.loc[stn_id, 'Y'])
-                        dwd_stn_ids.append(stn_id)
+                if edf_stn_vals > 0:
+                    edf_dwd_vals.append(np.round(edf_stn_vals, 4))
+                    dwd_xcoords.append(dwd_in_coords_df.loc[stn_id, 'X'])
+                    dwd_ycoords.append(dwd_in_coords_df.loc[stn_id, 'Y'])
+                    dwd_stn_ids.append(stn_id)
 
             dwd_xcoords = np.array(dwd_xcoords)
             dwd_ycoords = np.array(dwd_ycoords)
-            ppt_dwd_vals = np.array(ppt_dwd_vals)
+            edf_dwd_vals = np.array(edf_dwd_vals)
 
             #==================================================================
             # # NETATMO QUANTILES
             #==================================================================
-            ppt_netatmo_vals = []
+            edf_netatmo_vals = []
             netatmo_xcoords = []
             netatmo_ycoords = []
             netatmo_stn_ids = []
 
             for netatmo_stn_id in netatmo_ppt_data_df.columns:
                 # print('Netatmo station is', netatmo_stn_id)
-                stn_data_df = netatmo_ppt_data_df.loc[event_date, netatmo_stn_id].dropna(
-                    how='all')
+                try:
+                    edf_stn_vals = netatmo_ppt_data_df.loc[event_date,
+                                                           netatmo_stn_id]
 
-                if stn_data_df.values.shape[0] > 0:
-
-                    edf_stn_vals = np.round(stn_data_df.values, 1)
-
-                    if edf_stn_vals.shape[0] > 0:
-                        ppt_netatmo_vals.append(
-                            np.round(np.unique(edf_stn_vals), 2)[0])
+                    if edf_stn_vals > 0:
+                        edf_netatmo_vals.append(np.round(edf_stn_vals, 4))
                         netatmo_xcoords.append(
                             netatmo_in_coords_df.loc[netatmo_stn_id, 'X'])
                         netatmo_ycoords.append(
                             netatmo_in_coords_df.loc[netatmo_stn_id, 'Y'])
                         netatmo_stn_ids.append(netatmo_stn_id)
-
-                    elif edf_stn_vals.shape[0] > 1:
-                        ppt_netatmo_vals.append(
-                            np.round(np.mean(np.unique(edf_stn_vals)), 2))
-                        netatmo_xcoords.append(
-                            netatmo_in_coords_df.loc[netatmo_stn_id, 'X'])
-                        netatmo_ycoords.append(
-                            netatmo_in_coords_df.loc[netatmo_stn_id, 'Y'])
-                        netatmo_stn_ids.append(netatmo_stn_id)
-
+                except KeyError:
+                    continue
+            # TODO: ask prof if correct
             netatmo_xcoords = np.array(netatmo_xcoords)
             netatmo_ycoords = np.array(netatmo_ycoords)
-            ppt_netatmo_vals = np.array(ppt_netatmo_vals)
+            edf_netatmo_vals = np.array(edf_netatmo_vals)
+
+            good_stns_idx = [
+                ix for ix in
+                np.where(edf_netatmo_vals >= np.mean(edf_netatmo_vals))[0]]
+
+            netatmo_xcoords = netatmo_xcoords[good_stns_idx]
+            netatmo_ycoords = netatmo_ycoords[good_stns_idx]
+            edf_netatmo_vals = edf_netatmo_vals[good_stns_idx]
 
             dwd_netatmo_xcoords = np.concatenate(
                 [dwd_xcoords, netatmo_xcoords])
@@ -370,11 +361,11 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
             coords = np.array([(x, y) for x, y in zip(dwd_netatmo_xcoords,
                                                       dwd_netatmo_ycoords)])
             #dwd_netatmo_ppt = np.hstack((ppt_dwd_vals, ppt_netatmo_vals))
-            dwd_netatmo_ppt = np.concatenate([ppt_dwd_vals, ppt_netatmo_vals])
+            dwd_netatmo_edf = np.concatenate([edf_dwd_vals, edf_netatmo_vals])
 
-            #plt.scatter(x_dwd_interpolate, y_dwd_interpolate)
-            #plt.scatter(netatmo_xcoords, netatmo_ycoords)
-            #plt.scatter(dwd_xcoords, dwd_ycoords)
+#             plt.scatter(x_dwd_interpolate, y_dwd_interpolate)
+#             plt.scatter(netatmo_xcoords, netatmo_ycoords)
+#             plt.scatter(dwd_xcoords, dwd_ycoords)
             #plt.scatter(dwd_netatmo_xcoords, dwd_netatmo_ycoords)
 
             print('*Done getting data and coordintates* \n *Fitting variogram*\n')
@@ -383,7 +374,7 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
                 vg_dwd = VG(
                     x=dwd_xcoords,
                     y=dwd_ycoords,
-                    z=ppt_dwd_vals,
+                    z=edf_dwd_vals,
                     mdr=mdr,
                     nk=5,
                     typ='cnst',
@@ -440,7 +431,7 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
                 ordinary_kriging_dwd_netatmo_comb = OrdinaryKriging(
                     xi=dwd_netatmo_xcoords,
                     yi=dwd_netatmo_ycoords,
-                    zi=dwd_netatmo_ppt,
+                    zi=dwd_netatmo_edf,
                     xk=x_dwd_interpolate,
                     yk=y_dwd_interpolate,
                     model=vgs_model_dwd)
@@ -448,7 +439,7 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
                 ordinary_kriging_dwd_only = OrdinaryKriging(
                     xi=dwd_xcoords,
                     yi=dwd_ycoords,
-                    zi=ppt_dwd_vals,
+                    zi=edf_dwd_vals,
                     xk=x_dwd_interpolate,
                     yk=y_dwd_interpolate,
                     model=vgs_model_dwd)
@@ -456,7 +447,7 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
                 ordinary_kriging_netatmo_only = OrdinaryKriging(
                     xi=netatmo_xcoords,
                     yi=netatmo_ycoords,
-                    zi=ppt_netatmo_vals,
+                    zi=edf_netatmo_vals,
                     xk=x_dwd_interpolate,
                     yk=y_dwd_interpolate,
                     model=vgs_model_dwd)
@@ -472,6 +463,14 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
                 interpolated_vals_dwd_only = ordinary_kriging_dwd_only.zk.copy()
                 interpolated_vals_netatmo_only = ordinary_kriging_netatmo_only.zk.copy()
 
+                if interpolated_vals_dwd_netatmo < 0:
+                    interpolated_vals_dwd_netatmo = np.nan
+
+                if interpolated_vals_dwd_only < 0:
+                    interpolated_vals_dwd_only = np.nan
+
+                if interpolated_vals_netatmo_only < 0:
+                    interpolated_vals_netatmo_only = np.nan
             else:
                 print('no good variogram found, adding nans to df')
                 interpolated_vals_dwd_netatmo = np.nan
@@ -481,15 +480,15 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
             print('+++ Saving result to DF +++\n')
 
             df_interpolated_dwd_netatmos_comb.loc[
-                _cdf_percentile_,
+                event_date,
                 stn_dwd_id] = interpolated_vals_dwd_netatmo
 
             df_interpolated_dwd_only.loc[
-                _cdf_percentile_,
+                event_date,
                 stn_dwd_id] = interpolated_vals_dwd_only
 
             df_interpolated_netatmo_only.loc[
-                _cdf_percentile_,
+                event_date,
                 stn_dwd_id] = interpolated_vals_netatmo_only
 
     df_interpolated_dwd_netatmos_comb.dropna(how='all', inplace=True)
@@ -497,24 +496,24 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
     df_interpolated_netatmo_only.dropna(how='all', inplace=True)
 
     df_interpolated_dwd_netatmos_comb.to_csv(out_plots_path / (
-        'interpolated_quantiles_dwd_%s_data_basedon_quantiles_%s_season_using_dwd_netamo_grp_%d.csv'
-        % (time_res, str(event_date).replace(':', '_').replace(' ', '_'),
+        'interpolated_quantiles_dwd_%s_data_basedon_quantiles_%s_season_using_dwd_netamo_grp_%d_.csv'
+        % (time_res, str(event_date).replace('-', '_').replace(':', '_').replace(' ', '_'),
            idx_lst_comb)),
         sep=';', float_format='%0.2f')
 
     df_interpolated_dwd_only.to_csv(out_plots_path / (
-        'interpolated_quantiles_dwd_%s_data_basedon_qunatiles_%s_season_using_dwd_only_grp_%d.csv'
-        % (time_res,  str(event_date).replace(':', '_').replace(' ', '_'),
+        'interpolated_quantiles_dwd_%s_data_basedon_qunatiles_%s_season_using_dwd_only_grp_%d_.csv'
+        % (time_res,  str(event_date).replace('-', '_').replace(':', '_').replace(' ', '_'),
            idx_lst_comb)),
         sep=';', float_format='%0.2f')
 
     df_interpolated_netatmo_only.to_csv(out_plots_path / (
-        'interpolated_quantiles_%s_data_basedon_qunatiles_%s_season_using_netatmo_only_grp_%d.csv'
-        % (time_res,  str(event_date).replace(':', '_').replace(' ', '_'),
+        'interpolated_quantiles_%s_data_basedon_qunatiles_%s_season_using_netatmo_only_grp_%d_.csv'
+        % (time_res, str(event_date).replace('-', '_').replace(':', '_').replace(' ', '_'),
             idx_lst_comb)),
         sep=';', float_format='%0.2f')
 
-
+    break
 stop = timeit.default_timer()  # Ending time
 print('\n\a\a\a Done with everything on %s \a\a\a' %
       (time.asctime()))
