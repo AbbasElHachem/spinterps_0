@@ -80,8 +80,8 @@ cold_season_month = [10, 11, 12, 1, 2, 3, 4]  # oct till april
 
 
 #list_ppt_values = np.round(np.arange(0.5, 50.00, 0.5), 2)
-list_percentiles = np.round(np.arange(0.5, 1.000001, 0.0025), 4)
-
+list_percentiles = np.round(np.arange(0.5, 1.0001, 0.025), 4)
+list_percentiles = np.append(list_percentiles, [0.985, .99, .995])
 min_valid_stns = 10
 
 drop_stns = []
@@ -236,7 +236,7 @@ def chunks(l, n):
 
 all_dwd_stns = dwd_stn_data_season.columns.tolist()
 shuffle(all_dwd_stns)
-shuffled_dwd_stns_10stn = np.array(list(chunks(all_dwd_stns, 10)))
+shuffled_dwd_stns_10stn = np.array(list(chunks(all_dwd_stns, 2)))
 
 #==============================================================================
 # CREATE DFS HOLD RESULT KRIGING PER NETATMO STATION
@@ -365,7 +365,18 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
             netatmo_xcoords = np.array(netatmo_xcoords)
             netatmo_ycoords = np.array(netatmo_ycoords)
             ppt_netatmo_vals = np.array(ppt_netatmo_vals)
+            # TODO: ASK PROF ABOUT IT
+            good_stns_idx = [
+                ix for ix in
+                np.where(ppt_netatmo_vals >= np.mean(ppt_dwd_vals))[0]]
 
+            netatmo_xcoords = netatmo_xcoords[good_stns_idx]
+            netatmo_ycoords = netatmo_ycoords[good_stns_idx]
+            ppt_netatmo_vals = ppt_netatmo_vals[good_stns_idx]
+
+            #==================================================================
+            # Combine Netatmo and DWD
+            #==================================================================
             dwd_netatmo_xcoords = np.concatenate(
                 [dwd_xcoords, netatmo_xcoords])
             dwd_netatmo_ycoords = np.concatenate(
@@ -523,7 +534,7 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
         % (time_res, data_season, idx_lst_comb)),
         sep=';', float_format='%0.4f')
 
-    break
+
 stop = timeit.default_timer()  # Ending time
 print('\n\a\a\a Done with everything on %s \a\a\a' %
       (time.asctime()))

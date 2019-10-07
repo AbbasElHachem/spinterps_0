@@ -34,19 +34,23 @@ os.chdir(main_dir)
 
 out_plots_path = main_dir / r'oridinary_kriging_compare_DWD_Netatmo'
 
-path_to_data = main_dir / r'oridinary_kriging_compare_DWD_Netatmo/needed_dfs'
+path_to_data = main_dir / r'NetAtmo_BW'
+
+path_to_vgs = main_dir / r'kriging_ppt_netatmo'
 
 # DAILY DATA
 path_netatmo_daily_extremes_df = path_to_data / \
     r'netatmo_daily_maximum_100_days.csv'
 path_dwd_daily_extremes_df = path_to_data / r'dwd_daily_maximum_100_days.csv'
-path_to_dwd_daily_vgs = path_to_data / r'vg_strs_dwd_daily_ppt_.csv'
-path_to_dwd_daily_edf_vgs = path_to_data / r'vg_strs_dwd_daily_edf_.csv'
+path_to_dwd_daily_vgs = path_to_vgs / \
+    r'vg_strs_dwd_ppt_100_extreme_events_daily.csv'
+path_to_dwd_daily_edf_vgs = path_to_vgs / \
+    r'vg_strs_dwd_ppt_100_extreme_events_daily.csv'
 path_to_dwd_daily_data = (path_to_data /
                           r'all_dwd_daily_ppt_data_combined_2014_2019_.csv')
 path_to_netatmo_daily_data = path_to_data / r'all_netatmo_ppt_data_daily_.csv'
 path_to_dwd_daily_edf = (path_to_data /
-                         r'edf_ppt_all_dwd_daily_all_stns_combined_.csv')
+                         r'edf_ppt_all_dwd_daily_.csv')
 path_to_netatmo_daily_edf = (path_to_data /
                              r'edf_ppt_all_netatmo_daily_.csv')
 
@@ -56,8 +60,8 @@ path_netatmo_hourly_extremes_df = path_to_data / \
     r'netatmo_hourly_maximum_100_hours.csv'
 path_dwd_hourly_extremes_df = path_to_data / \
     r'dwd_hourly_maximum_100_hours.csv'
-path_to_dwd_hourly_vgs = path_to_data / r'vg_strs_dwd_hourly_ppt_.csv'
-path_to_dwd_hourly_edf_vgs = path_to_data / r'vg_strs_dwd_hourly_edf_.csv'
+path_to_dwd_hourly_vgs = path_to_vgs / r'vg_strs_dwd_hourly_ppt_.csv'
+path_to_dwd_hourly_edf_vgs = path_to_vgs / r'vg_strs_dwd_hourly_edf_.csv'
 
 path_to_dwd_hourly_data = (path_to_data /
                            r'all_dwd_hourly_ppt_data_combined_2014_2019_.csv')
@@ -76,21 +80,22 @@ path_to_dwd_coords = (path_to_data /
 path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 
 # NETATMO FIRST FILTER
-path_to_netatmo_gd_stns = (path_to_data /
-                           r'keep_stns_all_neighbor_90_per_60min_.csv')
+path_to_netatmo_gd_stns = (main_dir / r'plots_NetAtmo_ppt_DWD_ppt_correlation_' /
+                           r'keep_stns_all_neighbor_90_per_60min_s0.csv')
 
 # =============================================================================
 
 strt_date = '2014-01-01'
 end_date = '2019-08-01'
 
-use_dwd_stns_for_kriging = True
+use_dwd_stns_for_kriging = False
+use_dwd_netatmo_stns_for_kriging = True
 
 normal_kriging = False
 qunatile_kriging = True
 
-use_daily_data = False
-use_hourly_data = True
+use_daily_data = True
+use_hourly_data = False
 
 use_netatmo_gd_stns = True
 
@@ -202,11 +207,11 @@ dwd_in_coords_df.index = list(map(str, dwd_in_coords_df.index))
 #==============================================================================
 # # NETATMO AND DWD EXTREME EVENTS
 #==============================================================================
-netatmo_in_extremes_df = pd.read_csv(path_netatmo_extremes_df,
-                                     index_col=0,
-                                     sep=';',
-                                     encoding='utf-8',
-                                     header=None)
+# netatmo_in_extremes_df = pd.read_csv(path_netatmo_extremes_df,
+#                                      index_col=0,
+#                                      sep=';',
+#                                      encoding='utf-8',
+#                                      header=None)
 
 dwd_in_extremes_df = pd.read_csv(path_dwd_extremes_df,
                                  index_col=0,
@@ -268,8 +273,12 @@ def convert_coords_fr_wgs84_to_utm32_(epgs_initial_str, epsg_final_str,
 #==============================================================================
 
 
-df_stns_netatmo_gd_event = netatmo_in_vals_df
-
+df_stns_netatmo_gd_event = pd.DataFrame(
+    index=df_vgs_models.index,
+    columns=netatmo_in_vals_df.columns,
+    data=np.ones(
+        shape=(df_vgs_models.index.shape[0],
+               netatmo_in_vals_df.columns.shape[0])))
 
 #==============================================================================
 #
@@ -322,8 +331,11 @@ for event_date in df_vgs_models.index:
         netatmo_coords = netatmo_in_coords_df.loc[netatmo_df.index]
         x_netatmo, y_netatmo = netatmo_coords.X.values, netatmo_coords.Y.values
 
-        # TODO:
+        # Combine both coordinates and data
         x_dwd_netatmo_comb = np.concatenate((x_dwd, x_netatmo))
+        y_dwd_netatmo_comb = np.concatenate((y_dwd, y_netatmo))
+        ppt_dwd_netatmo_comb = np.concatenate((dwd_vals, netatmo_vals))
+
         print('\a\a\a Doing Ordinary Kriging \a\a\a')
 
         if use_dwd_stns_for_kriging:
@@ -345,6 +357,24 @@ for event_date in df_vgs_models.index:
                 yk=y_netatmo,
                 model=vgs_model)
 
+        if use_dwd_netatmo_stns_for_kriging:
+            print('using DWD and Netatmo stations to find Netatmo values')
+            measured_vals = netatmo_vals
+            used_vals = ppt_dwd_netatmo_comb
+
+            xlabel = 'Netatmo observed values'
+            ylabel = 'Netatmo interpolated values using DWD and Netatmo data'
+            measured_stns = 'Netatmo'
+            used_stns = 'DWD and Netatmo'
+            plot_title_acc = '_using_DWD_and_Netatmo_stations_to_find_Netatmo_values_'
+
+            ordinary_kriging = OrdinaryKriging(
+                xi=x_dwd_netatmo_comb,
+                yi=y_dwd_netatmo_comb,
+                zi=ppt_dwd_netatmo_comb,
+                xk=x_netatmo,
+                yk=y_netatmo,
+                model=vgs_model)
         try:
             ordinary_kriging.krige()
         except Exception as msg:
@@ -379,6 +409,7 @@ for event_date in df_vgs_models.index:
                   len(idx_bad_stns[0]))
             print('Number of Stations with good index \n',
                   len(idx_good_stns[0]))
+
             print('**Removing bad stations and saving to new df**')
 
             # use additional filter
@@ -390,7 +421,7 @@ for event_date in df_vgs_models.index:
 
                 df_stns_netatmo_gd_event.loc[
                     event_date,
-                    ids_netatmo_stns_bad] = np.nan
+                    ids_netatmo_stns_bad] = -999
 
             except Exception as msg:
                 print(msg)

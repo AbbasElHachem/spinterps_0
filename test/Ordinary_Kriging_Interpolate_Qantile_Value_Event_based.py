@@ -71,6 +71,11 @@ path_to_netatmo_gd_stns = (
     r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\plots_NetAtmo_ppt_DWD_ppt_correlation_"
     r'\keep_stns_all_neighbor_90_per_60min_s0.csv')
 
+# NETATMO SECOND FILTER
+path_to_netatmo_gd_stns_events = (
+    main_dir / r'oridinary_kriging_compare_DWD_Netatmo' /
+    r'all_netatmo__daily_ppt_edf__temporal_filter.csv')
+
 # DWD Extreme Events Daily and Hourly
 
 # DAILY and Hourly DATA
@@ -104,8 +109,8 @@ ngp = 5
 use_daily_data = True
 use_hourly_data = False
 
-use_netatmo_gd_stns = False
-
+use_netatmo_gd_stns = True
+use_netatmo_gd_stns_event_based = True
 
 # =============================================================================
 if use_daily_data:
@@ -180,6 +185,17 @@ if use_netatmo_gd_stns:
     netatmo_ppt_data_df = netatmo_ppt_data_df.loc[:,
                                                   netatmo_in_coords_df.index]
 
+
+if use_netatmo_gd_stns_event_based:
+    df_gd_stns_events = pd.read_csv(path_to_netatmo_gd_stns_events,
+                                    index_col=0, parse_dates=True,
+                                    sep=';', infer_datetime_format=True,
+                                    encoding='utf-8').dropna(how='all')
+
+#     good_netatmo_stns_events = df_gd_stns_events.columns.tolist()
+#
+#     netatmo_ppt_data_df = netatmo_ppt_data_df.loc[:, good_netatmo_stns_events]
+
 #==============================================================================
 # Extreme Events Data
 #==============================================================================
@@ -244,7 +260,7 @@ def chunks(l, n):
 
 all_dwd_stns = dwd_ppt_data_df.columns.tolist()
 shuffle(all_dwd_stns)
-shuffled_dwd_stns_10stn = np.array(list(chunks(all_dwd_stns, 2)))
+shuffled_dwd_stns_10stn = np.array(list(chunks(all_dwd_stns, 1)))
 
 #==============================================================================
 # CREATE DFS HOLD RESULT KRIGING PER NETATMO STATION
@@ -320,13 +336,32 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
             #==================================================================
             # # NETATMO QUANTILES
             #==================================================================
+
             edf_netatmo_vals = []
             netatmo_xcoords = []
             netatmo_ycoords = []
             netatmo_stn_ids = []
 
-            for netatmo_stn_id in netatmo_ppt_data_df.columns:
+            netatmo_stns = netatmo_ppt_data_df.columns
+
+            if use_netatmo_gd_stns_event_based:
+
+                try:
+                    df_stns_events_date = df_gd_stns_events.loc[event_date, :]
+
+                    gd_stns_per_events = df_stns_events_date[
+                        df_stns_events_date > 0].index
+                    bad_stns_per_events = df_stns_events_date[
+                        df_stns_events_date < 0].index
+                    netatmo_stns = gd_stns_per_events
+                    print('\n** Using gd Netatmo stations for event **\n')
+                except Exception as msg:
+                    print('\n**Using all Netatmo stations for event **\n')
+                    netatmo_stns = netatmo_ppt_data_df.columns
+                    continue
+            for netatmo_stn_id in netatmo_stns:
                 # print('Netatmo station is', netatmo_stn_id)
+
                 try:
                     edf_stn_vals = netatmo_ppt_data_df.loc[event_date,
                                                            netatmo_stn_id]
@@ -347,7 +382,7 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
 
             good_stns_idx = [
                 ix for ix in
-                np.where(edf_netatmo_vals >= np.mean(edf_netatmo_vals))[0]]
+                np.where(edf_netatmo_vals >= np.mean(edf_dwd_vals))[0]]
 
             netatmo_xcoords = netatmo_xcoords[good_stns_idx]
             netatmo_ycoords = netatmo_ycoords[good_stns_idx]
@@ -513,7 +548,7 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
             idx_lst_comb)),
         sep=';', float_format='%0.2f')
 
-    break
+
 stop = timeit.default_timer()  # Ending time
 print('\n\a\a\a Done with everything on %s \a\a\a' %
       (time.asctime()))

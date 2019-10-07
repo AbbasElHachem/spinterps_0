@@ -36,7 +36,7 @@ def main():
 
     in_data_file = os.path.join(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-        r'all_netatmo_ppt_data_monthly_.csv')
+        r'all_dwd_ppt_data_daily_.csv')
 
 #     in_data_file = os.path.join(
 #         r'F:\download_DWD_data_recent',
@@ -46,7 +46,7 @@ def main():
     path_to_netatmo_gd_stns_file = (
         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
         r"\plots_NetAtmo_ppt_DWD_ppt_correlation_"
-        r"\keep_stns_all_neighbor_90_per_60min_s0.csv")
+        r"\keep_stns_all_neighbor_95_per_60min_s0.csv")
     #==========================================================================
 #     in_data_file = os.path.join(
 #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
@@ -61,17 +61,17 @@ def main():
 
     in_vgs_file = os.path.join(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo',
-        r'vg_strs_dwd_monthly_ppt.csv')
+        r'vg_strs_dwd_ppt_100_extreme_events_daily.csv')
 
     #==========================================================================
 #
-#     in_stns_coords_file = os.path.join(
-#         os.path.dirname(in_data_file),
-#         r'station_coordinates_names_hourly_only_in_BW_utm32.csv')
-
     in_stns_coords_file = os.path.join(
         os.path.dirname(in_data_file),
-        r'netatmo_bw_1hour_coords_utm32.csv')
+        r'station_coordinates_names_hourly_only_in_BW_utm32.csv')
+
+#     in_stns_coords_file = os.path.join(
+#         os.path.dirname(in_data_file),
+#         r'netatmo_bw_1hour_coords_utm32.csv')
     #==========================================================================
     index_type = 'date'
 
@@ -80,8 +80,8 @@ def main():
     var_units = 'mm'  # 'mm'  # u'\u2103'  # 'centigrade'
     var_name = 'precipitation'  # 'precipitation'
 
-    out_krig_net_cdf_file = r'Netatmo_dwd_monthly_precipitation_kriging_%s_to_%s_1km_mid_rg_.nc'
-    freq = 'M'
+    out_krig_net_cdf_file = r'Dwd_dwd_daily_precipitation_kriging_%s_to_%s_1km_mid_rg_extremes.nc'
+    freq = 'D'
     strt_date = r'2015-01-01'
     end_date = r'2019-09-01'
 
@@ -107,7 +107,7 @@ def main():
     min_nebor_dist_thresh = 0
 
     idw_exps = [1, 3, 5]
-    n_cpus = 4
+    n_cpus = 1
     buffer_dist = 2e3
     sec_buffer_dist = 2e3
 
@@ -151,14 +151,18 @@ def main():
         sep=in_sep,
         index_col=0,
         encoding='utf-8',
-        dtype=str)
+        dtype=str).dropna(how='all')
 
     in_stns_coords_df = pd.read_csv(
         in_stns_coords_file,
         sep=in_sep,
         index_col=0,
         encoding='utf-8')
+
     in_stns_coords_df.drop_duplicates(['X', 'Y'], keep='first', inplace=True)
+
+    in_data_df = in_data_df.loc[in_data_df.index.intersection(
+        in_vgs_df.index), :].dropna(how='all')
 
     if DWD_stations:
         # added by Abbas, for DWD stations
@@ -169,7 +173,7 @@ def main():
         in_stns_coords_df.index = stndwd_ix
 
     # added by Abbas
-    in_data_df = in_data_df.loc[:, good_stns]
+#     in_data_df = in_data_df.loc[:, good_stns]
 
     in_data_df.dropna(inplace=True, how='all')
 
@@ -231,7 +235,10 @@ def main():
         spinterp_cls.turn_inverse_distance_weighting_on(idw_exps)
 
     spinterp_cls.verify()
-    spinterp_cls.interpolate()
+    try:
+        spinterp_cls.interpolate()
+    except Exception as msg:
+        print(msg)
     return
 
 
