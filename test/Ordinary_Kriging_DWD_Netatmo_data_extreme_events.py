@@ -49,8 +49,10 @@ path_to_data = main_dir / r'NetAtmo_BW'
 path_netatmo_daily_extremes_df = path_to_data / \
     r'netatmo_daily_maximum_100_days.csv'
 path_dwd_daily_extremes_df = path_to_data / r'dwd_daily_maximum_100_days.csv'
-path_to_dwd_daily_vgs = path_to_data / r'vg_strs_dwd_daily_ppt_.csv'
-path_to_dwd_daily_edf_vgs = path_to_data / r'vg_strs_dwd_daily_edf_.csv'
+path_to_dwd_daily_vgs = path_to_data / \
+    r'vg_strs_dwd_ppt_100_extreme_events_daily.csv'
+path_to_dwd_daily_edf_vgs = path_to_data / \
+    r'vg_strs_dwd_edf_100_extreme_events_daily.csv'
 path_to_dwd_daily_data = (path_to_data /
                           r'all_dwd_daily_ppt_data_combined_2014_2019_.csv')
 path_to_netatmo_daily_data = path_to_data / r'all_netatmo_ppt_data_daily_.csv'
@@ -60,12 +62,16 @@ path_to_netatmo_daily_edf = (path_to_data /
                              r'edf_ppt_all_netatmo_daily_.csv')
 
 # done after filterting based on kriging
-path_to_netatmo_daily_data_temp_filter = (
+# path_to_netatmo_daily_data_temp_filter = (
+#     main_dir / r'oridinary_kriging_compare_DWD_Netatmo' /
+#     r'all_netatmo__daily_ppt_edf__temporal_filter.csv')
+path_to_netatmo_daily_edf_temp_filter = (
     main_dir / r'oridinary_kriging_compare_DWD_Netatmo' /
-    r'all_netatmo__daily_ppt_edf__temporal_filter.csv')
-# path_to_netatmo_daily_edf_temp_filte = (
-#     path_to_data /
-#     r'all_netatmo_edf_data_daily_temporal_filter.csv')
+    r'all_netatmo__daily_ppt_edf__using_DWD_stations_to_find_Netatmo_values__temporal_filter.csv')
+
+path_to_dwd_netatmo_daily_edf_temp_filter = (
+    main_dir / r'oridinary_kriging_compare_DWD_Netatmo' /
+    r'all_netatmo__daily_ppt_edf__using_DWD_and_Netatmo_stations_to_find_Netatmo_values__temporal_filter.csv')
 
 
 # HOURLY DATA
@@ -73,13 +79,14 @@ path_netatmo_hourly_extremes_df = path_to_data / \
     r'netatmo_hourly_maximum_100_hours.csv'
 path_dwd_hourly_extremes_df = path_to_data / \
     r'dwd_hourly_maximum_100_hours.csv'
-path_to_dwd_hourly_vgs = path_to_data / r'vg_strs_dwd_hourly_ppt_.csv'
-path_to_dwd_hourly_edf_vgs = path_to_data / r'vg_strs_dwd_hourly_edf_.csv'
+path_to_dwd_hourly_vgs = path_to_data / r'vg_strs_dwd_hourly_extreme_events.csv'
+path_to_dwd_hourly_edf_vgs = path_to_data / \
+    r'vg_strs_dwd_edf_hourly_extreme_events.csv'
 
 path_to_dwd_hourly_data = (path_to_data /
                            r'all_dwd_hourly_ppt_data_combined_2014_2019_.csv')
 path_to_netatmo_hourly_data = path_to_data / \
-    r'ppt_all_netatmo_hourly_stns_combined_new.csv'
+    r'ppt_all_netatmo_hourly_stns_combined_new_no_freezing_2.csv'
 path_to_dwd_hourly_edf = (path_to_data /
                           r'edf_ppt_all_dwd_hourly_.csv')
 
@@ -88,13 +95,16 @@ path_to_netatmo_hourly_edf = (path_to_data /
 
 
 # done after filterting based on kriging
-path_to_netatmo_hourly_data_temp_filter = (
-    path_to_data /
-    r'all_netatmo__hourly_ppt_amounts__temporal_filter.csv')
-# path_to_netatmo_hourly_edf_temp_filte = (
+# path_to_netatmo_hourly_data_temp_filter = (
 #     path_to_data /
-#     r'all_netatmo__hourly_ppt_edf__temporal_filter.csv')
+#     r'all_netatmo__daily_ppt_edf__using_DWD_stations_to_find_Netatmo_values__temporal_filter.csv')
+path_to_netatmo_hourly_edf_temp_filter = (
+    main_dir / r'oridinary_kriging_compare_DWD_Netatmo' /
+    r'all_netatmo__hourly_ppt_edf__using_DWD_stations_to_find_Netatmo_values__temporal_filter.csv')
 
+path_to_dwd_netatmo_hourly_edf_temp_filter = (
+    main_dir / r'oridinary_kriging_compare_DWD_Netatmo' /
+    r'all_netatmo__hourly_ppt_edf__using_DWD_and_Netatmo_stations_to_find_Netatmo_values__temporal_filter.csv')
 
 # COORDINATES
 path_to_dwd_coords = (path_to_data /
@@ -104,29 +114,29 @@ path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 
 # NETATMO FIRST FILTER
 path_to_netatmo_gd_stns = (main_dir / r'plots_NetAtmo_ppt_DWD_ppt_correlation_' /
-                           r'keep_stns_all_neighbor_90_per_60min_s0.csv')
+                           r'keep_stns_all_neighbor_95_per_60min_s0.csv')
 
 path_to_shpfile = (
     r"F:\data_from_exchange\Netatmo\Landesgrenze_ETRS89\Landesgrenze_10000_ETRS89_lon_lat.shp")
 
 # =============================================================================
-strt_date = '2014-01-01'
-end_date = '2019-08-01'
+strt_date = '2015-01-01'
+end_date = '2019-09-01'
 
-use_netatmo_stns_for_kriging = False
+use_netatmo_stns_for_kriging = True
 use_dwd_stns_for_kriging = False
-use_dwd_and_netatmo_stns_for_kriging = True
 
 normal_kriging = False
 qunatile_kriging = True
 
-use_daily_data = True
-use_hourly_data = False
+use_daily_data = False
+use_hourly_data = True
 
 # run it to filter Netatmo
 use_netatmo_gd_stns = True  # general filter, Indicator kriging
 use_temporal_filter_after_kriging = True  # on day filter (in other script)
 
+use_temp_filter_based_on_dwd_and_netatmo = False
 # =============================================================================
 if use_daily_data:
     path_to_netatmo_ppt_data = path_to_netatmo_daily_data  # _temp_filter
@@ -146,25 +156,37 @@ if use_hourly_data:
     path_to_dwd_edf = path_to_dwd_hourly_edf
 
     path_netatmo_extremes_df = path_netatmo_hourly_extremes_df
-    path_dwd_extremes_df = path_netatmo_hourly_extremes_df
+    path_dwd_extremes_df = path_dwd_hourly_extremes_df
     idx_time_fmt = '%Y-%m-%d %H:%M:%S'
     plot_label = r'(mm_per_hour)'
 
+#==============================================================================
+#
+#==============================================================================
+
 if use_temporal_filter_after_kriging:
     if use_daily_data:
-        path_to_netatmo_ppt_data = path_to_netatmo_daily_data_temp_filter
-#         path_to_netatmo_edf = path_to_netatmo_daily_edf_temp_filte
+        #         path_to_netatmo_ppt_data = path_to_netatmo_daily_data_temp_filter
+        path_to_netatmo_temp_edf_filter = path_to_netatmo_daily_edf_temp_filter
+        if use_temp_filter_based_on_dwd_and_netatmo:
+            print('using DWD and Netatmo Temporal filter')
+            path_to_netatmo_temp_edf_filter = path_to_dwd_netatmo_daily_edf_temp_filter
     if use_hourly_data:
-        path_to_netatmo_ppt_data = path_to_netatmo_hourly_data_temp_filter
-#         path_to_netatmo_edf = path_to_netatmo_hourly_edf_temp_filte
+        #         path_to_netatmo_ppt_data = path_to_netatmo_hourly_data_temp_filter
+        path_to_netatmo_temp_edf_filter = path_to_netatmo_hourly_edf_temp_filter
+        if use_temp_filter_based_on_dwd_and_netatmo:
+            path_to_netatmo_temp_edf_filter = path_to_dwd_netatmo_hourly_edf_temp_filter
+
 
 if normal_kriging:
     netatmo_data_to_use = path_to_netatmo_ppt_data
     dwd_data_to_use = path_to_dwd_ppt_data
     if use_daily_data:
         path_to_dwd_vgs = path_to_dwd_daily_vgs
+#         path_to_netatmo_temp_filter = path_to_netatmo_daily_ppt_temp_filter
     if use_hourly_data:
         path_to_dwd_vgs = path_to_dwd_hourly_vgs
+#         path_to_netatmo_temp_filter = path_to_netatmo_hourly_ppt_temp_filter
     plot_unit = plot_label
     title_ = r'Amounts'
 
@@ -173,13 +195,20 @@ if qunatile_kriging:
     dwd_data_to_use = path_to_dwd_edf
     if use_daily_data:
         path_to_dwd_vgs = path_to_dwd_daily_edf_vgs
+        if use_temporal_filter_after_kriging:
+            path_to_netatmo_temp_filter = path_to_netatmo_temp_edf_filter
     if use_hourly_data:
         path_to_dwd_vgs = path_to_dwd_hourly_edf_vgs
+        if use_temporal_filter_after_kriging:
+            path_to_netatmo_temp_filter = path_to_netatmo_temp_edf_filter
     plot_unit = 'CDF'
     title_ = r'Quantiles'
 
 if use_temporal_filter_after_kriging:
     title_ = title_ + '_Temporal_filter_used_'
+
+if use_temp_filter_based_on_dwd_and_netatmo:
+    title_ = title_ + 'based_on_dwd_netatmo'
 #==============================================================================
 # # Netatmo DATA and COORDS
 #==============================================================================
@@ -220,8 +249,7 @@ if use_netatmo_gd_stns:
     netatmo_in_vals_df = netatmo_in_vals_df.loc[:, cmn_stns]
     title_ = title_ + r'_using_Netatmo_good_stations_'
 
-if use_temporal_filter_after_kriging:
-    df_stns_netatmo_gd_event = netatmo_in_vals_df
+print(title_)
 #==============================================================================
 # # DWD DATA AND COORDS
 #==============================================================================
@@ -253,11 +281,11 @@ dwd_in_coords_df.index = list(map(str, dwd_in_coords_df.index))
 #==============================================================================
 # # NETATMO AND DWD EXTREME EVENTS
 #==============================================================================
-netatmo_in_extremes_df = pd.read_csv(path_netatmo_extremes_df,
-                                     index_col=0,
-                                     sep=';',
-                                     encoding='utf-8',
-                                     header=None)
+# netatmo_in_extremes_df = pd.read_csv(path_netatmo_extremes_df,
+#                                      index_col=0,
+#                                      sep=';',
+#                                      encoding='utf-8',
+#                                      header=None)
 
 dwd_in_extremes_df = pd.read_csv(path_dwd_extremes_df,
                                  index_col=0,
@@ -409,7 +437,7 @@ start = timeit.default_timer()  # to get the runtime of the program
 #==============================================================================
 
 
-for event_date in df_vgs_models.index:
+for event_date in df_vgs_models.index[10:]:
     # if event_date == '2018-05-14':
     #   raise Exception
     if ((event_date in df_vgs_models.index) and
@@ -437,6 +465,7 @@ for event_date in df_vgs_models.index:
             except Exception as msg:
                 print(msg)
                 print('Only Nugget variogram for this day')
+
         if type(vgs_model) != np.float:
             print('**Changed Variogram model to**\n', vgs_model)
 
@@ -449,7 +478,28 @@ for event_date in df_vgs_models.index:
             # Netatmo data and coords
             netatmo_df = netatmo_in_vals_df.loc[event_date, :].dropna(
                 how='all')
-            netatmo_vals = netatmo_df.values
+            # apply temp filter per event
+            if use_temporal_filter_after_kriging:
+                print('apllying on event filter')
+                df_all_stns_per_events = pd.read_csv(
+                    path_to_netatmo_temp_filter,
+                    sep=';', index_col=0,
+                    parse_dates=True,
+                    infer_datetime_format=True)
+                df_all_stns_per_event = df_all_stns_per_events.loc[
+                    df_all_stns_per_events.index.intersection([event_date]), :]
+                all_stns = df_all_stns_per_event.columns
+                stns_keep_per_event = all_stns[np.where(
+                    df_all_stns_per_event.values > 0)[1]]
+                print('\n----Keeping %d / %d Stns for event---'
+                      % (stns_keep_per_event.shape[0],
+                         all_stns.shape[0]))
+                # keep only good stations
+                netatmo_df = netatmo_in_vals_df.loc[
+                    netatmo_in_vals_df.index.intersection([event_date]),
+                    stns_keep_per_event].T.dropna(how='all')
+
+            netatmo_vals = netatmo_df.values.ravel()
             netatmo_coords = netatmo_in_coords_df.loc[netatmo_df.index]
             x_netatmo, y_netatmo = netatmo_coords.X.values, netatmo_coords.Y.values
 
@@ -494,36 +544,36 @@ for event_date in df_vgs_models.index:
                     yk=y_netatmo,
                     model=vgs_model)
 
-            if use_dwd_and_netatmo_stns_for_kriging:
-                print('using DWD and Netatmo stations to find Netatmo values')
-
-                dwd_netatmo_xcoords = np.concatenate(
-                    [x_dwd, x_netatmo])
-                dwd_netatmo_ycoords = np.concatenate(
-                    [y_dwd, y_netatmo])
-
-                coords = np.array([(x, y) for x, y in zip(dwd_netatmo_xcoords,
-                                                          dwd_netatmo_ycoords)])
-                #dwd_netatmo_ppt = np.hstack((ppt_dwd_vals, ppt_netatmo_vals))
-                dwd_netatmo_ppt = np.concatenate([dwd_vals,
-                                                  netatmo_vals])
-
-                measured_vals = dwd_vals
-                used_vals = dwd_netatmo_ppt
-
-                xlabel = 'Netatmo and DWD observed values'
-                ylabel = 'Netatmo and DWD interpolated values using DWD data'
-                measured_stns = 'DWD'
-                used_stns = 'DWD and Netatmo'
-                plot_title_acc = '_using_DWD_and_NEtatmo_stations_to_find_DWD_values_'
-
-                ordinary_kriging = OrdinaryKriging(
-                    xi=dwd_netatmo_xcoords,
-                    yi=dwd_netatmo_ycoords,
-                    zi=dwd_netatmo_ppt,
-                    xk=x_dwd,
-                    yk=y_dwd,
-                    model=vgs_model)
+#             if use_dwd_and_netatmo_stns_for_kriging:
+#                 print('using DWD and Netatmo stations to find Netatmo values')
+#
+#                 dwd_netatmo_xcoords = np.concatenate(
+#                     [x_dwd, x_netatmo])
+#                 dwd_netatmo_ycoords = np.concatenate(
+#                     [y_dwd, y_netatmo])
+#
+#                 coords = np.array([(x, y) for x, y in zip(dwd_netatmo_xcoords,
+#                                                           dwd_netatmo_ycoords)])
+#                 #dwd_netatmo_ppt = np.hstack((ppt_dwd_vals, ppt_netatmo_vals))
+#                 dwd_netatmo_ppt = np.concatenate([dwd_vals,
+#                                                   netatmo_vals])
+#
+#                 measured_vals = dwd_vals
+#                 used_vals = dwd_netatmo_ppt
+#
+#                 xlabel = 'DWD observed values'
+#                 ylabel = 'Netatmo and DWD interpolated values using DWD data'
+#                 measured_stns = 'DWD'
+#                 used_stns = 'DWD and Netatmo'
+#                 plot_title_acc = '_using_DWD_and_Netatmo_stations_to_find_DWD_values_'
+#
+#                 ordinary_kriging = OrdinaryKriging(
+#                     xi=dwd_netatmo_xcoords,
+#                     yi=dwd_netatmo_ycoords,
+#                     zi=dwd_netatmo_ppt,
+#                     xk=x_dwd,
+#                     yk=y_dwd,
+#                     model=vgs_model)
             try:
                 ordinary_kriging.krige()
             except Exception as msg:
@@ -541,9 +591,9 @@ for event_date in df_vgs_models.index:
 
             # interpolated vals
             interpolated_vals = ordinary_kriging.zk.copy()
-            if qunatile_kriging and np.max(interpolated_vals) > 1:
-                interpolated_vals[interpolated_vals > 1] = 1
-                # raise Exception
+#             if qunatile_kriging and np.max(interpolated_vals) > 1:
+#                 interpolated_vals[interpolated_vals > 1] = 1
+            # raise Exception
             event_date = str(event_date).replace('-', '_').replace(':', '_')
 
             # calculate correlation between observed and interpolated

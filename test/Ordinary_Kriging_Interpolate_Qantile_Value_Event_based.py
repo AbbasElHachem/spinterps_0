@@ -38,6 +38,7 @@ plt.rcParams.update({'font.size': 12})
 plt.rcParams.update({'axes.labelsize': 12})
 
 # =============================================================================
+# =============================================================================
 
 main_dir = Path(r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes')
 os.chdir(main_dir)
@@ -47,18 +48,65 @@ out_plots_path = main_dir / r'oridinary_kriging_compare_DWD_Netatmo'
 path_to_data = main_dir / r'NetAtmo_BW'
 
 # DAILY DATA
+path_netatmo_daily_extremes_df = path_to_data / \
+    r'netatmo_daily_maximum_100_days.csv'
+path_dwd_daily_extremes_df = path_to_data / r'dwd_daily_maximum_100_days.csv'
+path_to_dwd_daily_vgs = path_to_data / \
+    r'vg_strs_dwd_ppt_100_extreme_events_daily.csv'
+path_to_dwd_daily_edf_vgs = path_to_data / \
+    r'vg_strs_dwd_edf_100_extreme_events_daily.csv'
 path_to_dwd_daily_data = (path_to_data /
-                          r'edf_ppt_all_dwd_daily_.csv')
+                          r'all_dwd_daily_ppt_data_combined_2014_2019_.csv')
+path_to_netatmo_daily_data = path_to_data / r'all_netatmo_ppt_data_daily_.csv'
+path_to_dwd_daily_edf = (path_to_data /
+                         r'edf_ppt_all_dwd_daily_.csv')
+path_to_netatmo_daily_edf = (path_to_data /
+                             r'edf_ppt_all_netatmo_daily_.csv')
 
-path_to_netatmo_daily_data = (path_to_data /
-                              r'edf_ppt_all_netatmo_daily_.csv')
+# done after filterting based on kriging
+# path_to_netatmo_daily_data_temp_filter = (
+#     main_dir / r'oridinary_kriging_compare_DWD_Netatmo' /
+#     r'all_netatmo__daily_ppt_edf__temporal_filter.csv')
+path_to_netatmo_daily_edf_temp_filter = (
+    main_dir / r'oridinary_kriging_compare_DWD_Netatmo' /
+    r'all_netatmo__daily_ppt_edf__using_DWD_stations_to_find_Netatmo_values__temporal_filter.csv')
+
+path_to_dwd_netatmo_daily_edf_temp_filter = (
+    main_dir / r'oridinary_kriging_compare_DWD_Netatmo' /
+    r'all_netatmo__daily_ppt_edf__using_DWD_and_Netatmo_stations_to_find_Netatmo_values__temporal_filter.csv')
+
 
 # HOURLY DATA
-path_to_dwd_hourly_data = (path_to_data /
-                           r'edf_ppt_all_dwd_hourly_.csv')
+path_netatmo_hourly_extremes_df = path_to_data / \
+    r'netatmo_hourly_maximum_100_hours.csv'
+path_dwd_hourly_extremes_df = path_to_data / \
+    r'dwd_hourly_maximum_100_hours.csv'
+path_to_dwd_hourly_vgs = path_to_data / r'vg_strs_dwd_hourly_extreme_events.csv'
+path_to_dwd_hourly_edf_vgs = path_to_data / \
+    r'vg_strs_dwd_edf_hourly_extreme_events.csv'
 
-path_to_netatmo_hourly_data = (path_to_data /
-                               r'edf_ppt_all_netatmo_hourly_.csv')
+path_to_dwd_hourly_data = (path_to_data /
+                           r'all_dwd_hourly_ppt_data_combined_2014_2019_.csv')
+path_to_netatmo_hourly_data = path_to_data / \
+    r'ppt_all_netatmo_hourly_stns_combined_new.csv'
+path_to_dwd_hourly_edf = (path_to_data /
+                          r'edf_ppt_all_dwd_hourly_.csv')
+
+path_to_netatmo_hourly_edf = (path_to_data /
+                              r'edf_ppt_all_netatmo_hourly_.csv')
+
+
+# done after filterting based on kriging
+# path_to_netatmo_hourly_data_temp_filter = (
+#     path_to_data /
+#     r'all_netatmo__daily_ppt_edf__using_DWD_stations_to_find_Netatmo_values__temporal_filter.csv')
+path_to_netatmo_hourly_edf_temp_filter = (
+    main_dir / r'oridinary_kriging_compare_DWD_Netatmo' /
+    r'all_netatmo__hourly_ppt_edf__using_DWD_stations_to_find_Netatmo_values__temporal_filter.csv')
+
+path_to_dwd_netatmo_hourly_edf_temp_filter = (
+    main_dir / r'oridinary_kriging_compare_DWD_Netatmo' /
+    r'all_netatmo__hourly_ppt_edf__using_DWD_and_Netatmo_stations_to_find_Netatmo_values__temporal_filter.csv')
 
 # COORDINATES
 path_to_dwd_coords = (path_to_data /
@@ -67,33 +115,15 @@ path_to_dwd_coords = (path_to_data /
 path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 
 # NETATMO FIRST FILTER
-path_to_netatmo_gd_stns = (
-    r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\plots_NetAtmo_ppt_DWD_ppt_correlation_"
-    r'\keep_stns_all_neighbor_90_per_60min_s0.csv')
+path_to_netatmo_gd_stns = (main_dir / r'plots_NetAtmo_ppt_DWD_ppt_correlation_' /
+                           r'keep_stns_all_neighbor_95_per_60min_s0.csv')
 
-# NETATMO SECOND FILTER
-path_to_netatmo_gd_stns_events = (
-    main_dir / r'oridinary_kriging_compare_DWD_Netatmo' /
-    r'all_netatmo__daily_ppt_edf__temporal_filter.csv')
+path_to_shpfile = (
+    r"F:\data_from_exchange\Netatmo\Landesgrenze_ETRS89\Landesgrenze_10000_ETRS89_lon_lat.shp")
 
-# DWD Extreme Events Daily and Hourly
-
-# DAILY and Hourly DATA
-path_to_dwd_daily_data_extremes = (path_to_data /
-                                   r'dwd_daily_maximum_100_days.csv')
-
-path_to_dwd_hourly_data_extremes = (path_to_data /
-                                    r'dwd_hourly_maximum_100_hours.csv')
 # =============================================================================
 strt_date = '2015-01-01'
 end_date = '2019-09-01'
-
-# warm_season_month = [5, 6, 7, 8, 9]  # mai till sep
-# cold_season_month = [10, 11, 12, 1, 2, 3, 4]  # oct till april
-
-
-#list_ppt_values = np.round(np.arange(0.5, 50.00, 0.5), 2)
-#list_percentiles = np.round(np.arange(0.5, 1.000001, 0.0025), 4)
 
 min_valid_stns = 10
 
@@ -106,107 +136,196 @@ n_best = 4
 ngp = 5
 
 
+normal_kriging = False
+qunatile_kriging = True
+
 use_daily_data = True
 use_hourly_data = False
 
-use_netatmo_gd_stns = True
-use_netatmo_gd_stns_event_based = True
+# run it to filter Netatmo
+use_netatmo_gd_stns = True  # general filter, Indicator kriging
+use_temporal_filter_after_kriging = True  # on day filter (in other script)
 
+use_temp_filter_based_on_dwd_and_netatmo = False
 # =============================================================================
 if use_daily_data:
+    path_to_netatmo_ppt_data = path_to_netatmo_daily_data  # _temp_filter
     path_to_dwd_ppt_data = path_to_dwd_daily_data
-    path_to_netatmo_ppt_data = path_to_netatmo_daily_data
+    path_to_netatmo_edf = path_to_netatmo_daily_edf  # _temp_filte
+    path_to_dwd_edf = path_to_dwd_daily_edf
 
-    path_to_dwd_ppt_data_extremes = path_to_dwd_daily_data_extremes
-
+    path_netatmo_extremes_df = path_netatmo_daily_extremes_df
+    path_dwd_extremes_df = path_dwd_daily_extremes_df
     idx_time_fmt = '%Y-%m-%d'
+    plot_label = r'(mm_per_day)'
     time_res = 'daily'
+
 if use_hourly_data:
-    path_to_dwd_ppt_data = path_to_dwd_hourly_data
     path_to_netatmo_ppt_data = path_to_netatmo_hourly_data
+    path_to_dwd_ppt_data = path_to_dwd_hourly_data
+    path_to_netatmo_edf = path_to_netatmo_hourly_edf
+    path_to_dwd_edf = path_to_dwd_hourly_edf
 
-    path_to_dwd_ppt_data_extremes = path_to_dwd_hourly_data_extremes
-
+    path_netatmo_extremes_df = path_netatmo_hourly_extremes_df
+    path_dwd_extremes_df = path_dwd_hourly_extremes_df
     idx_time_fmt = '%Y-%m-%d %H:%M:%S'
+    plot_label = r'(mm_per_hour)'
     time_res = 'hourly'
 
 #==============================================================================
-# # DWD DATA
+#
 #==============================================================================
 
-# ppt data
-dwd_ppt_data_df = pd.read_csv(
-    path_to_dwd_ppt_data, sep=';', index_col=0, encoding='utf-8')
-dwd_ppt_data_df.index = pd.to_datetime(
-    dwd_ppt_data_df.index, format=idx_time_fmt)
+if use_temporal_filter_after_kriging:
+    if use_daily_data:
+        #         path_to_netatmo_ppt_data = path_to_netatmo_daily_data_temp_filter
+        path_to_netatmo_temp_edf_filter = path_to_netatmo_daily_edf_temp_filter
+        if use_temp_filter_based_on_dwd_and_netatmo:
+            print('using DWD and Netatmo Temporal filter')
+            path_to_netatmo_temp_edf_filter = path_to_dwd_netatmo_daily_edf_temp_filter
+    if use_hourly_data:
+        #         path_to_netatmo_ppt_data = path_to_netatmo_hourly_data_temp_filter
+        path_to_netatmo_temp_edf_filter = path_to_netatmo_hourly_edf_temp_filter
+        if use_temp_filter_based_on_dwd_and_netatmo:
+            path_to_netatmo_temp_edf_filter = path_to_dwd_netatmo_hourly_edf_temp_filter
 
-dwd_ppt_data_df = dwd_ppt_data_df.loc[strt_date:end_date, :]
-dwd_ppt_data_df.dropna(how='all', axis=0, inplace=True)
 
+if normal_kriging:
+    netatmo_data_to_use = path_to_netatmo_ppt_data
+    dwd_data_to_use = path_to_dwd_ppt_data
+    if use_daily_data:
+        path_to_dwd_vgs = path_to_dwd_daily_vgs
+#         path_to_netatmo_temp_filter = path_to_netatmo_daily_ppt_temp_filter
+    if use_hourly_data:
+        path_to_dwd_vgs = path_to_dwd_hourly_vgs
+#         path_to_netatmo_temp_filter = path_to_netatmo_hourly_ppt_temp_filter
+    plot_unit = plot_label
+    title_ = r'Amounts'
 
-# station coords
+if qunatile_kriging:
+    netatmo_data_to_use = path_to_netatmo_edf
+    dwd_data_to_use = path_to_dwd_edf
+    if use_daily_data:
+        path_to_dwd_vgs = path_to_dwd_daily_edf_vgs
+        if use_temporal_filter_after_kriging:
+            path_to_netatmo_temp_filter = path_to_netatmo_temp_edf_filter
+    if use_hourly_data:
+        path_to_dwd_vgs = path_to_dwd_hourly_edf_vgs
+        if use_temporal_filter_after_kriging:
+            path_to_netatmo_temp_filter = path_to_netatmo_temp_edf_filter
+    plot_unit = 'CDF'
+    title_ = r'Quantiles'
+
+if use_temporal_filter_after_kriging:
+    title_ = title_ + '_Temporal_filter_used_'
+
+if use_temp_filter_based_on_dwd_and_netatmo:
+    title_ = title_ + 'based_on_dwd_netatmo'
+#==============================================================================
+# # Netatmo DATA and COORDS
+#==============================================================================
+netatmo_in_coords_df = pd.read_csv(path_to_netatmo_coords,
+                                   index_col=0,
+                                   sep=';',
+                                   encoding='utf-8')
+
+netatmo_in_vals_df = pd.read_csv(
+    netatmo_data_to_use, sep=';',
+    index_col=0,
+    encoding='utf-8', engine='c')
+
+netatmo_in_vals_df.index = pd.to_datetime(
+    netatmo_in_vals_df.index, format=idx_time_fmt)
+
+netatmo_in_vals_df = netatmo_in_vals_df.loc[strt_date:end_date, :]
+netatmo_in_vals_df.dropna(how='all', axis=0, inplace=True)
+# daily sums
+netatmo_in_vals_df = netatmo_in_vals_df[(0 <= netatmo_in_vals_df) &
+                                        (netatmo_in_vals_df <= 300)]
+
+cmn_stns = netatmo_in_coords_df.index.intersection(netatmo_in_vals_df.columns)
+netatmo_in_vals_df = netatmo_in_vals_df.loc[:, cmn_stns]
+#==============================================================================
+
+if use_netatmo_gd_stns:
+
+    df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
+                             index_col=0,
+                             sep=';',
+                             encoding='utf-8')
+    good_netatmo_stns = df_gd_stns.loc[:, 'Stations'].values.ravel()
+    in_vals_df = netatmo_in_vals_df.loc[:, good_netatmo_stns]
+    netatmo_in_coords_df = netatmo_in_coords_df.loc[good_netatmo_stns, :]
+    cmn_stns = netatmo_in_coords_df.index.intersection(
+        netatmo_in_vals_df.columns)
+    netatmo_in_vals_df = netatmo_in_vals_df.loc[:, cmn_stns]
+    title_ = title_ + r'_using_Netatmo_good_stations_'
+
+print(title_)
+#==============================================================================
+# # DWD DATA AND COORDS
+#==============================================================================
 dwd_in_coords_df = pd.read_csv(path_to_dwd_coords,
                                index_col=0,
                                sep=';',
                                encoding='utf-8')
+
+dwd_in_vals_df = pd.read_csv(
+    dwd_data_to_use, sep=';', index_col=0, encoding='utf-8')
+dwd_in_vals_df.index = pd.to_datetime(
+    dwd_in_vals_df.index, format=idx_time_fmt)
+
+dwd_in_vals_df = dwd_in_vals_df.loc[strt_date:end_date, :]
+dwd_in_vals_df.dropna(how='all', axis=0, inplace=True)
+# daily sums
+# dwd_in_vals_df = dwd_in_vals_df[(0 <= dwd_in_vals_df) &
+#                                 (dwd_in_vals_df <= 300)]
+
+# added by Abbas, for DWD stations
 stndwd_ix = ['0' * (5 - len(str(stn_id))) + str(stn_id)
              if len(str(stn_id)) < 5 else str(stn_id)
              for stn_id in dwd_in_coords_df.index]
 
 dwd_in_coords_df.index = stndwd_ix
 dwd_in_coords_df.index = list(map(str, dwd_in_coords_df.index))
-#==============================================================================
-# # NETATMO DATA
-#==============================================================================
-# ppt data
-netatmo_ppt_data_df = pd.read_csv(
-    path_to_netatmo_ppt_data, sep=';', index_col=0, encoding='utf-8')
-netatmo_ppt_data_df.index = pd.to_datetime(
-    netatmo_ppt_data_df.index, format=idx_time_fmt)
 
-netatmo_ppt_data_df = netatmo_ppt_data_df.loc[strt_date:end_date, :]
-netatmo_ppt_data_df.dropna(how='all', axis=0, inplace=True)
-
-
-netatmo_in_coords_df = pd.read_csv(path_to_netatmo_coords,
-                                   index_col=0,
-                                   sep=';',
-                                   encoding='utf-8').dropna()
-
-if use_netatmo_gd_stns:
-    df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
-                             index_col=0,
-                             sep=';',
-                             encoding='utf-8')
-    good_netatmo_stns = df_gd_stns.loc[:, 'Stations'].values.ravel()
-
-    netatmo_in_coords_df = netatmo_in_coords_df.loc[good_netatmo_stns, :].dropna(
-    )
-    netatmo_ppt_data_df = netatmo_ppt_data_df.loc[:,
-                                                  netatmo_in_coords_df.index]
-
-
-if use_netatmo_gd_stns_event_based:
-    df_gd_stns_events = pd.read_csv(path_to_netatmo_gd_stns_events,
-                                    index_col=0, parse_dates=True,
-                                    sep=';', infer_datetime_format=True,
-                                    encoding='utf-8').dropna(how='all')
-
-#     good_netatmo_stns_events = df_gd_stns_events.columns.tolist()
-#
-#     netatmo_ppt_data_df = netatmo_ppt_data_df.loc[:, good_netatmo_stns_events]
 
 #==============================================================================
-# Extreme Events Data
+# # NETATMO AND DWD EXTREME EVENTS
 #==============================================================================
-dwd_ppt_data_df_extremes = pd.read_csv(
-    path_to_dwd_ppt_data_extremes, sep=';', index_col=0, encoding='utf-8',
-    header=None)
-dwd_ppt_data_df_extremes.index = pd.to_datetime(
-    dwd_ppt_data_df_extremes.index, format=idx_time_fmt)
+# netatmo_in_extremes_df = pd.read_csv(path_netatmo_extremes_df,
+#                                      index_col=0,
+#                                      sep=';',
+#                                      encoding='utf-8',
+#                                      header=None)
 
-dwd_ppt_data_df_extremes = dwd_ppt_data_df_extremes.loc[strt_date:end_date, :]
+dwd_in_extremes_df = pd.read_csv(path_dwd_extremes_df,
+                                 index_col=0,
+                                 sep=';',
+                                 encoding='utf-8',
+                                 header=None)
+dwd_in_extremes_df = dwd_in_extremes_df.loc[strt_date:end_date, :]
+#==============================================================================
+# # VG MODELS
+#==============================================================================
+df_vgs = pd.read_csv(path_to_dwd_vgs,
+                     index_col=0,
+                     sep=';',
+                     encoding='utf-8')
 
+df_vgs.index = pd.to_datetime(df_vgs.index, format=idx_time_fmt)
+df_vgs = df_vgs.loc[strt_date:end_date, :]
+df_vgs_models = df_vgs.iloc[:, 0]
+df_vgs_models.dropna(how='all', inplace=True)
+
+#==============================================================================
+# Netatmo temporal filter df
+#==============================================================================
+df_all_stns_per_events = pd.read_csv(
+    path_to_netatmo_temp_filter,
+    sep=';', index_col=0,
+    parse_dates=True,
+    infer_datetime_format=True)
 #==============================================================================
 #
 #==============================================================================
@@ -258,10 +377,16 @@ def chunks(l, n):
         yield l[i:i + n]
 
 
-all_dwd_stns = dwd_ppt_data_df.columns.tolist()
+all_dwd_stns = dwd_in_vals_df.columns.tolist()
 shuffle(all_dwd_stns)
-shuffled_dwd_stns_10stn = np.array(list(chunks(all_dwd_stns, 1)))
+shuffled_dwd_stns_10stn = np.array(list(chunks(all_dwd_stns, 10)))
 
+#==============================================================================
+#
+#==============================================================================
+if use_temporal_filter_after_kriging:
+    dwd_in_extremes_df = dwd_in_extremes_df.loc[
+        dwd_in_extremes_df.index.intersection(df_all_stns_per_events.index), :]
 #==============================================================================
 # CREATE DFS HOLD RESULT KRIGING PER NETATMO STATION
 #==============================================================================
@@ -272,15 +397,15 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
           pprint.pformat(stn_comb))
 
     df_interpolated_dwd_netatmos_comb = pd.DataFrame(
-        index=dwd_ppt_data_df_extremes.index,
+        index=dwd_in_extremes_df.index,
         columns=[stn_comb])
 
     df_interpolated_dwd_only = pd.DataFrame(
-        index=dwd_ppt_data_df_extremes.index,
+        index=dwd_in_extremes_df.index,
         columns=[stn_comb])
 
     df_interpolated_netatmo_only = pd.DataFrame(
-        index=dwd_ppt_data_df_extremes.index,
+        index=dwd_in_extremes_df.index,
         columns=[stn_comb])
 
     #=========================================================================
@@ -296,16 +421,16 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
 
         # drop stn
         all_dwd_stns_except_interp_loc = [
-            stn for stn in dwd_ppt_data_df.columns if stn != stn_dwd_id]
+            stn for stn in dwd_in_vals_df.columns if stn != stn_dwd_id]
 
-        for event_date in dwd_ppt_data_df_extremes.index:
-            _stn_id_event_ = str(dwd_ppt_data_df_extremes.loc[event_date, 2])
+        for event_date in dwd_in_extremes_df.index:
+            _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
             if len(_stn_id_event_) < 5:
                 _stn_id_event_ = (5 - len(_stn_id_event_)) * \
                     '0' + _stn_id_event_
 
-            _ppt_event_ = dwd_ppt_data_df_extremes.loc[event_date, 1]
-            _edf_event_ = dwd_ppt_data_df.loc[event_date, _stn_id_event_]
+            _ppt_event_ = dwd_in_extremes_df.loc[event_date, 1]
+            _edf_event_ = dwd_in_vals_df.loc[event_date, _stn_id_event_]
             print('**Calculating for Date ',
                   event_date, ' Rainfall: ',  _ppt_event_,
                   'Quantile: ', _edf_event_, ' **\n')
@@ -321,7 +446,7 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
             for stn_id in all_dwd_stns_except_interp_loc:
                 #print('station is', stn_id)
 
-                edf_stn_vals = dwd_ppt_data_df.loc[event_date, stn_id]
+                edf_stn_vals = dwd_in_vals_df.loc[event_date, stn_id]
 
                 if edf_stn_vals > 0:
                     edf_dwd_vals.append(np.round(edf_stn_vals, 4))
@@ -342,29 +467,36 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
             netatmo_ycoords = []
             netatmo_stn_ids = []
 
-            netatmo_stns = netatmo_ppt_data_df.columns
+            # Netatmo data and coords
+            netatmo_df = netatmo_in_vals_df.loc[event_date, :].dropna(
+                how='all')
+            # apply temp filter per event
+            if use_temporal_filter_after_kriging:
+                print('apllying on event filter')
 
-            if use_netatmo_gd_stns_event_based:
+                df_all_stns_per_event = df_all_stns_per_events.loc[event_date, :]
+# df_all_stns_per_events.index.intersection([event_date]), :]
+                all_stns = df_all_stns_per_event.index
+                stns_keep_per_event = all_stns[np.where(
+                    df_all_stns_per_event.values > 0)]
+                print('\n----Keeping %d / %d Stns for event---'
+                      % (stns_keep_per_event.shape[0],
+                         all_stns.shape[0]))
+                # keep only good stations
+                netatmo_df = netatmo_in_vals_df.loc[
+                    event_date, stns_keep_per_event].dropna(how='all')
 
-                try:
-                    df_stns_events_date = df_gd_stns_events.loc[event_date, :]
+            netatmo_stns = netatmo_df.index
+#             netatmo_vals = netatmo_df.values.ravel()
+#             netatmo_coords = netatmo_in_coords_df.loc[netatmo_df.index]
+#             x_netatmo, y_netatmo = netatmo_coords.X.values, netatmo_coords.Y.values
 
-                    gd_stns_per_events = df_stns_events_date[
-                        df_stns_events_date > 0].index
-                    bad_stns_per_events = df_stns_events_date[
-                        df_stns_events_date < 0].index
-                    netatmo_stns = gd_stns_per_events
-                    print('\n** Using gd Netatmo stations for event **\n')
-                except Exception as msg:
-                    print('\n**Using all Netatmo stations for event **\n')
-                    netatmo_stns = netatmo_ppt_data_df.columns
-                    continue
             for netatmo_stn_id in netatmo_stns:
                 # print('Netatmo station is', netatmo_stn_id)
 
                 try:
-                    edf_stn_vals = netatmo_ppt_data_df.loc[event_date,
-                                                           netatmo_stn_id]
+                    edf_stn_vals = netatmo_in_vals_df.loc[event_date,
+                                                          netatmo_stn_id]
 
                     if edf_stn_vals > 0:
                         edf_netatmo_vals.append(np.round(edf_stn_vals, 4))
@@ -375,18 +507,10 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
                         netatmo_stn_ids.append(netatmo_stn_id)
                 except KeyError:
                     continue
-            # TODO: ask prof if correct
+
             netatmo_xcoords = np.array(netatmo_xcoords)
             netatmo_ycoords = np.array(netatmo_ycoords)
             edf_netatmo_vals = np.array(edf_netatmo_vals)
-
-            good_stns_idx = [
-                ix for ix in
-                np.where(edf_netatmo_vals >= np.mean(edf_dwd_vals))[0]]
-
-            netatmo_xcoords = netatmo_xcoords[good_stns_idx]
-            netatmo_ycoords = netatmo_ycoords[good_stns_idx]
-            edf_netatmo_vals = edf_netatmo_vals[good_stns_idx]
 
             dwd_netatmo_xcoords = np.concatenate(
                 [dwd_xcoords, netatmo_xcoords])
@@ -448,8 +572,9 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
                         if type(vgs_model_dwd) == np.float:
                             continue
                         if ('Nug' in vgs_model_dwd
-                            or len(vgs_model_dwd) == 0) and ('Exp' not in vgs_model_dwd and
-                                                             'Sph' not in vgs_model_dwd):
+                                or len(vgs_model_dwd) == 0) and (
+                                    'Exp' not in vgs_model_dwd and
+                                'Sph' not in vgs_model_dwd):
                             continue
                         else:
                             break

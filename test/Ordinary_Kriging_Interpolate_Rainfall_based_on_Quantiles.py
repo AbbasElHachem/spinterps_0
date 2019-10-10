@@ -41,7 +41,7 @@ os.chdir(main_dir)
 
 out_plots_path = main_dir / r'oridinary_kriging_compare_DWD_Netatmo'
 
-path_to_data = main_dir / r'oridinary_kriging_compare_DWD_Netatmo/needed_dfs'
+path_to_data = main_dir / r'NetAtmo_BW'
 
 # DAILY DATA
 path_to_dwd_daily_data = (path_to_data /
@@ -56,7 +56,7 @@ path_to_dwd_hourly_data = (path_to_data /
 
 path_to_netatmo_hourly_data = (
     path_to_data /
-    r'ppt_all_netatmo_hourly_stns_combined_new_no_freezing.csv')
+    r'ppt_all_netatmo_hourly_stns_combined_new_no_freezing_2.csv')
 
 # COORDINATES
 path_to_dwd_coords = (path_to_data /
@@ -65,8 +65,8 @@ path_to_dwd_coords = (path_to_data /
 path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 
 # NETATMO FIRST FILTER
-path_to_netatmo_gd_stns = (path_to_data /
-                           r'keep_stns_all_neighbor_90_per_60min_.csv')
+path_to_netatmo_gd_stns = (main_dir /
+                           r'plots_NetAtmo_ppt_DWD_ppt_correlation_\keep_stns_all_neighbor_90_per_60min_.csv')
 
 # =============================================================================
 strt_date = '2015-01-01'
@@ -76,8 +76,8 @@ warm_season_month = [5, 6, 7, 8, 9]  # mai till sep
 cold_season_month = [10, 11, 12, 1, 2, 3, 4]  # oct till april
 
 
-list_percentiles = np.round(np.arange(0.5, 1.00, 0.01), 4)
-
+list_percentiles = np.round(np.arange(0.5, 1.00001, 0.0025), 4)
+print(list_percentiles)
 
 min_valid_stns = 20
 
@@ -93,7 +93,7 @@ ngp = 5
 use_daily_data = True
 use_hourly_data = False
 
-use_netatmo_gd_stns = False
+use_netatmo_gd_stns = True
 
 do_it_for_cold_season = True  # True
 do_it_for_warm_season = False  # False

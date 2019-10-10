@@ -57,8 +57,9 @@ path_to_netatmo_daily_data = (path_to_data /
 path_to_dwd_hourly_data = (path_to_data /
                            r'all_dwd_hourly_ppt_data_combined_2014_2019_.csv')
 
-path_to_netatmo_hourly_data = (path_to_data /
-                               r'ppt_all_netatmo_hourly_stns_combined_new_no_freezing.csv')
+path_to_netatmo_hourly_data = (
+    path_to_data /
+    r'ppt_all_netatmo_hourly_stns_combined_new_no_freezing_2.csv')
 
 # COORDINATES
 path_to_dwd_coords = (path_to_data /
@@ -69,7 +70,7 @@ path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 # NETATMO FIRST FILTER
 path_to_netatmo_gd_stns = (
     r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\plots_NetAtmo_ppt_DWD_ppt_correlation_"
-    r'\keep_stns_all_neighbor_90_per_60min_s0.csv')
+    r'\keep_stns_all_neighbor_95_per_60min_s0.csv')
 
 # =============================================================================
 strt_date = '2015-01-01'
@@ -80,8 +81,9 @@ cold_season_month = [10, 11, 12, 1, 2, 3, 4]  # oct till april
 
 
 #list_ppt_values = np.round(np.arange(0.5, 50.00, 0.5), 2)
-list_percentiles = np.round(np.arange(0.5, 1.0001, 0.025), 4)
-list_percentiles = np.append(list_percentiles, [0.985, .99, .995])
+list_percentiles = np.round(np.arange(0.5, 1.0001, 0.0025), 4)
+print(list_percentiles)
+#list_percentiles = np.append(list_percentiles, [0.985, .99, .995])
 min_valid_stns = 10
 
 drop_stns = []
@@ -106,6 +108,7 @@ if use_daily_data:
     path_to_netatmo_ppt_data = path_to_netatmo_daily_data
     idx_time_fmt = '%Y-%m-%d'
     time_res = 'daily'
+
 if use_hourly_data:
     path_to_dwd_ppt_data = path_to_dwd_hourly_data
     path_to_netatmo_ppt_data = path_to_netatmo_hourly_data
@@ -236,7 +239,7 @@ def chunks(l, n):
 
 all_dwd_stns = dwd_stn_data_season.columns.tolist()
 shuffle(all_dwd_stns)
-shuffled_dwd_stns_10stn = np.array(list(chunks(all_dwd_stns, 2)))
+shuffled_dwd_stns_10stn = np.array(list(chunks(all_dwd_stns, 10)))
 
 #==============================================================================
 # CREATE DFS HOLD RESULT KRIGING PER NETATMO STATION
@@ -365,14 +368,6 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
             netatmo_xcoords = np.array(netatmo_xcoords)
             netatmo_ycoords = np.array(netatmo_ycoords)
             ppt_netatmo_vals = np.array(ppt_netatmo_vals)
-            # TODO: ASK PROF ABOUT IT
-            good_stns_idx = [
-                ix for ix in
-                np.where(ppt_netatmo_vals >= np.mean(ppt_dwd_vals))[0]]
-
-            netatmo_xcoords = netatmo_xcoords[good_stns_idx]
-            netatmo_ycoords = netatmo_ycoords[good_stns_idx]
-            ppt_netatmo_vals = ppt_netatmo_vals[good_stns_idx]
 
             #==================================================================
             # Combine Netatmo and DWD
@@ -520,17 +515,17 @@ for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
     df_interpolated_netatmo_only.dropna(how='all', inplace=True)
 
     df_interpolated_dwd_netatmos_comb.to_csv(out_plots_path / (
-        'interpolated_quantiles_dwd_%s_data_basedon_quantiles_%s_season_using_dwd_netamo_grp_%d.csv'
+        'interpolated_quantiles_from_qnts_dwd_%s_data_basedon_quantiles_%s_season_using_dwd_netamo_grp_%d.csv'
         % (time_res, data_season, idx_lst_comb)),
         sep=';', float_format='%0.4f')
 
     df_interpolated_dwd_only.to_csv(out_plots_path / (
-        'interpolated_quantiles_dwd_%s_data_basedon_qunatiles_%s_season_using_dwd_only_grp_%d.csv'
+        'interpolated_quantiles_from_qnts_dwd_%s_data_basedon_qunatiles_%s_season_using_dwd_only_grp_%d.csv'
         % (time_res, data_season, idx_lst_comb)),
         sep=';', float_format='%0.4f')
 
     df_interpolated_netatmo_only.to_csv(out_plots_path / (
-        'interpolated_quantiles_%s_data_basedon_qunatiles_%s_season_using_netatmo_only_grp_%d.csv'
+        'interpolated_quantiles_from_qnts_dwd_%s_data_basedon_qunatiles_%s_season_using_netatmo_only_grp_%d.csv'
         % (time_res, data_season, idx_lst_comb)),
         sep=';', float_format='%0.4f')
 

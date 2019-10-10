@@ -61,7 +61,7 @@ def main():
 
     in_vgs_file = os.path.join(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo',
-        r'vg_strs_dwd_ppt_100_extreme_events_daily.csv')
+        r'vg_strs_dwd_daily_ppt_.csv')
 
     #==========================================================================
 #
@@ -80,10 +80,10 @@ def main():
     var_units = 'mm'  # 'mm'  # u'\u2103'  # 'centigrade'
     var_name = 'precipitation'  # 'precipitation'
 
-    out_krig_net_cdf_file = r'Dwd_dwd_daily_precipitation_kriging_%s_to_%s_1km_mid_rg_extremes.nc'
+    out_krig_net_cdf_file = r'Dwd_dwd_daily_precipitation_kriging_%s_to_%s_1km_mid_rg_.nc'
     freq = 'D'
     strt_date = r'2015-01-01'
-    end_date = r'2019-09-01'
+    end_date = r'2019-08-01'
 
     out_krig_net_cdf_file = out_krig_net_cdf_file % (strt_date, end_date)
 
@@ -126,7 +126,7 @@ def main():
     verbose = True
     interp_around_polys_flag = True
 
-    DWD_stations = False
+    DWD_stations = True
 
 #     ord_krige_flag = False
 #     sim_krige_flag = False
@@ -161,8 +161,8 @@ def main():
 
     in_stns_coords_df.drop_duplicates(['X', 'Y'], keep='first', inplace=True)
 
-    in_data_df = in_data_df.loc[in_data_df.index.intersection(
-        in_vgs_df.index), :].dropna(how='all')
+#     in_data_df = in_data_df.loc[in_data_df.index.intersection(
+#         in_vgs_df.index), :].dropna(how='all')
 
     if DWD_stations:
         # added by Abbas, for DWD stations

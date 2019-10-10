@@ -45,7 +45,7 @@ path_dwd_daily_extremes_df = path_to_data / r'dwd_daily_maximum_100_days.csv'
 path_to_dwd_daily_vgs = path_to_vgs / \
     r'vg_strs_dwd_ppt_100_extreme_events_daily.csv'
 path_to_dwd_daily_edf_vgs = path_to_vgs / \
-    r'vg_strs_dwd_ppt_100_extreme_events_daily.csv'
+    r'vg_strs_dwd_edf_100_extreme_events_daily.csv'
 path_to_dwd_daily_data = (path_to_data /
                           r'all_dwd_daily_ppt_data_combined_2014_2019_.csv')
 path_to_netatmo_daily_data = path_to_data / r'all_netatmo_ppt_data_daily_.csv'
@@ -60,8 +60,9 @@ path_netatmo_hourly_extremes_df = path_to_data / \
     r'netatmo_hourly_maximum_100_hours.csv'
 path_dwd_hourly_extremes_df = path_to_data / \
     r'dwd_hourly_maximum_100_hours.csv'
-path_to_dwd_hourly_vgs = path_to_vgs / r'vg_strs_dwd_hourly_ppt_.csv'
-path_to_dwd_hourly_edf_vgs = path_to_vgs / r'vg_strs_dwd_hourly_edf_.csv'
+path_to_dwd_hourly_vgs = path_to_vgs / r'vg_strs_dwd_hourly_extreme_events.csv'
+path_to_dwd_hourly_edf_vgs = path_to_vgs / \
+    r'vg_strs_dwd_edf_hourly_extreme_events.csv'
 
 path_to_dwd_hourly_data = (path_to_data /
                            r'all_dwd_hourly_ppt_data_combined_2014_2019_.csv')
@@ -81,18 +82,18 @@ path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 
 # NETATMO FIRST FILTER
 path_to_netatmo_gd_stns = (main_dir / r'plots_NetAtmo_ppt_DWD_ppt_correlation_' /
-                           r'keep_stns_all_neighbor_90_per_60min_s0.csv')
+                           r'keep_stns_all_neighbor_95_per_60min_s0.csv')
 
 # =============================================================================
 
-strt_date = '2014-01-01'
-end_date = '2019-08-01'
+strt_date = '2015-01-01'
+end_date = '2019-09-01'
 
 use_dwd_stns_for_kriging = False
 use_dwd_netatmo_stns_for_kriging = True
 
-normal_kriging = False
-qunatile_kriging = True
+normal_kriging = True
+qunatile_kriging = False
 
 use_daily_data = True
 use_hourly_data = False
@@ -429,7 +430,7 @@ for event_date in df_vgs_models.index:
     else:
         print('no Variogram for this event')
         continue
-
+out_save_csv = out_save_csv + plot_title_acc
 
 df_stns_netatmo_gd_event.to_csv(out_plots_path / (
     r'all_netatmo_%s_temporal_filter.csv'

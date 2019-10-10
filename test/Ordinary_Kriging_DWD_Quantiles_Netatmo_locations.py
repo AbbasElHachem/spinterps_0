@@ -4,7 +4,7 @@ Created on %(date)s
 
 @author: %(username)s
 
-test simple kriging cython class
+Interpolate Quantiles at Netatmo Locations using DWD
 """
 import os
 os.environ[str('MKL_NUM_THREADS')] = str(1)
