@@ -100,7 +100,7 @@ def get_ppt_paths():
 
     in_vals_df_loc = os.path.join(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-        r'edf_ppt_all_dwd_daily_.csv')
+        r'edf_ppt_all_dwd_1440min_.csv')
 
     # Cold - Warm season distributions DWD
 #     in_vals_df_loc = os.path.join(
@@ -131,10 +131,15 @@ def get_ppt_paths():
 #         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
 #         r"\NetAtmo_BW"
 #         r"\dwd_daily_maximum_100_days.csv")
+#     path_to_dwd_ppt_extreme = (
+#         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
+#         r"\NetAtmo_BW"
+#         r"\dwd_daily_maximum_100_days.csv")
+
     path_to_dwd_ppt_extreme = (
         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
         r"\NetAtmo_BW"
-        r"\dwd_daily_maximum_100_days.csv")
+        r"\dwd_1440min_maximum_100_event.csv")
     out_dir = r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo'
 
     return (in_vals_df_loc, in_stn_coords_df_loc,
@@ -154,7 +159,7 @@ def main():
 
     strt_date = '2015-01-01'
     end_date = '2019-09-01'
-    min_valid_stns = 20
+    min_valid_stns = 10
 
     drop_stns = []
     mdr = 0.8
