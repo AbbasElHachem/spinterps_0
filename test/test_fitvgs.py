@@ -119,7 +119,7 @@ def get_ppt_paths():
     path_to_netatmo_gd_stns_file = (
         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
         r"\plots_NetAtmo_ppt_DWD_ppt_correlation_"
-        r"\keep_stns_all_neighbor_90_per_60min_.csv")
+        r"\keep_stns_all_neighbor_99_0_per_60min_.csv")
 
     # Netatmo extremes
     path_to_netatmo_ppt_extreme = (

@@ -27,13 +27,14 @@ import matplotlib.pyplot as plt
 
 from spinterps import (OrdinaryKriging)
 from spinterps import variograms
-from scipy.spatial import distance_matrix
+
 
 from pathlib import Path
 from random import shuffle
 
 VG = variograms.vgs.Variogram
 
+raise Exception
 
 plt.rcParams.update({'font.size': 12})
 plt.rcParams.update({'axes.labelsize': 12})

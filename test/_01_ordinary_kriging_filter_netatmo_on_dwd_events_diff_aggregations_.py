@@ -45,7 +45,7 @@ path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 
 # NETATMO FIRST FILTER
 path_to_netatmo_gd_stns = (main_dir / r'plots_NetAtmo_ppt_DWD_ppt_correlation_' /
-                           r'keep_stns_all_neighbor_98_per_60min_s0.csv')
+                           r'keep_stns_all_neighbor_99_0_per_60min_s0.csv')
 
 #==============================================================================
 #
@@ -104,7 +104,7 @@ for temp_agg in resample_frequencies:
                        (r'edf_ppt_all_dwd_%s_.csv' % temp_agg))
 
     path_to_netatmo_edf = (path_to_data /
-                           (r'edf_ppt_all_netatmo_good_stns_%s_.csv' % temp_agg))
+                           (r'edf_ppt_all_netatmo_%s_.csv' % temp_agg))
 
     path_to_dwd_vgs = path_to_vgs / \
         (r'vg_strs_dwd_%s_maximum_100_event.csv' % temp_agg)
@@ -206,106 +206,109 @@ for temp_agg in resample_frequencies:
                             break
                 except Exception as msg:
                     print(msg)
-                    print('Only Nugget variogram for this day')
+
+            if ('Nug' in vgs_model
+                or len(vgs_model) > 0) and (
+                'Exp' in vgs_model or
+                    'Sph' in vgs_model):
                 print('**Changed Variogram model to**\n', vgs_model)
+                # DWD data and coords
+                dwd_df = dwd_in_vals_df.loc[event_date, :].dropna(how='all')
+                dwd_vals = dwd_df.values
+                dwd_coords = dwd_in_coords_df.loc[dwd_df.index]
+                x_dwd, y_dwd = dwd_coords.X.values, dwd_coords.Y.values
 
-            # DWD data and coords
-            dwd_df = dwd_in_vals_df.loc[event_date, :].dropna(how='all')
-            dwd_vals = dwd_df.values
-            dwd_coords = dwd_in_coords_df.loc[dwd_df.index]
-            x_dwd, y_dwd = dwd_coords.X.values, dwd_coords.Y.values
+                # Netatmo data and coords
+                netatmo_df = netatmo_in_vals_df.loc[event_date, :].dropna(
+                    how='all')
+                netatmo_vals = netatmo_df.values
+                netatmo_coords = netatmo_in_coords_df.loc[netatmo_df.index]
+                x_netatmo, y_netatmo = netatmo_coords.X.values, netatmo_coords.Y.values
 
-            # Netatmo data and coords
-            netatmo_df = netatmo_in_vals_df.loc[event_date, :].dropna(
-                how='all')
-            netatmo_vals = netatmo_df.values
-            netatmo_coords = netatmo_in_coords_df.loc[netatmo_df.index]
-            x_netatmo, y_netatmo = netatmo_coords.X.values, netatmo_coords.Y.values
+                # Combine both coordinates and data
+                x_dwd_netatmo_comb = np.concatenate((x_dwd, x_netatmo))
+                y_dwd_netatmo_comb = np.concatenate((y_dwd, y_netatmo))
+                ppt_dwd_netatmo_comb = np.concatenate((dwd_vals, netatmo_vals))
 
-            # Combine both coordinates and data
-            x_dwd_netatmo_comb = np.concatenate((x_dwd, x_netatmo))
-            y_dwd_netatmo_comb = np.concatenate((y_dwd, y_netatmo))
-            ppt_dwd_netatmo_comb = np.concatenate((dwd_vals, netatmo_vals))
+                print('\a\a\a Doing Ordinary Kriging \a\a\a')
 
-            print('\a\a\a Doing Ordinary Kriging \a\a\a')
+                if use_dwd_stns_for_kriging:
+                    print('using DWD stations to find Netatmo values')
+                    measured_vals = netatmo_vals
+                    used_vals = dwd_vals
 
-            if use_dwd_stns_for_kriging:
-                print('using DWD stations to find Netatmo values')
-                measured_vals = netatmo_vals
-                used_vals = dwd_vals
+                    xlabel = 'Netatmo observed values'
+                    ylabel = 'Netatmo interpolated values using DWD data'
+                    measured_stns = 'Netatmo'
+                    used_stns = 'DWD'
+                    plot_title_acc = '_using_DWD_stations_to_find_Netatmo_values_'
 
-                xlabel = 'Netatmo observed values'
-                ylabel = 'Netatmo interpolated values using DWD data'
-                measured_stns = 'Netatmo'
-                used_stns = 'DWD'
-                plot_title_acc = '_using_DWD_stations_to_find_Netatmo_values_'
+                    ordinary_kriging = OrdinaryKriging(
+                        xi=x_dwd,
+                        yi=y_dwd,
+                        zi=dwd_vals,
+                        xk=x_netatmo,
+                        yk=y_netatmo,
+                        model=vgs_model)
 
-                ordinary_kriging = OrdinaryKriging(
-                    xi=x_dwd,
-                    yi=y_dwd,
-                    zi=dwd_vals,
-                    xk=x_netatmo,
-                    yk=y_netatmo,
-                    model=vgs_model)
+                try:
+                    ordinary_kriging.krige()
+                except Exception as msg:
+                    print('Error while Kriging', msg)
+                    continue
 
-            try:
-                ordinary_kriging.krige()
-            except Exception as msg:
-                print('Error while Kriging', msg)
+                # print('\nDistances are:\n', ordinary_kriging.in_dists)
+                # print('\nVariances are:\n', ordinary_kriging.in_vars)
+                # print('\nRight hand sides are:\n', ordinary_kriging.rhss)
+                # print('\nzks are:', ordinary_kriging.zk)
+                # print('\nest_vars are:\n', ordinary_kriging.est_vars)
+                # print('\nlambdas are:\n', ordinary_kriging.lambdas)
+                # print('\nmus are:\n', ordinary_kriging.mus)
+                # print('\n\n')
+
+                # interpolated vals
+                interpolated_vals = ordinary_kriging.zk
+
+                # calcualte standard deviation of estimated values
+                std_est_vals = np.sqrt(ordinary_kriging.est_vars)
+                # calculate difference observed and estimated values
+                diff_obsv_interp = np.abs(measured_vals - interpolated_vals)
+
+                #==============================================================
+                # # use additional temporal filter
+                #==============================================================
+                idx_good_stns = np.where(diff_obsv_interp <= 3 * std_est_vals)
+                idx_bad_stns = np.where(diff_obsv_interp > 3 * std_est_vals)
+
+                if len(idx_bad_stns[0]) > 0:
+                    print('Number of Stations with bad index \n',
+                          len(idx_bad_stns[0]))
+                    print('Number of Stations with good index \n',
+                          len(idx_good_stns[0]))
+
+                    print('**Removing bad stations and saving to new df**')
+
+                    # use additional filter
+                    try:
+                        ids_netatmo_stns_gd = np.take(netatmo_df.index,
+                                                      idx_good_stns).ravel()
+                        ids_netatmo_stns_bad = np.take(netatmo_df.index,
+                                                       idx_bad_stns).ravel()
+
+                        df_stns_netatmo_gd_event.loc[
+                            event_date,
+                            ids_netatmo_stns_bad] = -999
+
+                    except Exception as msg:
+                        print(msg)
+            else:
+                print('no good Variogram for this event')
                 continue
 
-            # print('\nDistances are:\n', ordinary_kriging.in_dists)
-            # print('\nVariances are:\n', ordinary_kriging.in_vars)
-            # print('\nRight hand sides are:\n', ordinary_kriging.rhss)
-            # print('\nzks are:', ordinary_kriging.zk)
-            # print('\nest_vars are:\n', ordinary_kriging.est_vars)
-            # print('\nlambdas are:\n', ordinary_kriging.lambdas)
-            # print('\nmus are:\n', ordinary_kriging.mus)
-            # print('\n\n')
-
-            # interpolated vals
-            interpolated_vals = ordinary_kriging.zk
-
-            # calcualte standard deviation of estimated values
-            std_est_vals = np.sqrt(ordinary_kriging.est_vars)
-            # calculate difference observed and estimated values
-            diff_obsv_interp = np.abs(measured_vals - interpolated_vals)
-
-            #==================================================================
-            # # use additional temporal filter
-            #==================================================================
-            idx_good_stns = np.where(diff_obsv_interp <= 3 * std_est_vals)
-            idx_bad_stns = np.where(diff_obsv_interp > 3 * std_est_vals)
-
-            if len(idx_bad_stns[0]) > 0:
-                print('Number of Stations with bad index \n',
-                      len(idx_bad_stns[0]))
-                print('Number of Stations with good index \n',
-                      len(idx_good_stns[0]))
-
-                print('**Removing bad stations and saving to new df**')
-
-                # use additional filter
-                try:
-                    ids_netatmo_stns_gd = np.take(netatmo_df.index,
-                                                  idx_good_stns).ravel()
-                    ids_netatmo_stns_bad = np.take(netatmo_df.index,
-                                                   idx_bad_stns).ravel()
-
-                    df_stns_netatmo_gd_event.loc[
-                        event_date,
-                        ids_netatmo_stns_bad] = -999
-
-                except Exception as msg:
-                    print(msg)
-
-        else:
-            print('no Variogram for this event')
-            continue
     out_save_csv = out_save_csv + plot_title_acc
 
     df_stns_netatmo_gd_event.to_csv(out_plots_path / (
-        r'all_netatmo_%s_temporal_filter_98perc_.csv'
+        r'all_netatmo_%s_temporal_filter_99perc_.csv'
         % out_save_csv), sep=';',
         float_format='%.0f')
 
