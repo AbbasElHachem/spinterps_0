@@ -36,7 +36,7 @@ def main():
 
     in_data_file = os.path.join(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-        r'all_dwd_ppt_data_daily_.csv')
+        r'all_dwd_daily_ppt_data_combined_2014_2019_.csv')
 
 #     in_data_file = os.path.join(
 #         r'F:\download_DWD_data_recent',
@@ -46,7 +46,7 @@ def main():
     path_to_netatmo_gd_stns_file = (
         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
         r"\plots_NetAtmo_ppt_DWD_ppt_correlation_"
-        r"\keep_stns_all_neighbor_95_per_60min_s0.csv")
+        r"\keep_stns_all_neighbor_99_0_per_60min_s0.csv")
     #==========================================================================
 #     in_data_file = os.path.join(
 #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',

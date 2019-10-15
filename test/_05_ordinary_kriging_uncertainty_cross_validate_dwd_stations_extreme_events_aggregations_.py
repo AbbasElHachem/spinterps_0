@@ -25,6 +25,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
+from spinterps import (OrdinaryKrigingWithUncertainty)
 from spinterps import (OrdinaryKriging)
 from spinterps import variograms
 
@@ -34,7 +35,6 @@ from random import shuffle
 
 VG = variograms.vgs.Variogram
 
-raise Exception
 
 plt.rcParams.update({'font.size': 12})
 plt.rcParams.update({'axes.labelsize': 12})
@@ -70,8 +70,8 @@ use_dwd_stns_for_kriging = True
 qunatile_kriging = True
 
 # run it to filter Netatmo
-use_netatmo_gd_stns = False  # general filter, Indicator kriging
-use_temporal_filter_after_kriging = False  # on day filter
+use_netatmo_gd_stns = True  # general filter, Indicator kriging
+use_temporal_filter_after_kriging = True  # on day filter
 
 plot_events = False
 
@@ -421,6 +421,9 @@ for temp_agg in resample_frequencies:
                 netatmo_ycoords = np.array(netatmo_ycoords)
                 edf_netatmo_vals = np.array(edf_netatmo_vals)
 
+                edf_netatmo_vals_uncert = np.array(
+                    [(1 - per) * 0.1 for per in edf_netatmo_vals])
+
                 coords_netatmo_all = np.array([(x, y) for x, y in zip(
                     netatmo_xcoords,
                     netatmo_ycoords)])
@@ -512,13 +515,23 @@ for temp_agg in resample_frequencies:
                     print('**Changed Variogram model to**\n', vgs_model_dwd)
                     print('\n+++ KRIGING +++\n')
 
-                    ordinary_kriging_dwd_netatmo_comb = OrdinaryKriging(
+                    ordinary_kriging_dwd_netatmo_comb = OrdinaryKrigingWithUncertainty(
                         xi=dwd_netatmo_xcoords,
                         yi=dwd_netatmo_ycoords,
                         zi=dwd_netatmo_edf,
+                        uncert=edf_netatmo_vals_uncert,
                         xk=x_dwd_interpolate,
                         yk=y_dwd_interpolate,
                         model=vgs_model_dwd)
+
+#                     ordinary_kriging_dwd_netatmo_comb = OrdinaryKriging(
+#                         xi=dwd_netatmo_xcoords,
+#                         yi=dwd_netatmo_ycoords,
+#                         zi=dwd_netatmo_edf,
+#
+#                         xk=x_dwd_interpolate,
+#                         yk=y_dwd_interpolate,
+#                         model=vgs_model_dwd)
 
                     ordinary_kriging_dwd_only = OrdinaryKriging(
                         xi=dwd_xcoords,
@@ -528,10 +541,11 @@ for temp_agg in resample_frequencies:
                         yk=y_dwd_interpolate,
                         model=vgs_model_dwd)
 
-                    ordinary_kriging_netatmo_only = OrdinaryKriging(
+                    ordinary_kriging_netatmo_only = OrdinaryKrigingWithUncertainty(
                         xi=netatmo_xcoords,
                         yi=netatmo_ycoords,
                         zi=edf_netatmo_vals,
+                        uncert=edf_netatmo_vals_uncert,
                         xk=x_dwd_interpolate,
                         yk=y_dwd_interpolate,
                         model=vgs_model_dwd)
@@ -615,20 +629,21 @@ for temp_agg in resample_frequencies:
         df_interpolated_netatmo_only.dropna(how='all', inplace=True)
 
         df_interpolated_dwd_netatmos_comb.to_csv(out_plots_path / (
-            'interpolated_quantiles_dwd_%s_data_%s_using_dwd_netamo_grp_%d_.csv'
+            'kriging_with_uncert_interpolated_quantiles_dwd_%s_data_%s_using_dwd_netamo_grp_%d_.csv'
             % (temp_agg, title_, idx_lst_comb)),
             sep=';', float_format='%0.2f')
 
         df_interpolated_dwd_only.to_csv(out_plots_path / (
-            'interpolated_quantiles_dwd_%s_data_%s_using_dwd_only_grp_%d_.csv'
+            'kriging_with_uncert_interpolated_quantiles_dwd_%s_data_%s_using_dwd_only_grp_%d_.csv'
             % (temp_agg, title_, idx_lst_comb)),
             sep=';', float_format='%0.2f')
 
         df_interpolated_netatmo_only.to_csv(out_plots_path / (
-            'interpolated_quantiles_dwd_%s_data_%s_using_netamo_only_grp_%d_.csv'
+            'kriging_with_uncert_interpolated_quantiles_dwd_%s_data_%s_using_netamo_only_grp_%d_.csv'
             % (temp_agg, title_, idx_lst_comb)),
             sep=';', float_format='%0.2f')
-
+        break
+    break
     stop = timeit.default_timer()  # Ending time
     print('\n\a\a\a Done with everything on %s \a\a\a' %
           (time.asctime()))
