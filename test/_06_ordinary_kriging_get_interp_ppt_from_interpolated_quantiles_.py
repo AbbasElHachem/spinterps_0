@@ -28,6 +28,8 @@ import shapefile as shp
 
 from spinterps import (OrdinaryKriging)
 from spinterps import variograms
+
+
 from scipy.interpolate import griddata
 
 from pathlib import Path
@@ -594,7 +596,7 @@ for temp_agg in resample_frequencies:
                     interpolated_vals_dwd_only = np.nan
                     interpolated_vals_netatmo_only = np.nan
 
-                if interpolated_vals_dwd_netatmo >= 0:
+                if interpolated_vals_dwd_netatmo >= 0.8:
                     print('##quantile is positive getting transformed ppt##')
                     #==========================================================
                     # GET PPT FROM QUANTILES
@@ -791,6 +793,9 @@ for temp_agg in resample_frequencies:
                         interpolated_ppt_dwd_only = ordinary_kriging_ppt_dwd_only.zk.copy()
 
                         print('+++ Saving result to DF +++\n')
+                    elif all(ppt_dwd_vals) == 0:
+
+                        interpolated_ppt_dwd_only = 0
 
                     else:
                         print('no good variogram found, adding nans to df')
