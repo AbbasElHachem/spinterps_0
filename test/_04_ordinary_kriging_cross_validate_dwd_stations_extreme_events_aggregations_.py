@@ -88,13 +88,21 @@ n_best = 4
 ngp = 5
 
 
-resample_frequencies = ['180min',
-                        '360min', '720min', '1440min']
+resample_frequencies = ['180min']
 
 idx_time_fmt = '%Y-%m-%d %H:%M:%S'
 
 title_ = r'Quantiles'
 
+if not use_netatmo_gd_stns:
+    title_ = title_ + '_netatmo_not_filtered_'
+
+if not use_temporal_filter_after_kriging:
+    title = title_ + '_no_Temporal_filter_used_'
+
+if use_temporal_filter_after_kriging:
+
+    title_ = title_ + '_Temporal_filter_used_'
 #==============================================================================
 #
 #==============================================================================
@@ -131,14 +139,11 @@ df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
 #==============================================================================
 
 
-def build_edf_fr_vals(ppt_data):
+def build_edf_fr_vals(data):
     """ construct empirical distribution function given data values """
-    data_sorted = np.sort(ppt_data, axis=0)[::-1]
-    x0 = np.round(np.squeeze(data_sorted)[::-1], 1)
-    y0 = np.round((np.arange(data_sorted.size) / len(data_sorted)), 3)
-
-    return x0, y0
-
+    from statsmodels.distributions.empirical_distribution import ECDF
+    cdf = ECDF(data)
+    return cdf.x, cdf.y
 #==============================================================================
 #
 #==============================================================================
@@ -212,16 +217,6 @@ for temp_agg in resample_frequencies:
         dwd_data_to_use = path_to_dwd_edf
         path_to_dwd_vgs = path_to_dwd_vgs
 
-        if not use_netatmo_gd_stns:
-            title_ = title_ + '_netatmo_not_filtered_'
-
-        if not use_temporal_filter_after_kriging:
-            title = title_ + '_no_Temporal_filter_used_'
-
-        if use_temporal_filter_after_kriging:
-            path_to_netatmo_temp_filter = path_to_netatmo_edf_temp_filter
-            title_ = title_ + '_Temporal_filter_used_'
-
     print(title_)
     # DWD DATA
     #=========================================================================
@@ -274,6 +269,7 @@ for temp_agg in resample_frequencies:
     #=========================================================================
 
     if use_temporal_filter_after_kriging:
+        path_to_netatmo_temp_filter = path_to_netatmo_edf_temp_filter
         # apply second filter
         df_all_stns_per_events = pd.read_csv(
             path_to_netatmo_temp_filter,

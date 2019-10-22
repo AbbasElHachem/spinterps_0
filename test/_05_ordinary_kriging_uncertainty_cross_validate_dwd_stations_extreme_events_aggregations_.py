@@ -29,6 +29,7 @@ from spinterps import (OrdinaryKrigingWithUncertainty)
 from spinterps import (OrdinaryKriging)
 from spinterps import variograms
 
+from matplotlib import path
 
 from pathlib import Path
 from random import shuffle
@@ -61,6 +62,8 @@ path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 path_to_netatmo_gd_stns = (main_dir / r'plots_NetAtmo_ppt_DWD_ppt_correlation_' /
                            r'keep_stns_all_neighbor_99_0_per_60min_s0.csv')
 
+bw_area_shp = (r"X:\hiwi\ElHachem\GitHub\extremes"
+               r"\Landesgrenze_ETRS89\Landesgrenze_10000_ETRS89.shp")
 #==============================================================================
 #
 #==============================================================================
@@ -89,13 +92,21 @@ n_best = 4
 ngp = 5
 
 
-resample_frequencies = ['60min', '120min', '180min',
+resample_frequencies = ['180min',
                         '360min', '720min', '1440min']
 
 idx_time_fmt = '%Y-%m-%d %H:%M:%S'
 
 title_ = r'Quantiles'
 
+if not use_netatmo_gd_stns:
+    title_ = title_ + '_netatmo_not_filtered_'
+
+if not use_temporal_filter_after_kriging:
+    title = title_ + '_no_Temporal_filter_used_'
+
+if use_temporal_filter_after_kriging:
+    title_ = title_ + '_Temporal_filter_used_'
 #==============================================================================
 #
 #==============================================================================
@@ -132,13 +143,48 @@ df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
 #==============================================================================
 
 
-def build_edf_fr_vals(ppt_data):
-    """ construct empirical distribution function given data values """
-    data_sorted = np.sort(ppt_data, axis=0)[::-1]
-    x0 = np.round(np.squeeze(data_sorted)[::-1], 1)
-    y0 = np.round((np.arange(data_sorted.size) / len(data_sorted)), 3)
+def make_grid_locations(xllcorner, yllcorner, ncols, nrows, cellsize):
+    """
+    ----------------------------------------------------------------------------
+    Generiere x- und y-Koordinaten zu den vorgegebenen Grid-Parametern.
 
-    return x0, y0
+    ----------------------------------------------------------------------------
+    RETURN  ... Tuple: grid mit x-Koordinaten, grid mit y-Koordinaten
+    """
+
+    # suche die x- bzw. y-werte raus
+    #   xe_grid  ...  grid mit x coordinates
+    #   ye_grid  ...  grid mit y coordinates
+    # von jeder Zelle des Rasters die westliche Coordinate (Delta)
+    dx = np.arange(ncols) * cellsize
+    xe_row = np.array([xllcorner + dx])  # auf Delta die xllcorner addiert
+    # das ganze Ding erweitern auf mgrid dimensionen (in x-Richtug)
+    xe_col = np.ones((nrows, 1))
+    # d.h. in jeder spalte steht der gleiche Wert, in jeder Zeile die
+    # x-Coordinate
+    xe_grid = xe_row * xe_col
+
+    # dy = (nrows - (np.arange(nrows) + 1)) * cellsize  # von nrows-1 bis 0
+    # mal cellsize
+    dy = np.arange(nrows) * cellsize   # von nrows-1 bis 0 mal cellsize
+    # suedliche Koordinate einer Rasterspalte
+    ye_col = np.array([yllcorner + dy]).T
+    # vergroessern so dass es in mgrid dimensionen passt
+    ye_row = np.ones((1, ncols))
+    ye_grid = ye_row * ye_col
+
+    return xe_grid, ye_grid
+
+#==============================================================================
+#
+#==============================================================================
+
+
+def build_edf_fr_vals(data):
+    """ construct empirical distribution function given data values """
+    from statsmodels.distributions.empirical_distribution import ECDF
+    cdf = ECDF(data)
+    return cdf.x, cdf.y
 
 #==============================================================================
 #
@@ -213,16 +259,6 @@ for temp_agg in resample_frequencies:
         dwd_data_to_use = path_to_dwd_edf
         path_to_dwd_vgs = path_to_dwd_vgs
 
-        if not use_netatmo_gd_stns:
-            title_ = title_ + '_netatmo_not_filtered_'
-
-        if not use_temporal_filter_after_kriging:
-            title = title_ + '_no_Temporal_filter_used_'
-
-        if use_temporal_filter_after_kriging:
-            path_to_netatmo_temp_filter = path_to_netatmo_edf_temp_filter
-            title_ = title_ + '_Temporal_filter_used_'
-
     print(title_)
     # DWD DATA
     #=========================================================================
@@ -275,6 +311,7 @@ for temp_agg in resample_frequencies:
     #=========================================================================
 
     if use_temporal_filter_after_kriging:
+        path_to_netatmo_temp_filter = path_to_netatmo_edf_temp_filter
         # apply second filter
         df_all_stns_per_events = pd.read_csv(
             path_to_netatmo_temp_filter,
@@ -642,8 +679,7 @@ for temp_agg in resample_frequencies:
             'kriging_with_uncert_interpolated_quantiles_dwd_%s_data_%s_using_netamo_only_grp_%d_.csv'
             % (temp_agg, title_, idx_lst_comb)),
             sep=';', float_format='%0.2f')
-        break
-    break
+
     stop = timeit.default_timer()  # Ending time
     print('\n\a\a\a Done with everything on %s \a\a\a' %
           (time.asctime()))

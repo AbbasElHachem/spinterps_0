@@ -93,12 +93,11 @@ n_best = 4
 ngp = 5
 
 
-resample_frequencies = ['180min',
-                        '360min', '720min', '1440min']
+resample_frequencies = ['60min', '1440min']
 
 idx_time_fmt = '%Y-%m-%d %H:%M:%S'
 
-title_ = r'Quantiles'
+title_ = r'Rainfall'
 
 #==============================================================================
 #
@@ -136,14 +135,21 @@ df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
 #==============================================================================
 
 
-def build_edf_fr_vals(ppt_data):
+# def build_edf_fr_vals(ppt_data):
+#     """ construct empirical distribution function given data values """
+#     data_sorted = np.sort(ppt_data, axis=0)[::-1]
+#     x0 = np.round(np.squeeze(data_sorted)[::-1], 1)
+#     y0 = np.round((np.arange(data_sorted.size) / len(data_sorted)), 3)
+#
+#     return x0, y0
+
+def build_edf_fr_vals(data):
     """ construct empirical distribution function given data values """
-    data_sorted = np.sort(ppt_data, axis=0)[::-1]
-    x0 = np.round(np.squeeze(data_sorted)[::-1], 1)
-    y0 = np.round((np.arange(data_sorted.size) / len(data_sorted)), 3)
-
+    from statsmodels.distributions.empirical_distribution import ECDF
+    cdf = ECDF(data)
+    x0 = cdf.x[1:]
+    y0 = cdf.y[1:]
     return x0, y0
-
 #==============================================================================
 #
 #==============================================================================
@@ -183,7 +189,8 @@ for temp_agg in resample_frequencies:
 
     path_to_dwd_ppt = (path_to_data /
                        (r'ppt_all_dwd_%s_.csv' % temp_agg))
-
+    path_to_dwd_ppt = (path_to_data /
+                       r'all_dwd_hourly_ppt_data_combined_2014_2019_.csv')
     path_to_netatmo_ppt = (path_to_data /
                            (r'ppt_all_netatmo_%s_.csv' % temp_agg))
 
@@ -216,6 +223,7 @@ for temp_agg in resample_frequencies:
     print(title_)
     # DWD DATA
     #=========================================================================
+    # edf values
     dwd_in_vals_df = pd.read_csv(
         path_to_dwd_edf, sep=';', index_col=0, encoding='utf-8')
 
@@ -224,9 +232,18 @@ for temp_agg in resample_frequencies:
 
     dwd_in_vals_df = dwd_in_vals_df.loc[strt_date:end_date, :]
     dwd_in_vals_df.dropna(how='all', axis=0, inplace=True)
+    # ppt values
+    dwd_in_ppt_vals = pd.read_csv(
+        path_to_dwd_ppt, sep=';', index_col=0, encoding='utf-8')
 
+    dwd_in_ppt_vals.index = pd.to_datetime(
+        dwd_in_ppt_vals.index, format='%Y-%m-%d')
+
+    dwd_in_ppt_vals = dwd_in_ppt_vals.loc[strt_date:end_date, :]
+    dwd_in_ppt_vals.dropna(how='all', axis=0, inplace=True)
     # NETAMO DATA
     #=========================================================================
+    # edf values
     netatmo_in_vals_df = pd.read_csv(
         path_to_netatmo_edf, sep=';',
         index_col=0,
@@ -242,6 +259,19 @@ for temp_agg in resample_frequencies:
         netatmo_in_vals_df.columns)
 
     netatmo_in_vals_df = netatmo_in_vals_df.loc[:, cmn_stns]
+    # ppt values
+    netatmo_in_ppt_vals_df = pd.read_csv(
+        path_to_netatmo_ppt, sep=';',
+        index_col=0,
+        encoding='utf-8', engine='c')
+
+    netatmo_in_ppt_vals_df.index = pd.to_datetime(
+        netatmo_in_ppt_vals_df.index, format='%Y-%m-%d')
+
+    netatmo_in_ppt_vals_df = netatmo_in_ppt_vals_df.loc[strt_date:end_date, :]
+    netatmo_in_ppt_vals_df.dropna(how='all', axis=0, inplace=True)
+
+    netatmo_in_ppt_vals_df = netatmo_in_ppt_vals_df.loc[:, cmn_stns]
 
     # apply first filter
     if use_netatmo_gd_stns:
@@ -301,7 +331,13 @@ for temp_agg in resample_frequencies:
         df_interpolated_netatmo_only = pd.DataFrame(
             index=dwd_in_extremes_df.index,
             columns=[stn_comb])
-
+        # for back transformation
+        df_interpolated_ppt_dwd_only = pd.DataFrame(
+            index=dwd_in_extremes_df.index,
+            columns=[stn_comb])
+        df_interpolated_ppt_netatmo_dwd_comb_ = pd.DataFrame(
+            index=dwd_in_extremes_df.index,
+            columns=[stn_comb])
         #======================================================================
         # START KRIGING
         #======================================================================
@@ -477,7 +513,7 @@ for temp_agg in resample_frequencies:
                     print('**Variogram %s not valid --> looking for alternative\n**'
                           % vgs_model_dwd)
                     try:
-                        for i in range(1, 4):
+                        for i in range(1, len(fit_vg_list)):
                             vgs_model_dwd = fit_vg_list[i]
                             if type(vgs_model_dwd) == np.float:
                                 continue
@@ -558,211 +594,221 @@ for temp_agg in resample_frequencies:
                     interpolated_vals_dwd_only = np.nan
                     interpolated_vals_netatmo_only = np.nan
 
-                #==============================================================
-                # GET PPT FROM QUANTILES
-                #==============================================================
+                if interpolated_vals_dwd_netatmo >= 0:
+                    print('##quantile is positive getting transformed ppt##')
+                    #==========================================================
+                    # GET PPT FROM QUANTILES
+                    #==========================================================
 
-                ppt_val_at_stn = find_nearest(edf_stn_vals,
-                                              interpolated_vals_dwd_netatmo)
+                    # get corresponding ppt value at dwd stns based on interp
+                    # edf
 
-                #==============================================================
-                # # DWD Rainfall
-                #==============================================================
-                ppt_dwd_vals = []
-                dwd_ppt_xcoords = []
-                dwd_ppt_ycoords = []
-                dwd_ppt_stn_ids = []
-                '''
-                for stn_id in all_dwd_stns_except_interp_loc:
-                    #print('station is', stn_id)
+                    #==========================================================
+                    # # DWD Rainfall
+                    #==========================================================
+                    print('\n** Get DWD Ppt corresponding to Interpolation**\n')
 
-                    ppt_stn_vals = dwd_ppt_in_vals_df.loc[event_date, stn_id]
+                    ppt_dwd_vals = []
+                    dwd_ppt_xcoords = []
+                    dwd_ppt_ycoords = []
+                    dwd_ppt_stn_ids = []
+                    # plt.ioff()
 
-                    if edf_stn_vals > 0:
-                        edf_dwd_vals.append(np.round(edf_stn_vals, 4))
-                        dwd_xcoords.append(dwd_in_coords_df.loc[stn_id, 'X'])
-                        dwd_ycoords.append(dwd_in_coords_df.loc[stn_id, 'Y'])
-                        dwd_stn_ids.append(stn_id)
+                    print('Nbr of neighboring DWD stns ',
+                          len(all_dwd_stns_except_interp_loc))
 
-                dwd_xcoords = np.array(dwd_xcoords)
-                dwd_ycoords = np.array(dwd_ycoords)
-                edf_dwd_vals = np.array(edf_dwd_vals)
+                    for stn_id in all_dwd_stns_except_interp_loc:
+                        #print('station is', stn_id)
 
-                #==============================================================
-                # # NETATMO QUANTILES
-                #==============================================================
+                        df_dwd_stn_ppt_vals = dwd_in_ppt_vals.loc[
+                            :, stn_id].dropna()  # .plot()
 
-                edf_netatmo_vals = []
-                netatmo_xcoords = []
-                netatmo_ycoords = []
-                netatmo_stn_ids = []
+                        if any(df_dwd_stn_ppt_vals.values) > 0:
+                            #print(ppt_stn_vals.min(), ppt_stn_vals.max())
 
-                # Netatmo data and coords
-                netatmo_df = netatmo_in_vals_df.loc[event_date, :].dropna(
-                    how='all')
+                            ppt_stn, edf_stn = build_edf_fr_vals(
+                                df_dwd_stn_ppt_vals.values)
 
-                # apply temp filter per event
+#                             plt.scatter(ppt_stn, edf_stn, marker='.',
+#                                         c='grey', alpha=0.25, s=2)
 
-                if use_temporal_filter_after_kriging:
-                    print('apllying on event filter')
+                            nearest_obs_edf_to_interp_edf = find_nearest(
+                                edf_stn, interpolated_vals_dwd_netatmo)
+                            nearest_ppt_to_interp_edf = [
+                                ppt_stn[np.where(
+                                    edf_stn == nearest_obs_edf_to_interp_edf)]][0]
+                            if nearest_ppt_to_interp_edf >= 0:
+                                ppt_dwd_vals.append(
+                                    np.round(nearest_ppt_to_interp_edf[0], 4))
+                                dwd_ppt_xcoords.append(
+                                    dwd_in_coords_df.loc[stn_id, 'X'])
+                                dwd_ppt_ycoords.append(
+                                    dwd_in_coords_df.loc[stn_id, 'Y'])
+                                dwd_ppt_stn_ids.append(stn_id)
+                        else:
+                            print('DWD %s station has no valid data\n' % stn_id)
 
-                    df_all_stns_per_event = df_all_stns_per_events.loc[event_date, :]
+#                     plt.show()
+                    dwd_ppt_xcoords = np.array(dwd_ppt_xcoords)
+                    dwd_ppt_ycoords = np.array(dwd_ppt_ycoords)
+                    ppt_dwd_vals = np.array(ppt_dwd_vals)
 
-                    all_stns = df_all_stns_per_event.index
-                    stns_keep_per_event = netatmo_df.index.intersection(
-                        all_stns[np.where(df_all_stns_per_event.values > 0)])
+#                     #from scipy.spatial import distance_matrix
+#                     def distance_matrix(x0, y0, x1, y1):
+#                         obs = np.vstack((x0, y0)).T
+#                         interp = np.vstack((x1, y1)).T
+#
+#                         # Make a distance matrix between pairwise observations
+#                         # Note: from <http://stackoverflow.com/questions/1871536>
+#                         # (Yay for ufuncs!)
+#                         d0 = np.subtract.outer(obs[:, 0], interp[:, 0])
+#                         d1 = np.subtract.outer(obs[:, 1], interp[:, 1])
+#
+#                         return np.hypot(d0, d1)
+#
+#                     def simple_idw(x, y, z, xi, yi):
+#                         dist = distance_matrix(x, y, xi, yi)
+#
+#                         # In IDW, weights are 1 / distance
+#                         weights = 1.0 / dist
+#
+#                         # Make weights sum to one
+#                         weights /= weights.sum(axis=0)
+#
+#                         # Multiply the weights for each interpolated point by
+#                         # all observed Z-values
+#                         zi = np.dot(weights.T, z)
+#                         return zi
+#
+#                     simple_idw(dwd_ppt_xcoords, dwd_ppt_ycoords, ppt_dwd_vals,
+#                                x_dwd_interpolate, y_dwd_interpolate)
+#
+#                     obsv_ppt = dwd_in_ppt_vals.loc[event_date, stn_dwd_id]
 
-                    print('\n----Keeping %d / %d Stns for event---'
-                          % (stns_keep_per_event.shape[0],
-                             all_stns.shape[0]))
-                    # keep only good stations
-                    netatmo_df = netatmo_in_vals_df.loc[
-                        event_date, stns_keep_per_event].dropna(how='all')
+#                     from skgstat import Variogram
+#
+#                     from pykrige.ok import OrdinaryKriging as OK_p
+#                     OK = OK_p(dwd_ppt_xcoords, dwd_ppt_ycoords,
+#                                          dwd_ppt_ycoords,
+#                                          variogram_model='spherical',
+#                                          verbose=True,
+#                                          enable_plotting=True,
+#                                          coordinates_type='geographic')
+#
+#                     z2, ss2 = OK.execute('points', x_dwd_interpolate,
+#                                          y_dwd_interpolate)
+#
+#                     ppt_coords = np.meshgrid(
+#                         dwd_ppt_xcoords, dwd_ppt_ycoords)[0]
+#
+#                     coords = np.array([(x, y) for x, y in zip(dwd_ppt_xcoords,
+#                                                               dwd_ppt_ycoords)])
 
-                netatmo_stns = netatmo_df.index
-
-                for netatmo_stn_id in netatmo_stns:
-                    # print('Netatmo station is', netatmo_stn_id)
-
+#                     V = Variogram(ppt_coords, coords)
+                    #distance_matrix(ppt_coords[0], ppt_coords[1])
+                    # TODO: check why some variograms don'T work
+                    print('*Done getting Ppt DWD data ',
+                          ' and coordintates* \n *Fitting variogram*\n')
                     try:
-                        edf_stn_vals = netatmo_in_vals_df.loc[event_date,
-                                                              netatmo_stn_id]
 
-                        if edf_stn_vals > 0:
-                            edf_netatmo_vals.append(np.round(edf_stn_vals, 4))
-                            netatmo_xcoords.append(
-                                netatmo_in_coords_df.loc[netatmo_stn_id, 'X'])
-                            netatmo_ycoords.append(
-                                netatmo_in_coords_df.loc[netatmo_stn_id, 'Y'])
-                            netatmo_stn_ids.append(netatmo_stn_id)
-                    except KeyError:
-                        continue
+                        vg_dwd = VG(
+                            x=dwd_ppt_xcoords,
+                            y=dwd_ppt_ycoords,
+                            z=ppt_dwd_vals,
+                            mdr=mdr,
+                            nk=5,
+                            typ='cnst',
+                            perm_r_list=perm_r_list_,
+                            fil_nug_vg=fil_nug_vg,
+                            ld=None,
+                            uh=None,
+                            h_itrs=100,
+                            opt_meth='L-BFGS-B',
+                            opt_iters=1000,
+                            fit_vgs=fit_vgs,
+                            n_best=n_best,
+                            evg_name='robust',
+                            use_wts=False,
+                            ngp=ngp,
+                            fit_thresh=0.1)
 
-                netatmo_xcoords = np.array(netatmo_xcoords)
-                netatmo_ycoords = np.array(netatmo_ycoords)
-                edf_netatmo_vals = np.array(edf_netatmo_vals)
+                        vg_dwd.fit()
 
-                coords_netatmo_all = np.array([(x, y) for x, y in zip(
-                    netatmo_xcoords,
-                    netatmo_ycoords)])
-
-                #a = distance_matrix(coords_netatmo_all, coords_netatmo_all)
-
-                # a.sort(axis=1)
-                coords_netatmo_ = np.array(list(set([(x, y) for x, y in zip(
-                    netatmo_xcoords,
-                    netatmo_ycoords)])))
-
-                if coords_netatmo_.shape[0] != coords_netatmo_all.shape[0]:
-                    print('Duplicates in Netatmo Coords')
-                    raise Exception
-
-                dwd_netatmo_xcoords = np.concatenate(
-                    [dwd_xcoords, netatmo_xcoords])
-                dwd_netatmo_ycoords = np.concatenate(
-                    [dwd_ycoords, netatmo_ycoords])
-
-                coords = np.array([(x, y) for x, y in zip(dwd_netatmo_xcoords,
-                                                          dwd_netatmo_ycoords)])
-
-                dwd_netatmo_edf = np.concatenate([edf_dwd_vals,
-                                                  edf_netatmo_vals])
-
-                print('*Done getting data and coordintates* \n *Fitting variogram*\n')
-                try:
-
-                    vg_dwd = VG(
-                        x=dwd_xcoords,
-                        y=dwd_ycoords,
-                        z=edf_dwd_vals,
-                        mdr=mdr,
-                        nk=5,
-                        typ='cnst',
-                        perm_r_list=perm_r_list_,
-                        fil_nug_vg=fil_nug_vg,
-                        ld=None,
-                        uh=None,
-                        h_itrs=100,
-                        opt_meth='L-BFGS-B',
-                        opt_iters=1000,
-                        fit_vgs=fit_vgs,
-                        n_best=n_best,
-                        evg_name='robust',
-                        use_wts=False,
-                        ngp=ngp,
-                        fit_thresh=0.01)
-
-                    vg_dwd.fit()
-
-                    fit_vg_list = vg_dwd.vg_str_list
-
-                except Exception as msg:
-                    print(msg)
-                    #fit_vg_list = ['']
-                    continue
-
-                vgs_model_dwd = fit_vg_list[0]
-
-                if ('Nug' in vgs_model_dwd or len(vgs_model_dwd) == 0) and (
-                        'Exp' not in vgs_model_dwd and 'Sph' not in vgs_model_dwd):
-                    print('**Variogram %s not valid --> looking for alternative\n**'
-                          % vgs_model_dwd)
-                    try:
-                        for i in range(1, 4):
-                            vgs_model_dwd = fit_vg_list[i]
-                            if type(vgs_model_dwd) == np.float:
-                                continue
-                            if ('Nug' in vgs_model_dwd
-                                    or len(vgs_model_dwd) == 0) and (
-                                        'Exp' not in vgs_model_dwd or
-                                    'Sph' not in vgs_model_dwd):
-                                continue
-                            else:
-                                break
+                        fit_vg_list = vg_dwd.vg_str_list
 
                     except Exception as msg:
                         print(msg)
-                        print('Only Nugget variogram for this day')
+                        #fit_vg_list = ['']
+                        # continue
 
-                # if type(vgs_model_dwd) != np.float and len(vgs_model_dwd) >
-                # 0:
-                if ('Nug' in vgs_model_dwd
-                        or len(vgs_model_dwd) > 0) and (
-                        'Exp' in vgs_model_dwd or
-                        'Sph' in vgs_model_dwd):
-                    print('**Changed Variogram model to**\n', vgs_model_dwd)
-                    print('\n+++ KRIGING +++\n')
+                    vgs_model_ppt_dwd = fit_vg_list[0]
 
-                print('+++ Saving result to DF +++\n')
+                    if ('Nug' in vgs_model_ppt_dwd or len(vgs_model_ppt_dwd) == 0) and (
+                            'Exp' not in vgs_model_ppt_dwd and 'Sph' not in vgs_model_ppt_dwd):
+                        print('** Ppt Variogram %s not valid --> looking for alternative\n**'
+                              % vgs_model_ppt_dwd)
+                        try:
+                            for i in range(1, len(fit_vg_list)):
+                                vgs_model_ppt_dwd = fit_vg_list[i]
+                                if type(vgs_model_ppt_dwd) == np.float:
+                                    continue
+                                if ('Nug' in vgs_model_ppt_dwd
+                                        or len(vgs_model_ppt_dwd) == 0) and (
+                                            'Exp' not in vgs_model_ppt_dwd or
+                                        'Sph' not in vgs_model_ppt_dwd):
+                                    continue
+                                else:
+                                    break
 
-                df_interpolated_dwd_netatmos_comb.loc[
-                    event_date,
-                    stn_dwd_id] = interpolated_vals_dwd_netatmo
+                        except Exception as msg:
+                            print(msg)
+                            print('Only Nugget variogram for this day')
 
-                df_interpolated_dwd_only.loc[
-                    event_date,
-                    stn_dwd_id] = interpolated_vals_dwd_only
+                    # if type(vgs_model_dwd) != np.float and len(vgs_model_dwd) >
+                    # 0:
+                    if ('Nug' in vgs_model_ppt_dwd
+                            or len(vgs_model_ppt_dwd) > 0) and (
+                            'Exp' in vgs_model_ppt_dwd or
+                            'Sph' in vgs_model_ppt_dwd):
+                        print('**Changed Variogram model to**\n', vgs_model_dwd)
+                        print('\n+++ KRIGING PPT+++\n')
 
-                df_interpolated_netatmo_only.loc[
-                    event_date,
-                    stn_dwd_id] = interpolated_vals_netatmo_only
-                '''
-        df_interpolated_dwd_netatmos_comb.dropna(how='all', inplace=True)
-        df_interpolated_dwd_only.dropna(how='all', inplace=True)
-        df_interpolated_netatmo_only.dropna(how='all', inplace=True)
+                        ordinary_kriging_ppt_dwd_only = OrdinaryKriging(
+                            xi=dwd_ppt_xcoords,
+                            yi=dwd_ppt_ycoords,
+                            zi=ppt_dwd_vals,
+                            xk=x_dwd_interpolate,
+                            yk=y_dwd_interpolate,
+                            model=vgs_model_ppt_dwd)
 
-        df_interpolated_dwd_netatmos_comb.to_csv(out_plots_path / (
-            'interpolated_quantiles_dwd_%s_data_%s_using_dwd_netamo_grp_%d_.csv'
-            % (temp_agg, title_, idx_lst_comb)),
-            sep=';', float_format='%0.2f')
+                        try:
 
-        df_interpolated_dwd_only.to_csv(out_plots_path / (
-            'interpolated_quantiles_dwd_%s_data_%s_using_dwd_only_grp_%d_.csv'
-            % (temp_agg, title_, idx_lst_comb)),
-            sep=';', float_format='%0.2f')
+                            ordinary_kriging_ppt_dwd_only.krige()
 
-        df_interpolated_netatmo_only.to_csv(out_plots_path / (
-            'interpolated_quantiles_dwd_%s_data_%s_using_netamo_only_grp_%d_.csv'
+                        except Exception as msg:
+                            print('Error while Kriging', msg)
+
+                        interpolated_ppt_dwd_only = ordinary_kriging_ppt_dwd_only.zk.copy()
+
+                        print('+++ Saving result to DF +++\n')
+
+                    else:
+                        print('no good variogram found, adding nans to df')
+                        interpolated_ppt_dwd_only = np.nan
+
+                    print('***Interpolated DWD ***', interpolated_ppt_dwd_only)
+                    df_interpolated_ppt_dwd_only.loc[
+                        event_date, stn_dwd_id] = interpolated_ppt_dwd_only
+                else:
+                    print('+++Interpolated Value using DWD-Netatmo is NaN+++')
+
+                    df_interpolated_ppt_dwd_only.loc[
+                        event_date, stn_dwd_id] = np.nan
+
+        df_interpolated_ppt_dwd_only.dropna(how='all', inplace=True)
+
+        df_interpolated_ppt_dwd_only.to_csv(out_plots_path / (
+            'tranformed_interpolated_ppt_dwd_%s_data_%s_using_dwd_only_grp_%d_.csv'
             % (temp_agg, title_, idx_lst_comb)),
             sep=';', float_format='%0.2f')
 
