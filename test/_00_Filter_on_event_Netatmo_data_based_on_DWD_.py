@@ -84,7 +84,7 @@ path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 
 # NETATMO FIRST FILTER
 path_to_netatmo_gd_stns = (main_dir / r'plots_NetAtmo_ppt_DWD_ppt_correlation_' /
-                           r'keep_stns_all_neighbor_98_per_60min_s0.csv')
+                           r'keep_stns_all_neighbor_99_per_60min_s0_comb.csv')
 
 # =============================================================================
 

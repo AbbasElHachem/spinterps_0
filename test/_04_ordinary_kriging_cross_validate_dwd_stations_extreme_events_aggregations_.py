@@ -58,7 +58,7 @@ path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 
 # NETATMO FIRST FILTER
 path_to_netatmo_gd_stns = (main_dir / r'plots_NetAtmo_ppt_DWD_ppt_correlation_' /
-                           r'keep_stns_all_neighbor_99_0_per_60min_s0.csv')
+                           r'keep_stns_all_neighbor_99_0_per_60min_s0_1st.csv')
 
 #==============================================================================
 #
@@ -88,7 +88,8 @@ n_best = 4
 ngp = 5
 
 
-resample_frequencies = ['180min']
+resample_frequencies = ['60min', '120min', '180min', '360min',
+                        '720min', '1440min']
 
 idx_time_fmt = '%Y-%m-%d %H:%M:%S'
 
@@ -197,8 +198,8 @@ for temp_agg in resample_frequencies:
     path_to_netatmo_edf = (path_to_data /
                            (r'edf_ppt_all_netatmo_%s_.csv' % temp_agg))
 
-    path_to_dwd_vgs = path_to_vgs / \
-        (r'vg_strs_dwd_%s_maximum_100_event.csv' % temp_agg)
+#     path_to_dwd_vgs = path_to_vgs / \
+#         (r'vg_strs_dwd_%s_maximum_100_event.csv' % temp_agg)
 
     path_dwd_extremes_df = path_to_data / \
         (r'dwd_%s_maximum_100_event.csv' % temp_agg)
@@ -206,7 +207,7 @@ for temp_agg in resample_frequencies:
     # netatmo second filter
     path_to_netatmo_edf_temp_filter = (
         out_plots_path /
-        (r'all_netatmo__%s_ppt_edf__using_DWD_stations_to_find_Netatmo_values__temporal_filter_99perc_.csv'
+        (r'all_netatmo__%s_ppt_edf__using_DWD_stations_to_find_Netatmo_values__temporal_filter_99perc_1st.csv'
          % temp_agg))
 
     # Files to use
@@ -215,7 +216,7 @@ for temp_agg in resample_frequencies:
     if qunatile_kriging:
         netatmo_data_to_use = path_to_netatmo_edf
         dwd_data_to_use = path_to_dwd_edf
-        path_to_dwd_vgs = path_to_dwd_vgs
+#         path_to_dwd_vgs = path_to_dwd_vgs
 
     print(title_)
     # DWD DATA
@@ -610,17 +611,17 @@ for temp_agg in resample_frequencies:
         df_interpolated_netatmo_only.dropna(how='all', inplace=True)
 
         df_interpolated_dwd_netatmos_comb.to_csv(out_plots_path / (
-            'interpolated_quantiles_dwd_%s_data_%s_using_dwd_netamo_grp_%d_.csv'
+            'interpolated_quantiles_dwd_%s_data_%s_using_dwd_netamo_grp_%d_1st.csv'
             % (temp_agg, title_, idx_lst_comb)),
             sep=';', float_format='%0.2f')
 
         df_interpolated_dwd_only.to_csv(out_plots_path / (
-            'interpolated_quantiles_dwd_%s_data_%s_using_dwd_only_grp_%d_.csv'
+            'interpolated_quantiles_dwd_%s_data_%s_using_dwd_only_grp_%d_1st.csv'
             % (temp_agg, title_, idx_lst_comb)),
             sep=';', float_format='%0.2f')
 
         df_interpolated_netatmo_only.to_csv(out_plots_path / (
-            'interpolated_quantiles_dwd_%s_data_%s_using_netamo_only_grp_%d_.csv'
+            'interpolated_quantiles_dwd_%s_data_%s_using_netamo_only_grp_%d_1st.csv'
             % (temp_agg, title_, idx_lst_comb)),
             sep=';', float_format='%0.2f')
 
