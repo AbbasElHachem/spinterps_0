@@ -60,7 +60,7 @@ path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 
 # NETATMO FIRST FILTER
 path_to_netatmo_gd_stns = (main_dir / r'plots_NetAtmo_ppt_DWD_ppt_correlation_' /
-                           r'keep_stns_all_neighbor_99_0_per_60min_s0_comb.csv')
+                           r'keep_stns_all_neighbor_99_0_per_60min_s0_1st.csv')
 
 #==============================================================================
 #
@@ -320,75 +320,102 @@ for temp_agg in resample_frequencies:
 
                     if plot_event:
                         print('Plotting maps')
-                        x_coords_gd_netatmo = netatmo_in_coords_df.loc[
-                            ids_netatmo_stns_gd, 'X'].values.ravel()
-                        y_coords_gd_netatmo = netatmo_in_coords_df.loc[
-                            ids_netatmo_stns_gd, 'Y'].values.ravel()
-                        edf_gd_vals = netatmo_df.loc[ids_netatmo_stns_gd].values
 
-                        x_coords_bad_netatmo = netatmo_in_coords_df.loc[
-                            ids_netatmo_stns_bad, 'X'].values.ravel()
-                        y_coords_bad_netatmo = netatmo_in_coords_df.loc[
-                            ids_netatmo_stns_bad, 'Y'].values.ravel()
-                        edf_bad_vals = netatmo_df.loc[ids_netatmo_stns_bad].values
+                        edf_gd_vals_df = netatmo_df.loc[ids_netatmo_stns_gd]
+                        netatmo_dry_gd = edf_gd_vals_df[edf_gd_vals_df.values < 0.9]
+                        # netatmo_midle
+                        netatmo_wet_gd = edf_gd_vals_df[edf_gd_vals_df.values >= 0.9]
+
+                        x_coords_gd_netatmo_dry = netatmo_in_coords_df.loc[
+                            netatmo_dry_gd.index, 'X'].values.ravel()
+                        y_coords_gd_netatmo_dry = netatmo_in_coords_df.loc[
+                            netatmo_dry_gd.index, 'Y'].values.ravel()
+
+                        x_coords_gd_netatmo_wet = netatmo_in_coords_df.loc[
+                            netatmo_wet_gd.index, 'X'].values.ravel()
+                        y_coords_gd_netatmo_wet = netatmo_in_coords_df.loc[
+                            netatmo_wet_gd.index, 'Y'].values.ravel()
+                        #====================================
+                        #
+                        #====================================
+                        edf_bad_vals_df = netatmo_df.loc[ids_netatmo_stns_bad]
+
+                        netatmo_dry_bad = edf_bad_vals_df[edf_bad_vals_df.values < 0.9]
+                        # netatmo_midle
+                        netatmo_wet_bad = edf_bad_vals_df[edf_bad_vals_df.values >= 0.9]
+                        # dry bad
+                        x_coords_bad_netatmo_dry = netatmo_in_coords_df.loc[
+                            netatmo_dry_bad.index, 'X'].values.ravel()
+                        y_coords_bad_netatmo_dry = netatmo_in_coords_df.loc[
+                            netatmo_dry_bad.index, 'Y'].values.ravel()
+                        # wet bad
+                        x_coords_bad_netatmo_wet = netatmo_in_coords_df.loc[
+                            netatmo_wet_bad.index, 'X'].values.ravel()
+                        y_coords_bad_netatmo_wet = netatmo_in_coords_df.loc[
+                            netatmo_wet_bad.index, 'Y'].values.ravel()
+
+                        dwd_dry = dwd_df[dwd_df < 0.9]
+                        dwd_wet = dwd_df[dwd_df >= 0.9]
+
+                        x_coords_dwd_wet = dwd_coords.loc[
+                            dwd_wet.index, 'X'].values.ravel()
+                        y_coords_dwd_wet = dwd_coords.loc[
+                            dwd_wet.index, 'Y'].values.ravel()
+
+                        x_coords_dwd_dry = dwd_coords.loc[
+                            dwd_dry.index, 'X'].values.ravel()
+                        y_coords_dwd_dry = dwd_coords.loc[
+                            dwd_dry.index, 'Y'].values.ravel()
+#                         dwd_dry =
 
                         plt.ioff()
-                        texts = []
+#                         texts = []
                         fig = plt.figure(figsize=(20, 20), dpi=75)
                         ax = fig.add_subplot(111)
+                        m_size = 50
+                        ax.scatter(x_coords_gd_netatmo_dry,
+                                   y_coords_gd_netatmo_dry, c='g',
+                                   marker='d', s=m_size,
+                                   label='Netatmo %d stations with dry good values' %
+                                   x_coords_gd_netatmo_dry.shape[0])
 
-                        ax.scatter(x_coords_gd_netatmo,
-                                   y_coords_gd_netatmo, c='g',
-                                   marker='d', s=10,
-                                   label='Netatmo %d stations with good values' %
-                                   x_coords_gd_netatmo.shape[0])
+                        ax.scatter(x_coords_gd_netatmo_wet,
+                                   y_coords_gd_netatmo_wet, c='b',
+                                   marker='d', s=m_size,
+                                   label='Netatmo %d stations with wet good values' %
+                                   x_coords_gd_netatmo_wet.shape[0])
 
-                        ax.scatter(x_coords_bad_netatmo, y_coords_bad_netatmo,
-                                   c='r',
-                                   marker='x', s=15,
-                                   label='Netatmo %d stations with bad vals' %
-                                   x_coords_bad_netatmo.shape[0])
+                        ax.scatter(x_coords_bad_netatmo_dry,
+                                   y_coords_bad_netatmo_dry, c='orange',
+                                   marker='X', s=m_size,
+                                   label='Netatmo %d stations with dry bad values' %
+                                   x_coords_bad_netatmo_dry.shape[0])
 
-                        ax.scatter(x_dwd, y_dwd, c='b',
-                                   marker='o', s=10,
-                                   label='DWD Stns')
-                        for x_gd, y_gd, edf_gd in zip(x_coords_gd_netatmo,
-                                                      y_coords_gd_netatmo, edf_gd_vals):
-                            edf_gd = np.round(edf_gd, 2)
-                            texts.append(ax.text(x_gd,
-                                                 y_gd,
-                                                 edf_gd,
-                                                 color='g'))
-                        for x_bad, y_bad, edf_bad in zip(x_coords_bad_netatmo,
-                                                         y_coords_bad_netatmo,
-                                                         edf_bad_vals):
-                            edf_bad = np.round(edf_bad, 2)
-                            texts.append(ax.text(x_bad,
-                                                 y_bad,
-                                                 edf_bad,
-                                                 color='r'))
+                        ax.scatter(x_coords_bad_netatmo_wet,
+                                   y_coords_bad_netatmo_wet, c='r',
+                                   marker='X', s=m_size,
+                                   label='Netatmo %d stations with wet bad values' %
+                                   x_coords_bad_netatmo_wet.shape[0])
 
-                        for x_d, y_d, edf_d in zip(x_dwd,
-                                                   y_dwd, dwd_vals):
-                            edf_d = np.round(edf_d, 2)
-                            texts.append(ax.text(x_d,
-                                                 y_d,
-                                                 edf_d,
-                                                 color='b'))
-                        # texts.append(ax.text(x_coords_bad_netatmo,
-                        #                     y_coords_bad_netatmo,
-                        #                     edf_bad_vals))
-                        adjust_text(texts, ax=ax,
-                                    arrowprops=dict(arrowstyle='->', color='red', lw=0.25))
+                        ax.scatter(x_coords_dwd_dry,
+                                   y_coords_dwd_dry, c='g',
+                                   marker='o', s=m_size,
+                                   label='DWD %d stations with dry values' %
+                                   x_coords_dwd_dry.shape[0])
+
+                        ax.scatter(x_coords_dwd_wet,
+                                   y_coords_dwd_wet, c='b',
+                                   marker='o', s=m_size,
+                                   label='DWD %d stations with wet values' %
+                                   x_coords_dwd_wet.shape[0])
+
                         plt.legend(loc=0)
-#                         plt.title('Event Date ' + str(
-#                             event_date) + 'Stn: %s Interpolated DWD-Netatmo %0.1f \n VG: %s'
-#                             % (stn_dwd_id, interpolated_vals_dwd_netatmo, vgs_model_dwd))
+
                         plt.grid(alpha=.25)
                         plt.xlabel('Longitude')
                         plt.ylabel('Latitude')
                         plt.savefig((out_plots_path / (
-                            '_%s_event_%s_comb' %
+                            '_%s_event_%s_1st' %
                             (temp_agg,
                              str(event_date).replace(
                                  '-', '_').replace(':',
@@ -404,7 +431,7 @@ for temp_agg in resample_frequencies:
     out_save_csv = out_save_csv + plot_title_acc
 
     df_stns_netatmo_gd_event.to_csv(out_plots_path / (
-        r'all_netatmo_%s_temporal_filter_99perc_comb.csv'
+        r'all_netatmo_%s_temporal_filter_99perc_1st.csv'
         % out_save_csv), sep=';',
         float_format='%.0f')
 
@@ -412,4 +439,3 @@ for temp_agg in resample_frequencies:
     print('\n\a\a\a Done with everything on %s.'
           'Total run time was about %0.4f seconds \a\a\a' %
           (time.asctime(), stop - start))
-    break

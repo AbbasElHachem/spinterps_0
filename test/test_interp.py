@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from spinterps import SpInterpMain
+from spinterps_new import SpInterpMain
 
 
 def main():
@@ -20,9 +20,10 @@ def main():
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo')
     os.chdir(main_dir)
     #==========================================================================
-#     in_data_file = os.path.join(
-#         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-#         r'all_netatmo_ppt_data_monthly_.csv')
+    in_data_file = os.path.join(
+        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+        r'all_dwd_ppt_data_monthly_.csv')
+    # r'all_netatmo_ppt_data_monthly_.csv')
 
 #     in_vals_df_loc = (
 #         r'F:\DWD_download_Temperature_data'
@@ -34,9 +35,9 @@ def main():
 #
 #     out_dir = r'F:\DWD_temperature_kriging'
 
-    in_data_file = os.path.join(
-        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-        r'all_dwd_daily_ppt_data_combined_2014_2019_.csv')
+#     in_data_file = os.path.join(
+#         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+#         r'all_dwd_daily_ppt_data_combined_2014_2019_.csv')
 
 #     in_data_file = os.path.join(
 #         r'F:\download_DWD_data_recent',
@@ -46,7 +47,7 @@ def main():
     path_to_netatmo_gd_stns_file = (
         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
         r"\plots_NetAtmo_ppt_DWD_ppt_correlation_"
-        r"\keep_stns_all_neighbor_99_0_per_60min_s0.csv")
+        r"\keep_stns_all_neighbor_99_0_per_60min_s0_comb.csv")
     #==========================================================================
 #     in_data_file = os.path.join(
 #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
@@ -61,14 +62,14 @@ def main():
 
     in_vgs_file = os.path.join(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo',
-        r'vg_strs_dwd_daily_ppt_.csv')
+        r'vg_strs_dwd_monthly_ppt.csv')
 
     #==========================================================================
 #
     in_stns_coords_file = os.path.join(
         os.path.dirname(in_data_file),
         r'station_coordinates_names_hourly_only_in_BW_utm32.csv')
-
+#
 #     in_stns_coords_file = os.path.join(
 #         os.path.dirname(in_data_file),
 #         r'netatmo_bw_1hour_coords_utm32.csv')
@@ -81,7 +82,7 @@ def main():
     var_name = 'precipitation'  # 'precipitation'
 
     out_krig_net_cdf_file = r'Dwd_dwd_daily_precipitation_kriging_%s_to_%s_1km_mid_rg_.nc'
-    freq = 'D'
+    freq = 'M'
     strt_date = r'2015-01-01'
     end_date = r'2019-08-01'
 
@@ -107,12 +108,12 @@ def main():
     min_nebor_dist_thresh = 0
 
     idw_exps = [1, 3, 5]
-    n_cpus = 1
+    n_cpus = 2
     buffer_dist = 2e3
     sec_buffer_dist = 2e3
 
-    neighbor_selection_method = 'nrst'
-    n_neighbors = 20
+    neighbor_selection_method = 'all'
+    n_neighbors = 5
     n_pies = 8
 
     in_sep = ';'
@@ -187,6 +188,11 @@ def main():
 
     else:
         raise ValueError(f'Incorrect index_type: {index_type}!')
+    # added by Abbas
+
+    cmn_idx = in_data_df.index.intersection(in_vgs_df.index)
+    in_data_df = in_data_df.loc[cmn_idx, :]
+    in_vgs_df = in_vgs_df.loc[cmn_idx, :]
 
     spinterp_cls = SpInterpMain(verbose)
 

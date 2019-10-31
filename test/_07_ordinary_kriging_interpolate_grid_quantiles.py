@@ -78,7 +78,7 @@ qunatile_kriging = True
 use_netatmo_gd_stns = True  # general filter, Indicator kriging
 use_temporal_filter_after_kriging = True  # on day filter
 
-plot_events = False
+plot_events = True
 
 strt_date = '2015-01-01 00:00:00'
 end_date = '2019-09-01 00:00:00'
@@ -94,8 +94,7 @@ n_best = 4
 ngp = 5
 
 
-resample_frequencies = ['180min',
-                        '360min', '720min', '1440min']
+resample_frequencies = ['1440min']
 
 idx_time_fmt = '%Y-%m-%d %H:%M:%S'
 
@@ -140,91 +139,16 @@ df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
                          index_col=0,
                          sep=';',
                          encoding='utf-8')
+
+# coordinates to interpolate
+coords_interpolate = pd.read_csv(
+    r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\oridinary_kriging_compare_DWD_Netatmo\coords_interpolate_small.csv',
+    sep=';', index_col=0)
+
+x_interp = coords_interpolate.X.values.ravel()
+y_interp = coords_interpolate.Y.values.ravel()
 #==============================================================================
 # NEEDED FUNCTIONS
-#==============================================================================
-
-
-def make_grid_locations(xllcorner, yllcorner, ncols, nrows, cellsize):
-    """
-    ----------------------------------------------------------------------------
-    Generiere x- und y-Koordinaten zu den vorgegebenen Grid-Parametern.
-
-    ----------------------------------------------------------------------------
-    RETURN  ... Tuple: grid mit x-Koordinaten, grid mit y-Koordinaten
-    """
-
-    # suche die x- bzw. y-werte raus
-    #   xe_grid  ...  grid mit x coordinates
-    #   ye_grid  ...  grid mit y coordinates
-    # von jeder Zelle des Rasters die westliche Coordinate (Delta)
-    dx = np.arange(ncols) * cellsize
-    xe_row = np.array([xllcorner + dx])  # auf Delta die xllcorner addiert
-    # das ganze Ding erweitern auf mgrid dimensionen (in x-Richtug)
-    xe_col = np.ones((nrows, 1))
-    # d.h. in jeder spalte steht der gleiche Wert, in jeder Zeile die
-    # x-Coordinate
-    xe_grid = xe_row * xe_col
-
-    # dy = (nrows - (np.arange(nrows) + 1)) * cellsize  # von nrows-1 bis 0
-    # mal cellsize
-    dy = np.arange(nrows) * cellsize   # von nrows-1 bis 0 mal cellsize
-    # suedliche Koordinate einer Rasterspalte
-    ye_col = np.array([yllcorner + dy]).T
-    # vergroessern so dass es in mgrid dimensionen passt
-    ye_row = np.ones((1, ncols))
-    ye_grid = ye_row * ye_col
-
-    return xe_grid, ye_grid
-
-
-nrows = 100
-ncols = 100
-cellsize = 50
-
-
-# Bestimme Interpolationspunkte
-# informationen aus shapefiles holen
-ishape = fiona.open(bw_area_shp)
-shp_objects_all = list(fiona.open(bw_area_shp))
-# first = ishape.next()
-first = next(iter(ishape))
-
-# shp_geom1 = shape(first['geometry'])
-polygon = np.array(first['geometry']['coordinates'][0])
-
-polygons = shape(shp_objects_all[0]['geometry'])
-bounding_box = shape(polygons).bounds
-
-(lon_sw, lat_sw,
-    lon_ne, lat_ne) = (bounding_box[0], bounding_box[1],
-                       bounding_box[2], bounding_box[3])
-
-
-xllcorner = lon_sw - 1000  # 383043.643
-yllcorner = lat_sw - 1000  # 5263346.754
-
-
-xe_grid, ye_grid = make_grid_locations(
-    xllcorner, yllcorner, ncols, nrows, cellsize)
-
-# try:
-#     bawue = polygon[0, :, :]
-# except IndexError:
-#     bawue = polygon[:, :]
-#
-# p = path.Path(bawue)
-# grid_mask = p.contains_points(
-#     np.vstack((xe_grid.flatten(), ye_grid.flatten())).T).reshape(nrows, ncols)
-#
-# grid_mask = np.array([
-#     (polygons.contains(shg.Point(x, y)) == True)
-#     for x, y in zip(xe_grid.flatten(),
-#                     ye_grid.flatten())]).reshape(nrows, ncols)
-#
-# xe_grid_keep = xe_grid[grid_mask]
-# ye_grid_keep = ye_grid[grid_mask]
-# #
 #==============================================================================
 
 
@@ -577,7 +501,6 @@ for temp_agg in resample_frequencies:
         # if type(vgs_model_dwd) != np.float and len(vgs_model_dwd) >
         # 0:
 
-            '''
             if ('Nug' in vgs_model_dwd
                     or len(vgs_model_dwd) > 0) and (
                     'Exp' in vgs_model_dwd or
@@ -590,8 +513,8 @@ for temp_agg in resample_frequencies:
                     yi=dwd_netatmo_ycoords,
                     zi=dwd_netatmo_edf,
                     uncert=edf_netatmo_vals_uncert,
-                    xk=x_dwd_interpolate,
-                    yk=y_dwd_interpolate,
+                    xk=x_interp,
+                    yk=y_interp,
                     model=vgs_model_dwd)
 
 #                     ordinary_kriging_dwd_netatmo_comb = OrdinaryKriging(
@@ -603,77 +526,136 @@ for temp_agg in resample_frequencies:
 #                         yk=y_dwd_interpolate,
 #                         model=vgs_model_dwd)
 
-                ordinary_kriging_dwd_only = OrdinaryKriging(
-                    xi=dwd_xcoords,
-                    yi=dwd_ycoords,
-                    zi=edf_dwd_vals,
-                    xk=x_dwd_interpolate,
-                    yk=y_dwd_interpolate,
-                    model=vgs_model_dwd)
-
-                ordinary_kriging_netatmo_only = OrdinaryKrigingWithUncertainty(
-                    xi=netatmo_xcoords,
-                    yi=netatmo_ycoords,
-                    zi=edf_netatmo_vals,
-                    uncert=edf_netatmo_vals_uncert,
-                    xk=x_dwd_interpolate,
-                    yk=y_dwd_interpolate,
-                    model=vgs_model_dwd)
+#                 ordinary_kriging_dwd_only = OrdinaryKriging(
+#                     xi=dwd_xcoords,
+#                     yi=dwd_ycoords,
+#                     zi=edf_dwd_vals,
+#                     xk=x_dwd_interpolate,
+#                     yk=y_dwd_interpolate,
+#                     model=vgs_model_dwd)
+#
+#                 ordinary_kriging_netatmo_only = OrdinaryKrigingWithUncertainty(
+#                     xi=netatmo_xcoords,
+#                     yi=netatmo_ycoords,
+#                     zi=edf_netatmo_vals,
+#                     uncert=edf_netatmo_vals_uncert,
+#                     xk=x_dwd_interpolate,
+#                     yk=y_dwd_interpolate,
+#                     model=vgs_model_dwd)
 
                 try:
                     ordinary_kriging_dwd_netatmo_comb.krige()
-                    ordinary_kriging_dwd_only.krige()
-                    ordinary_kriging_netatmo_only.krige()
+#                     ordinary_kriging_dwd_only.krige()
+#                     ordinary_kriging_netatmo_only.krige()
                 except Exception as msg:
                     print('Error while Kriging', msg)
 
                 interpolated_vals_dwd_netatmo = ordinary_kriging_dwd_netatmo_comb.zk.copy()
-                interpolated_vals_dwd_only = ordinary_kriging_dwd_only.zk.copy()
-                interpolated_vals_netatmo_only = ordinary_kriging_netatmo_only.zk.copy()
+#                 interpolated_vals_dwd_only = ordinary_kriging_dwd_only.zk.copy()
+#                 interpolated_vals_netatmo_only = ordinary_kriging_netatmo_only.zk.copy()
                 if plot_events:
+
+                    # minimum values for colorbar. filter our nans which are in
+                    # the grid
+                    from matplotlib.mlab import griddata
+                    from scipy.interpolate import griddata
+                    points = np.array([(x, y)
+                                       for x, y in zip(x_interp, y_interp)])
+                    grid_x, grid_y = np.meshgrid(x_interp, y_interp)
+#
+#                     grid_z0 = griddata(points,
+#                         interpolated_vals_dwd_netatmo, (grid_x,
+#                          grid_y), method='nearest')
+# see this routine's docstring
+#
+#                     zmin = grid[np.where(np.isnan(grid) == False)].min()
+#                     zmax = grid[np.where(np.isnan(grid) == False)].max()
+                    extent = (x_interp.min(),
+                              x_interp.max(),
+                              y_interp.min(),
+                              y_interp.max())
+
                     plt.ioff()
                     plt.figure(figsize=(12, 8), dpi=150)
+
+                    # colorbar stuff
+                    palette = plt.matplotlib.colors.LinearSegmentedColormap(
+                        'jet3', plt.cm.datad['jet'], 2048)
+                    palette.set_under(alpha=0.0)
+
+                    zi = griddata((x_interp, y_interp), interpolated_vals_dwd_netatmo,
+                                  (grid_x, grid_y), method='cubic')
+
+#                     zi = griddata(x_interp, y_interp, interpolated_vals_dwd_netatmo,
+#                                   grid_x, grid_y, method='linear')
+    # norm = colors.BoundaryNorm(boundaries=np.array([0, 180, 60]), ncolors=256)
+#                     im = ax0.contourf(x, y, zi, 1000, cmap=cmap, extend='max',
+#                                       vmin=0, vmax=165, )
+                    zmin = zi[np.where(np.isnan(zi) == False)].min()
+                    zmax = zi[np.where(np.isnan(zi) == False)].max()
+                    plt.contourf(
+                        x_interp,
+                        y_interp,
+                        zi,
+                        5,
+                        vmin=zmin,
+                        vmax=zmax,
+                        cmap=palette)
+                    plt.colorbar()
                     plt.scatter(netatmo_xcoords, netatmo_ycoords, c='g',
-                                marker='d', s=10, label='Interp Netatmo Stns: %0.1f' %
-                                interpolated_vals_dwd_netatmo)
-                    plt.scatter(x_dwd_interpolate, y_dwd_interpolate, c='r',
+                                marker='d', s=10,
+                                label='Netatmo Stns: %d' %
+                                netatmo_xcoords.size)
+                    plt.scatter(dwd_xcoords, dwd_ycoords, c='r',
                                 marker='x', s=15,
-                                label='Obs DWD loc \nPpt %.1f, Perc %.1f'
-                                % (_ppt_event_, _edf_event_))
-                    plt.scatter(dwd_xcoords, dwd_ycoords, c='b', marker='o', s=10,
-                                label='Interp DWD Stns: %.1f' % interpolated_vals_dwd_only)
-                    plt.legend(loc=0)
-                    plt.title('Event Date ' + str(
-                        event_date) + 'Stn: %s Interpolated DWD-Netatmo %0.1f \n VG: %s'
-                        % (stn_dwd_id, interpolated_vals_dwd_netatmo, vgs_model_dwd))
-                    plt.grid(alpha=.25)
-                    plt.xlabel('Longitude')
-                    plt.ylabel('Latitude')
-                    plt.savefig((
-                        out_plots_path / ('%s_dwd_stn_%s_%s_event_%s' %
-                                          (title, stn_dwd_id, temp_agg,
-                                           str(event_date).replace(
-                                               '-', '_').replace(':',
-                                                                 '_').replace(' ', '_')
-                                           ))),
-                                frameon=True, papertype='a4',
-                                bbox_inches='tight', pad_inches=.2)
-                    plt.close()
-                print('**Interpolated DWD: ',
-                      interpolated_vals_dwd_only,
-                      '\n**Interpolated DWD-Netatmo: ',
-                      interpolated_vals_dwd_netatmo,
-                      '\n**Interpolated Netatmo: ',
-                      interpolated_vals_netatmo_only)
+                                label='DWD Stns %d'
+                                % dwd_xcoords.size)
+                    plt.scatter(x_interp, y_interp, c='b',
+                                marker='.', s=5,
+                                label='DWD Stns %d'
+                                % dwd_xcoords.size)
+#                     plt.imshow(grid, extent=extent, cmap=palette,
+#                                origin='lower', vmin=zmin,
+#                                vmax=zmax, aspect='auto',
+#                                interpolation='bilinear')
 
-                if interpolated_vals_dwd_netatmo < 0:
-                    interpolated_vals_dwd_netatmo = np.nan
 
-                if interpolated_vals_dwd_only < 0:
-                    interpolated_vals_dwd_only = np.nan
-
-                if interpolated_vals_netatmo_only < 0:
-                    interpolated_vals_netatmo_only = np.nan
+#                     plt.imshow(grid_z0.T, origin='lower', cmap=plt.get_cmap('jet'))
+                    plt.show()
+#                     plt.scatter(dwd_xcoords, dwd_ycoords, c='b', marker='o', s=10,
+#                                 label='Interp DWD Stns: %.1f' % interpolated_vals_dwd_only)
+#                     plt.legend(loc=0)
+#                     plt.title('Event Date ' + str(
+#                         event_date) + 'Stn: %s Interpolated DWD-Netatmo %0.1f \n VG: %s'
+#                         % (stn_dwd_id, interpolated_vals_dwd_netatmo, vgs_model_dwd))
+#                     plt.grid(alpha=.25)
+#                     plt.xlabel('Longitude')
+#                     plt.ylabel('Latitude')
+#                     plt.savefig((
+#                         out_plots_path / ('%s_dwd_stn_%s_%s_event_%s' %
+#                                           (title, stn_dwd_id, temp_agg,
+#                                            str(event_date).replace(
+#                                                '-', '_').replace(':',
+#                                                                  '_').replace(' ', '_')
+#                                            ))),
+#                                 frameon=True, papertype='a4',
+#                                 bbox_inches='tight', pad_inches=.2)
+#                     plt.close()
+#                 print('**Interpolated DWD: ',
+#                       interpolated_vals_dwd_only,
+#                       '\n**Interpolated DWD-Netatmo: ',
+#                       interpolated_vals_dwd_netatmo,
+#                       '\n**Interpolated Netatmo: ',
+#                       interpolated_vals_netatmo_only)
+#
+#                 if interpolated_vals_dwd_netatmo < 0:
+#                     interpolated_vals_dwd_netatmo = np.nan
+#
+#                 if interpolated_vals_dwd_only < 0:
+#                     interpolated_vals_dwd_only = np.nan
+#
+#                 if interpolated_vals_netatmo_only < 0:
+#                     interpolated_vals_netatmo_only = np.nan
             else:
                 print('no good variogram found, adding nans to df')
                 interpolated_vals_dwd_netatmo = np.nan
@@ -716,5 +698,3 @@ for temp_agg in resample_frequencies:
 stop = timeit.default_timer()  # Ending time
 print('\n\a\a\a Done with everything on %s \a\a\a' %
       (time.asctime()))
-      
-'''
