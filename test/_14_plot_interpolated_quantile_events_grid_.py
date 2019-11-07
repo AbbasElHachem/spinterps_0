@@ -25,7 +25,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-from spinterps import (OrdinaryKriging, OrdinaryKrigingWithUncertainty)
+from spinterps import (OrdinaryKriging,
+                       OrdinaryKrigingWithUncertainty)
 from spinterps import variograms
 from scipy.spatial import distance_matrix
 from scipy.spatial import distance
@@ -59,6 +60,8 @@ path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 # path for data filter
 in_filter_path = main_dir / r'oridinary_kriging_compare_DWD_Netatmo'
 
+# path for interpolation grid
+path_grid_interpolate = in_filter_path / "coords_interpolate.csv"
 #==============================================================================
 # # NETATMO FIRST FILTER
 #==============================================================================
@@ -69,10 +72,10 @@ qunatile_kriging = True
 
 # run it to filter Netatmo
 use_netatmo_gd_stns = True  # general filter, Indicator kriging
-use_temporal_filter_after_kriging = True  # on day filter
+use_temporal_filter_after_kriging = False  # on day filter
 
-use_first_neghbr_as_gd_stns = False  # False
-use_first_and_second_nghbr_as_gd_stns = True  # True
+use_first_neghbr_as_gd_stns = True  # False
+use_first_and_second_nghbr_as_gd_stns = False  # True
 
 _acc_ = ''
 
@@ -94,7 +97,7 @@ if use_netatmo_gd_stns:
 resample_frequencies = ['60min',  '360min',
                         '720min', '1440min']
 # '120min', '180min',
-title_ = r'Qt_ok_ok_un_'
+title_ = r'Qt_ok_ok_un_plots'
 
 
 if not use_netatmo_gd_stns:
@@ -137,7 +140,15 @@ diff_thr = 0.1
 #==============================================================================
 #
 #==============================================================================
+# Interpoalte Coords
 
+grid_interp_df = pd.read_csv(path_grid_interpolate,
+                             index_col=0,
+                             sep=';',
+                             encoding='utf-8')
+
+x_coords_grd = grid_interp_df.loc[:, 'X'].values
+y_coords_grd = grid_interp_df.loc[:, 'Y'].values
 
 # Netatmo Coords
 netatmo_in_coords_df = pd.read_csv(path_to_netatmo_coords,
@@ -429,7 +440,7 @@ for temp_agg in resample_frequencies:
                     data=np.ones(shape=(dwd_in_extremes_df.index.shape[0],
                                         netatmo_in_vals_df.columns.shape[0])))
 
-            for event_date in dwd_in_extremes_df.index:
+            for event_date in dwd_in_extremes_df.index[50:55]:
                 #                 if event_date == '2016-08-18 20:00:00':
                 #                     print(event_date)
                 #                     raise Exception
@@ -1087,8 +1098,8 @@ for temp_agg in resample_frequencies:
                         xi=dwd_netatmo_xcoords,
                         yi=dwd_netatmo_ycoords,
                         zi=dwd_netatmo_edf,
-                        xk=x_dwd_interpolate,
-                        yk=y_dwd_interpolate,
+                        xk=x_coords_grd,
+                        yk=y_coords_grd,
                         model=vgs_model_dwd)
 
                     ordinary_kriging_un_dwd_netatmo_comb = OrdinaryKrigingWithUncertainty(
@@ -1096,24 +1107,24 @@ for temp_agg in resample_frequencies:
                         yi=dwd_netatmo_ycoords,
                         zi=dwd_netatmo_edf,
                         uncert=edf_dwd_netatmo_vals_uncert,
-                        xk=x_dwd_interpolate,
-                        yk=y_dwd_interpolate,
+                        xk=x_coords_grd,
+                        yk=y_coords_grd,
                         model=vgs_model_dwd)
 
                     ordinary_kriging_dwd_only = OrdinaryKriging(
                         xi=dwd_xcoords,
                         yi=dwd_ycoords,
                         zi=edf_dwd_vals,
-                        xk=x_dwd_interpolate,
-                        yk=y_dwd_interpolate,
+                        xk=x_coords_grd,
+                        yk=y_coords_grd,
                         model=vgs_model_dwd)
 
                     ordinary_kriging_netatmo_only = OrdinaryKriging(
                         xi=netatmo_xcoords_gd,
                         yi=netatmo_ycoords_gd,
                         zi=edf_netatmo_vals_gd,
-                        xk=x_dwd_interpolate,
-                        yk=y_dwd_interpolate,
+                        xk=x_coords_grd,
+                        yk=y_coords_grd,
                         model=vgs_model_dwd)
 
                     ordinary_kriging_un_netatmo_only = OrdinaryKrigingWithUncertainty(
@@ -1121,8 +1132,8 @@ for temp_agg in resample_frequencies:
                         yi=netatmo_ycoords_gd,
                         zi=edf_netatmo_vals_gd,
                         uncert=edf_netatmo_vals_uncert,
-                        xk=x_dwd_interpolate,
-                        yk=y_dwd_interpolate,
+                        xk=x_coords_grd,
+                        yk=y_coords_grd,
                         model=vgs_model_dwd)
 
                     try:
@@ -1265,3 +1276,8 @@ for temp_agg in resample_frequencies:
 stop = timeit.default_timer()  # Ending time
 print('\n\a\a\a Done with everything on %s \a\a\a' %
       (time.asctime()))
+'''
+Created on 7 Nov 2019
+
+@author: hachem
+'''

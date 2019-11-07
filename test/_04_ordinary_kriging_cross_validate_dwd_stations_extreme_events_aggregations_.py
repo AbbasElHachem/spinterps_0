@@ -80,19 +80,19 @@ if use_first_neghbr_as_gd_stns:
 if use_first_and_second_nghbr_as_gd_stns:
     _acc_ = 'comb'
 
-
-path_to_netatmo_gd_stns = (main_dir / r'plots_NetAtmo_ppt_DWD_ppt_correlation_' /
-                           (r'keep_stns_all_neighbor_99_0_per_60min_s0_%s.csv'
-                               % _acc_))
+if use_netatmo_gd_stns:
+    path_to_netatmo_gd_stns = (main_dir / r'plots_NetAtmo_ppt_DWD_ppt_correlation_' /
+                               (r'keep_stns_all_neighbor_99_per_60min_s0_%s.csv'
+                                % _acc_))
 
 
 #==============================================================================
 #
 #==============================================================================
-resample_frequencies = ['60min', '360min',
+resample_frequencies = ['360min',
                         '720min', '1440min']
 
-title_ = r'Quantiles'
+title_ = r'Qt_ok_ok_un'
 
 
 if not use_netatmo_gd_stns:
@@ -158,10 +158,11 @@ dwd_in_coords_df.index = list(map(str, dwd_in_coords_df.index))
 
 
 # Netatmo first filter
-df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
-                         index_col=0,
-                         sep=';',
-                         encoding='utf-8')
+if use_netatmo_gd_stns:
+    df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
+                             index_col=0,
+                             sep=';',
+                             encoding='utf-8')
 #==============================================================================
 # NEEDED FUNCTIONS
 #==============================================================================

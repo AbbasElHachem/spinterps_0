@@ -82,7 +82,7 @@ if use_first_and_second_nghbr_as_gd_stns:
 
 
 path_to_netatmo_gd_stns = (main_dir / r'plots_NetAtmo_ppt_DWD_ppt_correlation_' /
-                           (r'keep_stns_all_neighbor_99_0_per_60min_s0_%s.csv'
+                           (r'keep_stns_all_neighbor_99_per_60min_s0_%s.csv'
                                % _acc_))
 
 
@@ -745,6 +745,11 @@ for temp_agg in resample_frequencies:
 
                     dwd_netatmo_edf = np.concatenate([edf_dwd_vals,
                                                       edf_netatmo_vals])
+                    # uncertainty for dwd is 0
+                    uncert_dwd = np.zeros(shape=edf_dwd_vals.shape)
+
+                    edf_dwd_netatmo_vals_uncert = np.concatenate([uncert_dwd,
+                                                                  edf_netatmo_vals_uncert])
 
                     #==========================================================
                     # KRIGING
@@ -754,7 +759,7 @@ for temp_agg in resample_frequencies:
                         xi=dwd_netatmo_xcoords,
                         yi=dwd_netatmo_ycoords,
                         zi=dwd_netatmo_edf,
-                        uncert=edf_netatmo_vals_uncert,
+                        uncert=edf_dwd_netatmo_vals_uncert,
                         xk=x_dwd_interpolate,
                         yk=y_dwd_interpolate,
                         model=vgs_model_dwd)
@@ -766,6 +771,14 @@ for temp_agg in resample_frequencies:
                         xk=x_dwd_interpolate,
                         yk=y_dwd_interpolate,
                         model=vgs_model_dwd)
+#
+#                     ordinary_kriging_dwd_netatmo_comb_ok = OrdinaryKriging(
+#                         xi=dwd_netatmo_xcoords,
+#                         yi=dwd_netatmo_ycoords,
+#                         zi=dwd_netatmo_edf,
+#                         xk=x_dwd_interpolate,
+#                         yk=y_dwd_interpolate,
+#                         model=vgs_model_dwd)
 
                     ordinary_kriging_netatmo_only = OrdinaryKrigingWithUncertainty(
                         xi=netatmo_xcoords,
@@ -778,12 +791,14 @@ for temp_agg in resample_frequencies:
 
                     try:
                         ordinary_kriging_dwd_netatmo_comb.krige()
+#                         ordinary_kriging_dwd_netatmo_comb_ok.krige()
                         ordinary_kriging_dwd_only.krige()
                         ordinary_kriging_netatmo_only.krige()
                     except Exception as msg:
                         print('Error while Kriging', msg)
 
                     interpolated_vals_dwd_netatmo = ordinary_kriging_dwd_netatmo_comb.zk.copy()
+#                     ok_ = ordinary_kriging_dwd_netatmo_comb_ok.zk.copy()
                     interpolated_vals_dwd_only = ordinary_kriging_dwd_only.zk.copy()
                     interpolated_vals_netatmo_only = ordinary_kriging_netatmo_only.zk.copy()
                     if plot_events:
