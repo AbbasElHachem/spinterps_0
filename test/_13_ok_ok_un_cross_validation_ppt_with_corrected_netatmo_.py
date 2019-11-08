@@ -44,7 +44,9 @@ plt.rcParams.update({'axes.labelsize': 12})
 
 # =============================================================================
 
-main_dir = Path(r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes')
+# main_dir = Path(r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes')
+main_dir = Path(r'/home/abbas/Documents/Python/Extremes')
+
 os.chdir(main_dir)
 
 path_to_data = main_dir / r'NetAtmo_BW'
@@ -70,10 +72,10 @@ qunatile_kriging = True
 
 # run it to filter Netatmo
 use_netatmo_gd_stns = True  # general filter, Indicator kriging
-use_temporal_filter_after_kriging = True  # on day filter
+use_temporal_filter_after_kriging = False  # on day filter
 
-use_first_neghbr_as_gd_stns = False  # False
-use_first_and_second_nghbr_as_gd_stns = True  # True
+use_first_neghbr_as_gd_stns = True  # False
+use_first_and_second_nghbr_as_gd_stns = False  # True
 
 _acc_ = ''
 
@@ -447,7 +449,7 @@ for temp_agg in resample_frequencies:
                     data=np.ones(shape=(dwd_in_extremes_df.index.shape[0],
                                         netatmo_in_vals_df.columns.shape[0])))
 
-            for event_date in dwd_in_extremes_df.index[1:]:
+            for event_date in dwd_in_extremes_df.index[50:55]:
 
                 _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
                 if len(_stn_id_event_) < 5:
