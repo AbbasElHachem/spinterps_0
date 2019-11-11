@@ -76,11 +76,11 @@ qunatile_kriging = True
 use_netatmo_gd_stns = False  # general filter, Indicator kriging
 use_temporal_filter_after_kriging = False  # on day filter
 
-<<<<<<< HEAD
+
 use_first_neghbr_as_gd_stns = True  # False
-=======
+#=======
 use_first_neghbr_as_gd_stns = False  # False
->>>>>>> branch 'master' of https://github.com/rockypy/spinterps_0.git
+
 use_first_and_second_nghbr_as_gd_stns = False  # True
 
 _acc_ = ''
@@ -100,13 +100,10 @@ if use_netatmo_gd_stns:
 #==============================================================================
 #
 #==============================================================================
-<<<<<<< HEAD
-resample_frequencies = ['60min', '360min',
-                        '720min', '1440min']
-=======
+
 resample_frequencies = [  # '360min',  # '60min', '720min',
     '1440min']
->>>>>>> branch 'master' of https://github.com/rockypy/spinterps_0.git
+
 # '120min', '180min',
 title_ = r'Qt_ok_ok_un_plots'
 
@@ -242,41 +239,25 @@ def chunks(l, n):
 # =============================================================================
 #
 # =============================================================================
-<<<<<<< HEAD
-        
-cmap_data = ['darkblue', 'blue', 'darkgreen', 
-=======
 
 
 cmap_data = ['darkblue', 'blue', 'lightblue',
->>>>>>> branch 'master' of https://github.com/rockypy/spinterps_0.git
              'green', 'greenyellow', 'yellow',
              'gold', 'orange', 'darkorange',
-<<<<<<< HEAD
              'salmon', 'red', 'firebrick'][::-1]
-                
-bound = [0.4, 0.5, 0.6, 
-=======
-             'orangered', 'red', 'firebrick', ]  # [::-1]
+
 
 bound = [0.4, 0.5, 0.6,
->>>>>>> branch 'master' of https://github.com/rockypy/spinterps_0.git
          0.7, 0.75, 0.8,
-<<<<<<< HEAD
-          0.85, 0.9, 0.925,
-           0.95, 0.975, 0.9825, 0.9875,
-            0.9925, 0.9975, 1]
-cmap = mcolors.ListedColormap(cmap_data, 'precipitation')
-cmap = plt.get_cmap('jet')
-
-=======
          0.85, 0.9, 0.925,
          0.95, 0.975, 0.9825, 0.9875,
          0.9925, 0.9975, 1]
+cmap = mcolors.ListedColormap(cmap_data, 'precipitation')
+cmap = plt.get_cmap('jet')
+
 # cmap = mcolors.ListedColormap(cmap_data, 'precipitation')
 
 cmap = plt.get_cmap('jet')
->>>>>>> branch 'master' of https://github.com/rockypy/spinterps_0.git
 norm = mcolors.BoundaryNorm(bound, cmap.N)
 
 
@@ -289,27 +270,23 @@ def plot_interp_ppt_evnt(vals_to_plot, str_title,
     plt.ioff()
     plt.figure(figsize=(12, 8), dpi=150)
     plt.scatter(x_coords_grd, y_coords_grd,
-<<<<<<< HEAD
-            c=vals_to_plot,
-            marker=',', s=40, cmap=cmap,
-            vmin=0.4, norm=norm,
-            vmax=1)
-    
-    plt.colorbar(cmap=cmap,
-                 norm=norm,
-                 ticks=bound, label='Quantile Value')
-    
-=======
                 c=vals_to_plot,
-                marker=',', s=30, cmap=cmap,
+                marker=',', s=40, cmap=cmap,
                 vmin=0.4, norm=norm,
                 vmax=1)
 
     plt.colorbar(cmap=cmap,
                  norm=norm,
+                 ticks=bound, label='Quantile Value',
+                 c=vals_to_plot,
+                 marker=',', s=30, cmap=cmap,
+                 vmin=0.4, norm=norm,
+                 vmax=1)
+
+    plt.colorbar(cmap=cmap,
+                 norm=norm,
                  ticks=bound, label='Quantile Value')
 
->>>>>>> branch 'master' of https://github.com/rockypy/spinterps_0.git
     plt.scatter(netatmo_xcoords, netatmo_ycoords, c='m',
                 marker='x', s=10, label='Netatmo')
 
@@ -498,11 +475,7 @@ for temp_agg in resample_frequencies:
     all_dwd_stns = dwd_in_vals_df.columns.tolist()
 
     for event_date in dwd_in_extremes_df.index:
-<<<<<<< HEAD
-        
-=======
 
->>>>>>> branch 'master' of https://github.com/rockypy/spinterps_0.git
         _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
         if len(_stn_id_event_) < 5:
             _stn_id_event_ = (5 - len(_stn_id_event_)) * \
@@ -849,7 +822,6 @@ for temp_agg in resample_frequencies:
                     ordinary_kriging_filter_netamto.krige()
                 except Exception as msg:
                     print('Error while Error Kriging', msg)
-                    
 
                 # interpolated vals
                 interpolated_vals = ordinary_kriging_filter_netamto.zk
@@ -1082,8 +1054,7 @@ for temp_agg in resample_frequencies:
                 yk=y_coords_grd,
                 model=vgs_model_dwd)
 
-<<<<<<< HEAD
-            #ordinary_kriging_netatmo_only = OrdinaryKriging(
+            # ordinary_kriging_netatmo_only = OrdinaryKriging(
             #    xi=netatmo_xcoords_gd,
             #    yi=netatmo_ycoords_gd,
             #    zi=edf_netatmo_vals_gd,
@@ -1091,7 +1062,7 @@ for temp_agg in resample_frequencies:
             #    yk=y_coords_grd,
             #    model=vgs_model_dwd)
 
-            #ordinary_kriging_un_netatmo_only = OrdinaryKrigingWithUncertainty(
+            # ordinary_kriging_un_netatmo_only = OrdinaryKrigingWithUncertainty(
             #    xi=netatmo_xcoords_gd,
             #    yi=netatmo_ycoords_gd,
             #    zi=edf_netatmo_vals_gd,
@@ -1099,7 +1070,6 @@ for temp_agg in resample_frequencies:
             #    xk=x_coords_grd,
             #    yk=y_coords_grd,
             #    model=vgs_model_dwd)
-=======
 #             ordinary_kriging_netatmo_only = OrdinaryKriging(
 #                 xi=netatmo_xcoords_gd,
 #                 yi=netatmo_ycoords_gd,
@@ -1116,7 +1086,6 @@ for temp_agg in resample_frequencies:
 #                 xk=x_coords_grd,
 #                 yk=y_coords_grd,
 #                 model=vgs_model_dwd)
->>>>>>> branch 'master' of https://github.com/rockypy/spinterps_0.git
 
             try:
                 print('\nOK using DWD-Netatmo')
@@ -1128,30 +1097,24 @@ for temp_agg in resample_frequencies:
                 print('\nOK using DWD')
                 ordinary_kriging_dwd_only.krige()
 
-<<<<<<< HEAD
                 #print('\nOK using Netatmo')
-                #ordinary_kriging_netatmo_only.krige()
+                # ordinary_kriging_netatmo_only.krige()
                 #print('\nOK using Netatmo with Unc')
-                #ordinary_kriging_un_netatmo_only.krige()
-=======
+                # ordinary_kriging_un_netatmo_only.krige()
 #                 print('\nOK using Netatmo')
 #                 ordinary_kriging_netatmo_only.krige()
 #                 print('\nOK using Netatmo with Unc')
 #                 ordinary_kriging_un_netatmo_only.krige()
->>>>>>> branch 'master' of https://github.com/rockypy/spinterps_0.git
             except Exception as msg:
                 print('Error while Kriging', msg)
 
             interpolated_vals_dwd_netatmo = ordinary_kriging_dwd_netatmo_comb.zk.copy()
             interpolated_vals_dwd_netatmo_un = ordinary_kriging_un_dwd_netatmo_comb.zk.copy()
             interpolated_vals_dwd_only = ordinary_kriging_dwd_only.zk.copy()
-<<<<<<< HEAD
             #interpolated_vals_netatmo_only = ordinary_kriging_netatmo_only.zk.copy()
             #interpolated_vals_netatmo_only_un = ordinary_kriging_un_netatmo_only.zk.copy()
-=======
 #             interpolated_vals_netatmo_only = ordinary_kriging_netatmo_only.zk.copy()
 #             interpolated_vals_netatmo_only_un = ordinary_kriging_un_netatmo_only.zk.copy()
->>>>>>> branch 'master' of https://github.com/rockypy/spinterps_0.git
 
             if plot_events:
 
@@ -1178,7 +1141,6 @@ for temp_agg in resample_frequencies:
                                      title_=title_,
                                      temp_agg=temp_agg,
                                      event_date=event_date)
-<<<<<<< HEAD
                 '''
                 # interpolated_vals_netatmo_only_un
                 plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_netatmo_only,
@@ -1196,7 +1158,6 @@ for temp_agg in resample_frequencies:
                                      temp_agg=temp_agg,
                                      event_date=event_date)
                 '''
-=======
 #
 #                 # interpolated_vals_netatmo_only_un
 #                 plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_netatmo_only,
@@ -1214,25 +1175,21 @@ for temp_agg in resample_frequencies:
 #                                      temp_agg=temp_agg,
 #                                      event_date=event_date)
 
->>>>>>> branch 'master' of https://github.com/rockypy/spinterps_0.git
             print('**Interpolated DWD: ',
                   interpolated_vals_dwd_only,
                   '\n**Interpolated DWD-Netatmo: ',
                   interpolated_vals_dwd_netatmo,
                   '\n**Interpolated DWD-Netatmo Un: ',
                   interpolated_vals_dwd_netatmo_un)
-<<<<<<< HEAD
-                  #'\n**Interpolated Netatmo: ',
-                  #interpolated_vals_netatmo_only,
-                  #'\n**Interpolated Netatmo Un: ',
-                  #interpolated_vals_netatmo_only_un,)
+            #'\n**Interpolated Netatmo: ',
+            # interpolated_vals_netatmo_only,
+            #'\n**Interpolated Netatmo Un: ',
+            # interpolated_vals_netatmo_only_un,)
 
-=======
 #                   '\n**Interpolated Netatmo: ',
 #                   interpolated_vals_netatmo_only,
 #                   '\n**Interpolated Netatmo Un: ',
 #                   interpolated_vals_netatmo_only_un,)
->>>>>>> branch 'master' of https://github.com/rockypy/spinterps_0.git
 
             print('+++ Saving result to DF +++\n')
 
@@ -1243,23 +1200,20 @@ for temp_agg in resample_frequencies:
                 'DWD_Netatmo_Unc'] = interpolated_vals_dwd_netatmo_un
 
             df_interpolated[
-<<<<<<< HEAD
-                    'DWD'] = interpolated_vals_dwd_only
-    
-            #df_interpolated[
-            #        'Netatmo'] = interpolated_vals_netatmo_only
-    
-            #df_interpolated[
-            #        'Netatmo_Unc'] = interpolated_vals_netatmo_only_un
-=======
                 'DWD'] = interpolated_vals_dwd_only
+
+            # df_interpolated[
+            #        'Netatmo'] = interpolated_vals_netatmo_only
+
+            # df_interpolated[
+            #        'Netatmo_Unc'] = interpolated_vals_netatmo_only_un
+
 
 #             df_interpolated[
 #                 'Netatmo'] = interpolated_vals_netatmo_only
 
 #             df_interpolated[
 #                 'Netatmo_Unc'] = interpolated_vals_netatmo_only_un
->>>>>>> branch 'master' of https://github.com/rockypy/spinterps_0.git
             # =================================================================
             #         Save DFS
             # =================================================================
