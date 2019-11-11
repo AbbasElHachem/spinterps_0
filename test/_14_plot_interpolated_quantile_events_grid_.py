@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on %(date)s
@@ -74,8 +75,8 @@ qunatile_kriging = True
 use_netatmo_gd_stns = True  # general filter, Indicator kriging
 use_temporal_filter_after_kriging = True  # on day filter
 
-use_first_neghbr_as_gd_stns = False  # False
-use_first_and_second_nghbr_as_gd_stns = True  # True
+use_first_neghbr_as_gd_stns = True  # False
+use_first_and_second_nghbr_as_gd_stns = False  # True
 
 _acc_ = ''
 
@@ -94,7 +95,7 @@ if use_netatmo_gd_stns:
 #==============================================================================
 #
 #==============================================================================
-resample_frequencies = ['60min',  '360min',
+resample_frequencies = ['60min', '360min',
                         '720min', '1440min']
 # '120min', '180min',
 title_ = r'Qt_ok_ok_un_plots'
@@ -150,6 +151,7 @@ grid_interp_df = pd.read_csv(path_grid_interpolate,
 x_coords_grd = grid_interp_df.loc[:, 'X'].values.ravel()
 y_coords_grd = grid_interp_df.loc[:, 'Y'].values.ravel()
 
+
 # Netatmo Coords
 netatmo_in_coords_df = pd.read_csv(path_to_netatmo_coords,
                                    index_col=0,
@@ -195,7 +197,10 @@ def build_edf_fr_vals(data):
 def find_nearest(array, value):
     ''' given a value, find nearest one to it in original data array'''
     array = np.asarray(array)
-    idx = (np.abs(array - value)).argmin()
+    try:
+        idx = (np.abs(array - value)).argmin()
+    except Exception as msg:
+        print('Error finding nearest', msg)
     return array[idx]
 #==============================================================================
 #
@@ -228,16 +233,19 @@ def chunks(l, n):
 # 
 # =============================================================================
         
-cmap_data = ['darkblue', 'blue', 'lightblue', 
+cmap_data = ['darkblue', 'blue', 'darkgreen', 
              'green', 'greenyellow', 'yellow',
              'gold', 'orange', 'darkorange',
-             'orangered', 'red', 'firebrick',]#[::-1]
+             'salmon', 'red', 'firebrick'][::-1]
                 
 bound = [0.4, 0.5, 0.6, 
          0.7, 0.75, 0.8,
           0.85, 0.9, 0.925,
-           0.95, 0.975, 1]
+           0.95, 0.975, 0.9825, 0.9875,
+            0.9925, 0.9975, 1]
 cmap = mcolors.ListedColormap(cmap_data, 'precipitation')
+cmap = plt.get_cmap('jet')
+
 norm = mcolors.BoundaryNorm(bound, cmap.N)
                 
 def plot_interp_ppt_evnt(vals_to_plot, str_title,
@@ -250,11 +258,13 @@ def plot_interp_ppt_evnt(vals_to_plot, str_title,
     plt.figure(figsize=(12, 8), dpi=150)
     plt.scatter(x_coords_grd, y_coords_grd,
             c=vals_to_plot,
-            marker=',', s=30, cmap=cmap,
+            marker=',', s=40, cmap=cmap,
             vmin=0.4, norm=norm,
             vmax=1)
     
-    plt.colorbar(ticks=bound, label='Quantile Value')
+    plt.colorbar(cmap=cmap,
+                 norm=norm,
+                 ticks=bound, label='Quantile Value')
     
     plt.scatter(netatmo_xcoords, netatmo_ycoords, c='m',
                 marker='x', s=10, label='Netatmo')
@@ -271,7 +281,7 @@ def plot_interp_ppt_evnt(vals_to_plot, str_title,
     plt.axis('equal')
     #plt.show()
     plt.savefig((
-        out_plots_path / (
+        out_plot_path / (
                 '%s_%s_%s_event_' %
                 (str_title, temp_agg,
                  str(event_date).replace(
@@ -443,7 +453,7 @@ for temp_agg in resample_frequencies:
     all_dwd_stns = dwd_in_vals_df.columns.tolist()
     
 
-    for event_date in dwd_in_extremes_df.index[50:52]:
+    for event_date in dwd_in_extremes_df.index:
         
         _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
         if len(_stn_id_event_) < 5:
@@ -594,7 +604,7 @@ for temp_agg in resample_frequencies:
                                         _ppt_event_)
                                     netatmo_edf_event_ = edf_stn_new[
                                         np.where(
-                                            ppt_stn_new == ppt_ix_edf)]
+                                            ppt_stn_new == ppt_ix_edf)][0]
 
                                 nearst_edf_new = find_nearest(
                                     edf_stn_new,
@@ -790,7 +800,7 @@ for temp_agg in resample_frequencies:
                     ordinary_kriging_filter_netamto.krige()
                 except Exception as msg:
                     print('Error while Error Kriging', msg)
-                    continue
+                    
 
                 # interpolated vals
                 interpolated_vals = ordinary_kriging_filter_netamto.zk
@@ -810,7 +820,7 @@ for temp_agg in resample_frequencies:
                 idx_bad_stns = np.where(
                     diff_obsv_interp > 3 * std_est_vals)
 
-                if len(idx_bad_stns[0]) > 0:
+                if len(idx_bad_stns[0]) > 0 or len(idx_good_stns[0]) > 0:
                     print('Number of Stations with bad index \n',
                           len(idx_bad_stns[0]))
                     print('Number of Stations with good index \n',
@@ -1023,22 +1033,22 @@ for temp_agg in resample_frequencies:
                 yk=y_coords_grd,
                 model=vgs_model_dwd)
 
-            ordinary_kriging_netatmo_only = OrdinaryKriging(
-                xi=netatmo_xcoords_gd,
-                yi=netatmo_ycoords_gd,
-                zi=edf_netatmo_vals_gd,
-                xk=x_coords_grd,
-                yk=y_coords_grd,
-                model=vgs_model_dwd)
+            #ordinary_kriging_netatmo_only = OrdinaryKriging(
+            #    xi=netatmo_xcoords_gd,
+            #    yi=netatmo_ycoords_gd,
+            #    zi=edf_netatmo_vals_gd,
+            #    xk=x_coords_grd,
+            #    yk=y_coords_grd,
+            #    model=vgs_model_dwd)
 
-            ordinary_kriging_un_netatmo_only = OrdinaryKrigingWithUncertainty(
-                xi=netatmo_xcoords_gd,
-                yi=netatmo_ycoords_gd,
-                zi=edf_netatmo_vals_gd,
-                uncert=edf_netatmo_vals_uncert,
-                xk=x_coords_grd,
-                yk=y_coords_grd,
-                model=vgs_model_dwd)
+            #ordinary_kriging_un_netatmo_only = OrdinaryKrigingWithUncertainty(
+            #    xi=netatmo_xcoords_gd,
+            #    yi=netatmo_ycoords_gd,
+            #    zi=edf_netatmo_vals_gd,
+            #    uncert=edf_netatmo_vals_uncert,
+            #    xk=x_coords_grd,
+            #    yk=y_coords_grd,
+            #    model=vgs_model_dwd)
 
             try:
                 print('\nOK using DWD-Netatmo')
@@ -1050,18 +1060,18 @@ for temp_agg in resample_frequencies:
                 print('\nOK using DWD')
                 ordinary_kriging_dwd_only.krige()
 
-                print('\nOK using Netatmo')
-                ordinary_kriging_netatmo_only.krige()
-                print('\nOK using Netatmo with Unc')
-                ordinary_kriging_un_netatmo_only.krige()
+                #print('\nOK using Netatmo')
+                #ordinary_kriging_netatmo_only.krige()
+                #print('\nOK using Netatmo with Unc')
+                #ordinary_kriging_un_netatmo_only.krige()
             except Exception as msg:
                 print('Error while Kriging', msg)
 
             interpolated_vals_dwd_netatmo = ordinary_kriging_dwd_netatmo_comb.zk.copy()
             interpolated_vals_dwd_netatmo_un = ordinary_kriging_un_dwd_netatmo_comb.zk.copy()
             interpolated_vals_dwd_only = ordinary_kriging_dwd_only.zk.copy()
-            interpolated_vals_netatmo_only = ordinary_kriging_netatmo_only.zk.copy()
-            interpolated_vals_netatmo_only_un = ordinary_kriging_un_netatmo_only.zk.copy()
+            #interpolated_vals_netatmo_only = ordinary_kriging_netatmo_only.zk.copy()
+            #interpolated_vals_netatmo_only_un = ordinary_kriging_un_netatmo_only.zk.copy()
 
             if plot_events:
 
@@ -1088,7 +1098,7 @@ for temp_agg in resample_frequencies:
                                      title_=title_,
                                      temp_agg=temp_agg,
                                      event_date=event_date)
-                
+                '''
                 # interpolated_vals_netatmo_only_un
                 plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_netatmo_only,
                                      str_title='Netatmo only',
@@ -1104,17 +1114,17 @@ for temp_agg in resample_frequencies:
                                      title_=title_,
                                      temp_agg=temp_agg,
                                      event_date=event_date)
-                
+                '''
             print('**Interpolated DWD: ',
                   interpolated_vals_dwd_only,
                   '\n**Interpolated DWD-Netatmo: ',
                   interpolated_vals_dwd_netatmo,
                   '\n**Interpolated DWD-Netatmo Un: ',
-                  interpolated_vals_dwd_netatmo_un,
-                  '\n**Interpolated Netatmo: ',
-                  interpolated_vals_netatmo_only,
-                  '\n**Interpolated Netatmo Un: ',
-                  interpolated_vals_netatmo_only_un,)
+                  interpolated_vals_dwd_netatmo_un)
+                  #'\n**Interpolated Netatmo: ',
+                  #interpolated_vals_netatmo_only,
+                  #'\n**Interpolated Netatmo Un: ',
+                  #interpolated_vals_netatmo_only_un,)
 
 
             print('+++ Saving result to DF +++\n')
@@ -1128,11 +1138,11 @@ for temp_agg in resample_frequencies:
             df_interpolated[
                     'DWD'] = interpolated_vals_dwd_only
     
-            df_interpolated[
-                    'Netatmo'] = interpolated_vals_netatmo_only
+            #df_interpolated[
+            #        'Netatmo'] = interpolated_vals_netatmo_only
     
-            df_interpolated[
-                    'Netatmo_Unc'] = interpolated_vals_netatmo_only_un
+            #df_interpolated[
+            #        'Netatmo_Unc'] = interpolated_vals_netatmo_only_un
             # =================================================================
             #         Save DFS
             # =================================================================
