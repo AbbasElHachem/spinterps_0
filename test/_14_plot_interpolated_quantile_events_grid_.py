@@ -40,9 +40,9 @@ plt.rcParams.update({'axes.labelsize': 14})
 
 # =============================================================================
 
-#main_dir = Path(r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes')
+main_dir = Path(r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes')
 
-main_dir = Path(r'/home/abbas/Documents/Python/Extremes')
+#main_dir = Path(r'/home/abbas/Documents/Python/Extremes')
 
 os.chdir(main_dir)
 
@@ -60,7 +60,8 @@ path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 in_filter_path = main_dir / r'oridinary_kriging_compare_DWD_Netatmo'
 
 # path for interpolation grid
-path_grid_interpolate = in_filter_path / r"coords_interpolate_small.csv"  # _small
+path_grid_interpolate = in_filter_path / \
+    r"coords_interpolate_small.csv"  # _small
 
 #==============================================================================
 # # NETATMO FIRST FILTER
@@ -71,11 +72,11 @@ use_dwd_stns_for_kriging = True
 qunatile_kriging = True
 
 # run it to filter Netatmo
-use_netatmo_gd_stns = True  # general filter, Indicator kriging
-use_temporal_filter_after_kriging = True  # on day filter
+use_netatmo_gd_stns = False  # general filter, Indicator kriging
+use_temporal_filter_after_kriging = False  # on day filter
 
 use_first_neghbr_as_gd_stns = False  # False
-use_first_and_second_nghbr_as_gd_stns = True  # True
+use_first_and_second_nghbr_as_gd_stns = False  # True
 
 _acc_ = ''
 
@@ -94,8 +95,8 @@ if use_netatmo_gd_stns:
 #==============================================================================
 #
 #==============================================================================
-resample_frequencies = ['60min',  '360min',
-                        '720min', '1440min']
+resample_frequencies = [  # '360min',  # '60min', '720min',
+    '1440min']
 # '120min', '180min',
 title_ = r'Qt_ok_ok_un_plots'
 
@@ -119,7 +120,7 @@ plot_2nd_filter_netatmo = True
 
 plot_events = True
 
-strt_date = '2015-01-01 00:00:00'
+strt_date = '2019-01-01 00:00:00 '  # '2015-01-01 00:00:00'
 end_date = '2019-09-01 00:00:00'
 
 # min_valid_stns = 20
@@ -225,23 +226,28 @@ def chunks(l, n):
         yield l[i:i + n]
 
 # =============================================================================
-# 
+#
 # =============================================================================
-        
-cmap_data = ['darkblue', 'blue', 'lightblue', 
+
+
+cmap_data = ['darkblue', 'blue', 'lightblue',
              'green', 'greenyellow', 'yellow',
              'gold', 'orange', 'darkorange',
-             'orangered', 'red', 'firebrick',]#[::-1]
-                
-bound = [0.4, 0.5, 0.6, 
+             'orangered', 'red', 'firebrick', ]  # [::-1]
+
+bound = [0.4, 0.5, 0.6,
          0.7, 0.75, 0.8,
-          0.85, 0.9, 0.925,
-           0.95, 0.975, 1]
-cmap = mcolors.ListedColormap(cmap_data, 'precipitation')
+         0.85, 0.9, 0.925,
+         0.95, 0.975, 0.9825, 0.9875,
+         0.9925, 0.9975, 1]
+# cmap = mcolors.ListedColormap(cmap_data, 'precipitation')
+
+cmap = plt.get_cmap('jet')
 norm = mcolors.BoundaryNorm(bound, cmap.N)
-                
+
+
 def plot_interp_ppt_evnt(vals_to_plot, str_title,
-                         out_plot_path, 
+                         out_plot_path,
                          title_,
                          temp_agg,
                          event_date):
@@ -249,40 +255,43 @@ def plot_interp_ppt_evnt(vals_to_plot, str_title,
     plt.ioff()
     plt.figure(figsize=(12, 8), dpi=150)
     plt.scatter(x_coords_grd, y_coords_grd,
-            c=vals_to_plot,
-            marker=',', s=30, cmap=cmap,
-            vmin=0.4, norm=norm,
-            vmax=1)
-    
-    plt.colorbar(ticks=bound, label='Quantile Value')
-    
+                c=vals_to_plot,
+                marker=',', s=30, cmap=cmap,
+                vmin=0.4, norm=norm,
+                vmax=1)
+
+    plt.colorbar(cmap=cmap,
+                 norm=norm,
+                 ticks=bound, label='Quantile Value')
+
     plt.scatter(netatmo_xcoords, netatmo_ycoords, c='m',
                 marker='x', s=10, label='Netatmo')
 
     plt.scatter(dwd_xcoords, dwd_ycoords, c='g',
                 marker='x', s=10, label='DWD')
-               
+
     plt.legend(loc=0)
     plt.title('Event Date ' + str(
-        event_date) +'Using %s'  % (str_title))
+        event_date) + ' Using %s' % (str_title))
     plt.grid(alpha=.25)
     plt.xlabel('Longitude')
     plt.ylabel('Latitude')
     plt.axis('equal')
-    #plt.show()
+    # plt.show()
     plt.savefig((
         out_plots_path / (
                 '%s_%s_%s_event_' %
                 (str_title, temp_agg,
                  str(event_date).replace(
-                         '-', '_').replace(':',
-                                 '_').replace(' ', '_')
+                     '-', '_').replace(':',
+                                       '_').replace(' ', '_')
                  ))),
-            papertype='a4',
-            bbox_inches='tight',
-            pad_inches=.2)
+                papertype='a4',
+                bbox_inches='tight',
+                pad_inches=.2)
     plt.close()
     return
+
 
 #==============================================================================
 #
@@ -293,7 +302,7 @@ for temp_agg in resample_frequencies:
 
     dir_path = title_ + '_' + _acc_ + '_' + temp_agg
 
-    out_plots_path = in_filter_path / dir_path
+    out_plots_path = in_filter_path / r'qt_plots' / dir_path
 
     if not os.path.exists(out_plots_path):
         os.mkdir(out_plots_path)
@@ -441,10 +450,9 @@ for temp_agg in resample_frequencies:
     # DWD stations
     # =========================================================================
     all_dwd_stns = dwd_in_vals_df.columns.tolist()
-    
 
-    for event_date in dwd_in_extremes_df.index[50:52]:
-        
+    for event_date in dwd_in_extremes_df.index:
+
         _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
         if len(_stn_id_event_) < 5:
             _stn_id_event_ = (5 - len(_stn_id_event_)) * \
@@ -455,12 +463,11 @@ for temp_agg in resample_frequencies:
         print('**Calculating for Date ',
               event_date, '\n Rainfall: ',  _ppt_event_,
               'Quantile: ', _edf_event_, ' **\n')
-        
+
         # CREATE DFS HOLD RESULT KRIGING PER NETATMO STATION
         df_interpolated = pd.DataFrame()
         df_interpolated['X'] = x_coords_grd
         df_interpolated['Y'] = y_coords_grd
-
 
         #==============================================================
         # # DWD qunatiles
@@ -485,9 +492,12 @@ for temp_agg in resample_frequencies:
         dwd_xcoords = np.array(dwd_xcoords)
         dwd_ycoords = np.array(dwd_ycoords)
         edf_dwd_vals = np.array(edf_dwd_vals)
-        
+
         # get vg model for this day
         vgs_model_dwd = df_vgs_extremes.loc[event_date, 1]
+
+        if type(vgs_model_dwd) is not str():
+            vgs_model_dwd = df_vgs_extremes.loc[event_date, 2]
 
         if ('Nug' in vgs_model_dwd or len(
             vgs_model_dwd) == 0) and (
@@ -539,7 +549,7 @@ for temp_agg in resample_frequencies:
                       % (i, len(netatmo_df.index)))
                 netatmo_edf_event_ = netatmo_in_vals_df.loc[
                     event_date, netatmo_stn_id]
-                if netatmo_edf_event_ > 0.99:
+                if netatmo_edf_event_ > 1:  # 0.99:
                     # print('Correcting Netatmo station',
                     #                                   netatmo_stn_id)
                     try:
@@ -560,8 +570,8 @@ for temp_agg in resample_frequencies:
                         netatmo_end_date = netatmo_stn_edf_df.index[-1]
 
                         netatmo_ppt_event_ = netatmo_in_ppt_vals_df.loc[
-                                event_date,
-                                netatmo_stn_id]
+                            event_date,
+                            netatmo_stn_id]
 
                         print('\nOriginal Netatmo Ppt: ', netatmo_ppt_event_,
                               '\nOriginal Netatmo Edf: ', netatmo_edf_event_)
@@ -655,7 +665,6 @@ for temp_agg in resample_frequencies:
                         print('**Interpolated PPT by DWD recent: ',
                               interpolated_netatmo_prct)
 
-
                         if interpolated_netatmo_prct >= 0.:
 
                             # get for each dwd stn the percentile corresponding
@@ -706,7 +715,7 @@ for temp_agg in resample_frequencies:
                                         stn_xcoords_old)
                                     dwd_ycoords_old.append(
                                         stn_xcoords_old)
-                                    
+
                             print('Kriging second time')
                             edf_vals_dwd_old_for_interp_ppt = np.array(
                                 edf_vals_dwd_old_for_interp_ppt)
@@ -1023,128 +1032,126 @@ for temp_agg in resample_frequencies:
                 yk=y_coords_grd,
                 model=vgs_model_dwd)
 
-            ordinary_kriging_netatmo_only = OrdinaryKriging(
-                xi=netatmo_xcoords_gd,
-                yi=netatmo_ycoords_gd,
-                zi=edf_netatmo_vals_gd,
-                xk=x_coords_grd,
-                yk=y_coords_grd,
-                model=vgs_model_dwd)
-
-            ordinary_kriging_un_netatmo_only = OrdinaryKrigingWithUncertainty(
-                xi=netatmo_xcoords_gd,
-                yi=netatmo_ycoords_gd,
-                zi=edf_netatmo_vals_gd,
-                uncert=edf_netatmo_vals_uncert,
-                xk=x_coords_grd,
-                yk=y_coords_grd,
-                model=vgs_model_dwd)
+#             ordinary_kriging_netatmo_only = OrdinaryKriging(
+#                 xi=netatmo_xcoords_gd,
+#                 yi=netatmo_ycoords_gd,
+#                 zi=edf_netatmo_vals_gd,
+#                 xk=x_coords_grd,
+#                 yk=y_coords_grd,
+#                 model=vgs_model_dwd)
+#
+#             ordinary_kriging_un_netatmo_only = OrdinaryKrigingWithUncertainty(
+#                 xi=netatmo_xcoords_gd,
+#                 yi=netatmo_ycoords_gd,
+#                 zi=edf_netatmo_vals_gd,
+#                 uncert=edf_netatmo_vals_uncert,
+#                 xk=x_coords_grd,
+#                 yk=y_coords_grd,
+#                 model=vgs_model_dwd)
 
             try:
                 print('\nOK using DWD-Netatmo')
                 ordinary_kriging_dwd_netatmo_comb.krige()
-                
+
                 print('\nOK using DWD-Netatmo with Unc')
                 ordinary_kriging_un_dwd_netatmo_comb.krige()
-                
+
                 print('\nOK using DWD')
                 ordinary_kriging_dwd_only.krige()
 
-                print('\nOK using Netatmo')
-                ordinary_kriging_netatmo_only.krige()
-                print('\nOK using Netatmo with Unc')
-                ordinary_kriging_un_netatmo_only.krige()
+#                 print('\nOK using Netatmo')
+#                 ordinary_kriging_netatmo_only.krige()
+#                 print('\nOK using Netatmo with Unc')
+#                 ordinary_kriging_un_netatmo_only.krige()
             except Exception as msg:
                 print('Error while Kriging', msg)
 
             interpolated_vals_dwd_netatmo = ordinary_kriging_dwd_netatmo_comb.zk.copy()
             interpolated_vals_dwd_netatmo_un = ordinary_kriging_un_dwd_netatmo_comb.zk.copy()
             interpolated_vals_dwd_only = ordinary_kriging_dwd_only.zk.copy()
-            interpolated_vals_netatmo_only = ordinary_kriging_netatmo_only.zk.copy()
-            interpolated_vals_netatmo_only_un = ordinary_kriging_un_netatmo_only.zk.copy()
+#             interpolated_vals_netatmo_only = ordinary_kriging_netatmo_only.zk.copy()
+#             interpolated_vals_netatmo_only_un = ordinary_kriging_un_netatmo_only.zk.copy()
 
             if plot_events:
 
                 # interpolated_vals_dwd_only
                 plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_dwd_only,
                                      str_title=' DWD only',
-                                     out_plot_path=out_plots_path, 
+                                     out_plot_path=out_plots_path,
                                      title_=title_,
                                      temp_agg=temp_agg,
                                      event_date=event_date)
-                
+
                 # interpolated_vals_dwd_netatmo
                 plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_dwd_netatmo,
                                      str_title=' DWD-Netatmo',
-                                     out_plot_path=out_plots_path, 
+                                     out_plot_path=out_plots_path,
                                      title_=title_,
                                      temp_agg=temp_agg,
                                      event_date=event_date)
-                
+
                 # interpolated_vals_dwd_netatmo_un
                 plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_dwd_netatmo_un,
                                      str_title=' DWD-Netatmo with Unc',
-                                     out_plot_path=out_plots_path, 
+                                     out_plot_path=out_plots_path,
                                      title_=title_,
                                      temp_agg=temp_agg,
                                      event_date=event_date)
-                
-                # interpolated_vals_netatmo_only_un
-                plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_netatmo_only,
-                                     str_title='Netatmo only',
-                                     out_plot_path=out_plots_path, 
-                                     title_=title_,
-                                     temp_agg=temp_agg,
-                                     event_date=event_date)
-                
-                # interpolated_vals_netatmo_only_un
-                plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_netatmo_only_un,
-                                     str_title='Netatmo with Unc',
-                                     out_plot_path=out_plots_path, 
-                                     title_=title_,
-                                     temp_agg=temp_agg,
-                                     event_date=event_date)
-                
+#
+#                 # interpolated_vals_netatmo_only_un
+#                 plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_netatmo_only,
+#                                      str_title='Netatmo only',
+#                                      out_plot_path=out_plots_path,
+#                                      title_=title_,
+#                                      temp_agg=temp_agg,
+#                                      event_date=event_date)
+#
+#                 # interpolated_vals_netatmo_only_un
+#                 plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_netatmo_only_un,
+#                                      str_title='Netatmo with Unc',
+#                                      out_plot_path=out_plots_path,
+#                                      title_=title_,
+#                                      temp_agg=temp_agg,
+#                                      event_date=event_date)
+
             print('**Interpolated DWD: ',
                   interpolated_vals_dwd_only,
                   '\n**Interpolated DWD-Netatmo: ',
                   interpolated_vals_dwd_netatmo,
                   '\n**Interpolated DWD-Netatmo Un: ',
-                  interpolated_vals_dwd_netatmo_un,
-                  '\n**Interpolated Netatmo: ',
-                  interpolated_vals_netatmo_only,
-                  '\n**Interpolated Netatmo Un: ',
-                  interpolated_vals_netatmo_only_un,)
-
+                  interpolated_vals_dwd_netatmo_un)
+#                   '\n**Interpolated Netatmo: ',
+#                   interpolated_vals_netatmo_only,
+#                   '\n**Interpolated Netatmo Un: ',
+#                   interpolated_vals_netatmo_only_un,)
 
             print('+++ Saving result to DF +++\n')
-    
+
             df_interpolated[
-                    'DWD_Netatmo'] = interpolated_vals_dwd_netatmo
-    
+                'DWD_Netatmo'] = interpolated_vals_dwd_netatmo
+
             df_interpolated[
-                    'DWD_Netatmo_Unc'] = interpolated_vals_dwd_netatmo_un
-    
+                'DWD_Netatmo_Unc'] = interpolated_vals_dwd_netatmo_un
+
             df_interpolated[
-                    'DWD'] = interpolated_vals_dwd_only
-    
-            df_interpolated[
-                    'Netatmo'] = interpolated_vals_netatmo_only
-    
-            df_interpolated[
-                    'Netatmo_Unc'] = interpolated_vals_netatmo_only_un
+                'DWD'] = interpolated_vals_dwd_only
+
+#             df_interpolated[
+#                 'Netatmo'] = interpolated_vals_netatmo_only
+
+#             df_interpolated[
+#                 'Netatmo_Unc'] = interpolated_vals_netatmo_only_un
             # =================================================================
             #         Save DFS
             # =================================================================
             df_interpolated.to_csv(out_plots_path / (
                 '%s_%s_%s_%s.csv'
                 % (str(event_date).replace(
-                         '-', '_').replace(':',
-                                 '_').replace(' ', '_'),
-                         temp_agg, title_, _acc_)),
+                    '-', '_').replace(':',
+                                      '_').replace(' ', '_'),
+                   temp_agg, title_, _acc_)),
                 sep=';', float_format='%0.6f')
-                    
-        
+
 
 stop = timeit.default_timer()  # Ending time
 print('\n\a\a\a Done with everything on %s \a\a\a' %
