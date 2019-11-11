@@ -444,9 +444,9 @@ for temp_agg in resample_frequencies:
                       event_date, '\n Rainfall: ',  _ppt_event_,
                       'Quantile: ', _edf_event_, ' **\n')
 
-#                 #==============================================================
-#                 # # DWD qunatiles
-#                 #==============================================================
+                #==============================================================
+                # # DWD qunatiles
+                #==============================================================
                 edf_dwd_vals = []
                 dwd_xcoords = []
                 dwd_ycoords = []
@@ -505,6 +505,12 @@ for temp_agg in resample_frequencies:
 
                 # get vg model for this day
                 vgs_model_dwd = df_vgs_extremes.loc[event_date, 1]
+
+                if not isinstance(vgs_model_dwd, str):
+                    vgs_model_dwd = df_vgs_extremes.loc[event_date, 2]
+
+                if not isinstance(vgs_model_dwd, str):
+                    vgs_model_dwd = ''
 
                 if ('Nug' in vgs_model_dwd or len(
                     vgs_model_dwd) == 0) and (
@@ -913,24 +919,23 @@ for temp_agg in resample_frequencies:
                                     radius)
                                 if len(idxs_neighbours) > 0:
 
-                                    stns_ids_bad_corrected = []
-                                    stns_xcoords_bad_corrected = []
-                                    stns_ycoords_bad_corrected = []
-                                    edf_bad_corrected = []
-
                                     for i, ix_nbr in enumerate(idxs_neighbours):
 
                                         edf_neighbor = netatmo_wet_gd[ix_nbr]
                                         if np.abs(edf_stn - edf_neighbor) <= diff_thr:
                                             print(
                                                 'bad wet netatmo station is good')
-                                            stns_ids_bad_corrected.append(stn_)
-                                            stns_xcoords_bad_corrected.append(
+                                            # add to good wet netatmos
+                                            netatmo_wet_gd[stn_] = edf_stn
+                                            ids_netatmo_stns_gd = np.append(
+                                                ids_netatmo_stns_gd,
+                                                stn_)
+                                            x_coords_gd_netatmo_wet = np.append(
+                                                x_coords_gd_netatmo_wet,
                                                 netatmo_x_stn)
-                                            stns_ycoords_bad_corrected.append(
+                                            y_coords_gd_netatmo_wet = np.append(
+                                                y_coords_gd_netatmo_wet,
                                                 netatmo_y_stn)
-
-                                            edf_bad_corrected.append(edf_stn)
 
                                             # remove from original bad wet
                                             x_coords_bad_netatmo_wet = np.array(list(
@@ -1037,6 +1042,7 @@ for temp_agg in resample_frequencies:
                         #======================================================
                         # Interpolate DWD QUANTILES
                         #======================================================
+                        # TODO: FIX BUG ADD COORDS AND EDF OF GOOD BAD WET
                         edf_netatmo_vals_gd = edf_netatmo_vals[idx_good_stns[0]]
                         netatmo_xcoords_gd = netatmo_xcoords[idx_good_stns[0]]
                         netatmo_ycoords_gd = netatmo_ycoords[idx_good_stns[0]]

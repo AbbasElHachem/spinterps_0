@@ -72,16 +72,13 @@ use_dwd_stns_for_kriging = True
 
 qunatile_kriging = True
 
-# run it to filter Netatmo
-use_netatmo_gd_stns = False  # general filter, Indicator kriging
-use_temporal_filter_after_kriging = False  # on day filter
+# run it to filter True
+use_netatmo_gd_stns = True  # general filter, Indicator kriging
+use_temporal_filter_after_kriging = True  # on day filter
 
 
-use_first_neghbr_as_gd_stns = True  # False
-#=======
 use_first_neghbr_as_gd_stns = False  # False
-
-use_first_and_second_nghbr_as_gd_stns = False  # True
+use_first_and_second_nghbr_as_gd_stns = True  # True
 
 _acc_ = ''
 
@@ -127,7 +124,7 @@ plot_2nd_filter_netatmo = True
 
 plot_events = True
 
-strt_date = '2019-01-01 00:00:00 '  # '2015-01-01 00:00:00'
+strt_date = '2015-01-01 00:00:00 '  # '2015-01-01 00:00:00'
 end_date = '2019-09-01 00:00:00'
 
 # min_valid_stns = 20
@@ -269,19 +266,12 @@ def plot_interp_ppt_evnt(vals_to_plot, str_title,
     '''plot interpolated events, grid wise '''
     plt.ioff()
     plt.figure(figsize=(12, 8), dpi=150)
+
     plt.scatter(x_coords_grd, y_coords_grd,
                 c=vals_to_plot,
                 marker=',', s=40, cmap=cmap,
                 vmin=0.4, norm=norm,
                 vmax=1)
-
-    plt.colorbar(cmap=cmap,
-                 norm=norm,
-                 ticks=bound, label='Quantile Value',
-                 c=vals_to_plot,
-                 marker=',', s=30, cmap=cmap,
-                 vmin=0.4, norm=norm,
-                 vmax=1)
 
     plt.colorbar(cmap=cmap,
                  norm=norm,
@@ -519,8 +509,11 @@ for temp_agg in resample_frequencies:
         # get vg model for this day
         vgs_model_dwd = df_vgs_extremes.loc[event_date, 1]
 
-        if type(vgs_model_dwd) is not str():
+        if not isinstance(vgs_model_dwd, str):
             vgs_model_dwd = df_vgs_extremes.loc[event_date, 2]
+
+        if not isinstance(vgs_model_dwd, str):
+            vgs_model_dwd = ''
 
         if ('Nug' in vgs_model_dwd or len(
             vgs_model_dwd) == 0) and (
@@ -572,7 +565,7 @@ for temp_agg in resample_frequencies:
                       % (i, len(netatmo_df.index)))
                 netatmo_edf_event_ = netatmo_in_vals_df.loc[
                     event_date, netatmo_stn_id]
-                if netatmo_edf_event_ > 1:  # 0.99:
+                if netatmo_edf_event_ > 0.99:  # 0.99:
                     # print('Correcting Netatmo station',
                     #                                   netatmo_stn_id)
                     try:
@@ -931,24 +924,23 @@ for temp_agg in resample_frequencies:
                             radius)
                         if len(idxs_neighbours) > 0:
 
-                            stns_ids_bad_corrected = []
-                            stns_xcoords_bad_corrected = []
-                            stns_ycoords_bad_corrected = []
-                            edf_bad_corrected = []
-
                             for i, ix_nbr in enumerate(idxs_neighbours):
 
                                 edf_neighbor = netatmo_wet_gd[ix_nbr]
                                 if np.abs(edf_stn - edf_neighbor) <= diff_thr:
                                     print(
                                         'bad wet netatmo station is good')
-                                    stns_ids_bad_corrected.append(stn_)
-                                    stns_xcoords_bad_corrected.append(
+                                    # add to good wet netatmos
+                                    netatmo_wet_gd[stn_] = edf_stn
+                                    ids_netatmo_stns_gd = np.append(
+                                        ids_netatmo_stns_gd,
+                                        stn_)
+                                    x_coords_gd_netatmo_wet = np.append(
+                                        x_coords_gd_netatmo_wet,
                                         netatmo_x_stn)
-                                    stns_ycoords_bad_corrected.append(
+                                    y_coords_gd_netatmo_wet = np.append(
+                                        y_coords_gd_netatmo_wet,
                                         netatmo_y_stn)
-
-                                    edf_bad_corrected.append(edf_stn)
 
                                     # remove from original bad wet
                                     x_coords_bad_netatmo_wet = np.array(list(
