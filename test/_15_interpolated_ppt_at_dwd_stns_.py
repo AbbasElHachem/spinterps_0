@@ -29,16 +29,13 @@ import matplotlib.pyplot as plt
 
 from spinterps import (OrdinaryKriging, OrdinaryKrigingWithUncertainty)
 from spinterps import variograms
-from pykrige.ok import OrdinaryKriging as OKpy
-import skgstat as skg
+
 #from scipy.spatial import distance_matrix
 from scipy.spatial import distance
 from scipy import spatial
 
 from pathlib import Path
 from random import shuffle
-
-import kriging_func as kf
 
 VG = variograms.vgs.Variogram
 
@@ -434,7 +431,7 @@ for temp_agg in resample_frequencies:
                     data=np.ones(shape=(dwd_in_extremes_df.index.shape[0],
                                         netatmo_in_vals_df.columns.shape[0])))
 
-            for event_date in dwd_in_extremes_df.index[58:70]:
+            for event_date in dwd_in_extremes_df.index:
 
                 _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
                 if len(_stn_id_event_) < 5:
@@ -463,13 +460,17 @@ for temp_agg in resample_frequencies:
                 # try to fit vg
                 dwd_xy_coords = np.array([
                     (x,y) for x, y in zip(x_dwd_all, y_dwd_all)])
-                fit_vg_tst = skg.Variogram(coordinates=dwd_xy_coords, bin_func='even',
-                                           values=ppt_dwd_vals_nona.values)
+
                 #print(fit_vg_tst.describe())
                 #fit_vg_tst.plot()
                 # get vg model for this day
                 vgs_model_dwd_ppt = df_vgs_extremes.loc[event_date, 1]
-
+                
+                if not isinstance(vgs_model_dwd_ppt, str):
+                    vgs_model_dwd_ppt = df_vgs_extremes.loc[event_date, 2]
+                if not isinstance(vgs_model_dwd_ppt, str):
+                    vgs_model_dwd_ppt = ''
+                
                 if ('Nug' in vgs_model_dwd_ppt or len(
                     vgs_model_dwd_ppt) == 0) and (
                     'Exp' not in vgs_model_dwd_ppt and
@@ -493,13 +494,8 @@ for temp_agg in resample_frequencies:
                         print(
                             'Only Nugget variogram for this day')
                 
-                try:
-                    
-                    if 'Nug' in vgs_model_dwd_ppt:
-                        pass
-                except Exception:
-                    print('Ese')
-                if ('Nug' in vgs_model_dwd_ppt
+                if (isinstance(vgs_model_dwd_ppt, str)) and (
+                    'Nug' in vgs_model_dwd_ppt
                     or len(vgs_model_dwd_ppt) > 0) and (
                     'Exp' in vgs_model_dwd_ppt or
                         'Sph' in vgs_model_dwd_ppt):
@@ -576,7 +572,7 @@ for temp_agg in resample_frequencies:
                                         ppt_stn_new, edf_stn_new = build_edf_fr_vals(
                                             ppt_vals_stn_new)
 
-                                        if netatmo_edf_event_ == 1:
+                                        if netatmo_edf_event_ == 1.0:
                                             # correct edf event, 1 is bcz
                                             # rounding error
                                             ppt_ix_edf = find_nearest(
@@ -587,7 +583,8 @@ for temp_agg in resample_frequencies:
                                                     ppt_stn_new == ppt_ix_edf)]
                                             netatmo_edf_event_unc = netatmo_edf_event_ + (
                                                 (1 - netatmo_edf_event_) * 0.1)
-
+                                            print('\nChanged Original Netatmo Edf: ',
+                                                  netatmo_edf_event_)
                                         nearst_edf_new = find_nearest(
                                             edf_stn_new,
                                             netatmo_edf_event_)
@@ -730,7 +727,21 @@ for temp_agg in resample_frequencies:
                                     y_netatmo_interpolate[0])
 
                                 netatmo_stns_event_.append(netatmo_stn_id)
-                
+                                
+                else:
+                    print('no good VG found,\n adding nans to df')
+                    netatmo_ppt_vals_fr_dwd_interp.append(
+                                    np.nan)
+
+                    netatmo_ppt_vals_fr_dwd_interp_unc.append(
+                        np.nan)
+                    x_netatmo_ppt_vals_fr_dwd_interp.append(
+                        np.nan)
+
+                    y_netatmo_ppt_vals_fr_dwd_interp.append(
+                        np.nan)
+
+                    netatmo_stns_event_.append(np.nan)
                 # Transform everything to arrays and combine dwd-netatmo           
 
                 netatmo_xcoords = np.array(
@@ -755,70 +766,77 @@ for temp_agg in resample_frequencies:
                 netatmo_dwd_ppt_vals_unc = np.concatenate(
                     [ppt_netatmo_vals_unc,
                      ppt_dwd_vals_nona.values])
-                print('Krigging PPT at DWD Stns')
-
-                #===============================================================
-                # Start kriging ppt at DWD 
-                #===============================================================
-           
-                ordinary_kriging_dwd_netatmo_ppt = OrdinaryKriging(
-                    xi=netatmo_dwd_x_coords,
-                    yi=netatmo_dwd_y_coords,
-                    zi=netatmo_dwd_ppt_vals,
-                    xk=x_dwd_interpolate,
-                    yk=y_dwd_interpolate,
-                    model=vgs_model_dwd_ppt)
                 
-                ordinary_kriging_dwd_ppt = OrdinaryKriging(
-                    xi=x_dwd_all,
-                    yi=y_dwd_all,
-                    zi=ppt_dwd_vals_nona.values,
-                    xk=x_dwd_interpolate,
-                    yk=y_dwd_interpolate,
-                    model=vgs_model_dwd_ppt)
-
-                # kriging with uncertainty
-                ordinary_kriging_dwd_netatmo_ppt_unc = OrdinaryKriging(
-                    xi=netatmo_dwd_x_coords,
-                    yi=netatmo_dwd_y_coords,
-                    zi=netatmo_dwd_ppt_vals_unc,
-                    xk=x_dwd_interpolate,
-                    yk=y_dwd_interpolate,
-                    model=vgs_model_dwd_ppt)
-
-                try:
-                    ordinary_kriging_dwd_netatmo_ppt.krige()
-                    ordinary_kriging_dwd_ppt.krige()
-                    ordinary_kriging_dwd_netatmo_ppt_unc.krige()
-                except Exception as msg:
-                    print('Error while Kriging', msg)
-
-                interpolated_netatmo_dwd_ppt = ordinary_kriging_dwd_netatmo_ppt.zk.copy()
-                interpolated_dwd_ppt = ordinary_kriging_dwd_ppt.zk.copy()
-                interpolated_netatmo_dwd_ppt_unc = ordinary_kriging_dwd_netatmo_ppt_unc.zk.copy()
-
-                if interpolated_netatmo_dwd_ppt < 0:
+                if (isinstance(vgs_model_dwd_ppt, str)) and (
+                    'Nug' in vgs_model_dwd_ppt
+                    or len(vgs_model_dwd_ppt) > 0) and (
+                    'Exp' in vgs_model_dwd_ppt or
+                        'Sph' in vgs_model_dwd_ppt):
+                    
+                    print('Krigging PPT at DWD Stns')
+    
+                    #===============================================================
+                    # Start kriging ppt at DWD 
+                    #===============================================================
+               
+                    ordinary_kriging_dwd_netatmo_ppt = OrdinaryKriging(
+                        xi=netatmo_dwd_x_coords,
+                        yi=netatmo_dwd_y_coords,
+                        zi=netatmo_dwd_ppt_vals,
+                        xk=x_dwd_interpolate,
+                        yk=y_dwd_interpolate,
+                        model=vgs_model_dwd_ppt)
+                    
+                    ordinary_kriging_dwd_ppt = OrdinaryKriging(
+                        xi=x_dwd_all,
+                        yi=y_dwd_all,
+                        zi=ppt_dwd_vals_nona.values,
+                        xk=x_dwd_interpolate,
+                        yk=y_dwd_interpolate,
+                        model=vgs_model_dwd_ppt)
+    
+                    # kriging with uncertainty
+                    ordinary_kriging_dwd_netatmo_ppt_unc = OrdinaryKriging(
+                        xi=netatmo_dwd_x_coords,
+                        yi=netatmo_dwd_y_coords,
+                        zi=netatmo_dwd_ppt_vals_unc,
+                        xk=x_dwd_interpolate,
+                        yk=y_dwd_interpolate,
+                        model=vgs_model_dwd_ppt)
+    
+                    try:
+                        ordinary_kriging_dwd_netatmo_ppt.krige()
+                        ordinary_kriging_dwd_ppt.krige()
+                        ordinary_kriging_dwd_netatmo_ppt_unc.krige()
+                    except Exception as msg:
+                        print('Error while Kriging', msg)
+    
+                    interpolated_netatmo_dwd_ppt = ordinary_kriging_dwd_netatmo_ppt.zk.copy()
+                    interpolated_dwd_ppt = ordinary_kriging_dwd_ppt.zk.copy()
+                    interpolated_netatmo_dwd_ppt_unc = ordinary_kriging_dwd_netatmo_ppt_unc.zk.copy()
+    
+                    if interpolated_netatmo_dwd_ppt < 0:
+                        interpolated_netatmo_dwd_ppt = np.nan
+    
+                    if interpolated_dwd_ppt < 0:
+                        interpolated_dwd_ppt = np.nan
+    
+                    if interpolated_netatmo_dwd_ppt_unc < 0:
+                        interpolated_netatmo_dwd_ppt_unc = np.nan
+    
+                    print('**Interpolated PPT by DWD_Netatmo: ',
+                          interpolated_netatmo_dwd_ppt)
+    
+                    print('**Interpolated PPT by DWD Only: ',
+                          interpolated_dwd_ppt)
+    
+                    print('**Interpolated PPT by DWD-Netatmo Uncert: ',
+                          interpolated_netatmo_dwd_ppt_unc)
+                else:
+                    print('no good VG found,\n adding nans to df')
                     interpolated_netatmo_dwd_ppt = np.nan
-
-                if interpolated_dwd_ppt < 0:
                     interpolated_dwd_ppt = np.nan
-
-                if interpolated_netatmo_dwd_ppt_unc < 0:
                     interpolated_netatmo_dwd_ppt_unc = np.nan
-
-                print('**Interpolated PPT by DWD_Netatmo: ',
-                      interpolated_netatmo_dwd_ppt)
-
-                print('**Interpolated PPT by DWD Only: ',
-                      interpolated_dwd_ppt)
-
-                print('**Interpolated PPT by DWD-Netatmo Uncert: ',
-                      interpolated_netatmo_dwd_ppt_unc)
-            else:
-                print('no good VG found,\n adding nans to df')
-                interpolated_netatmo_dwd_ppt = np.nan
-                interpolated_dwd_ppt = np.nan
-                interpolated_netatmo_dwd_ppt_unc = np.nan
             
             # Aplly second filter
             if interpolated_netatmo_dwd_ppt > 0:
