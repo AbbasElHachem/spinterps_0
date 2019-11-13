@@ -59,6 +59,11 @@ path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 # path for data filter
 in_filter_path = main_dir / r'oridinary_kriging_compare_DWD_Netatmo'
 
+# distance mtx netatmo dwd
+distance_matrix_netatmo_dwd_df_file = path_to_data / \
+    r'distance_mtx_in_m_NetAtmo_DWD.csv'
+
+
 #==============================================================================
 # # NETATMO FIRST FILTER
 #==============================================================================
@@ -91,8 +96,8 @@ if use_netatmo_gd_stns:
 #==============================================================================
 #
 #==============================================================================
-resample_frequencies = ['60min',  '360min',
-                        '720min', '1440min']
+resample_frequencies = ['360min']
+#                         '720min', '1440min']  # '60min', '360min'
 # '120min', '180min',
 title_ = r'Qt_ok_ok_un_'
 
@@ -109,7 +114,7 @@ if use_temporal_filter_after_kriging:
 
 # def out plot path based on combination
 
-plot_2nd_filter_netatmo = True
+plot_2nd_filter_netatmo = False
 #==============================================================================
 #
 #==============================================================================
@@ -213,6 +218,13 @@ def chunks(l, n):
     for i in range(0, len(l), n):
         yield l[i:i + n]
 
+
+#==============================================================================
+#
+#==============================================================================
+# read distance matrix dwd-netamot ppt
+in_df_distance_netatmo_dwd = pd.read_csv(
+    distance_matrix_netatmo_dwd_df_file, sep=';', index_col=0)
 
 #==============================================================================
 #
@@ -366,6 +378,10 @@ for temp_agg in resample_frequencies:
             netatmo_in_vals_df.index).intersection(
                 df_vgs_extremes.index), :]
 
+    cmn_netatmo_stns = in_df_distance_netatmo_dwd.index.intersection(
+        netatmo_in_vals_df.columns)
+    in_df_distance_netatmo_dwd = in_df_distance_netatmo_dwd.loc[
+        cmn_netatmo_stns, :]
     print('\n%d Extreme Event to interpolate\n' % dwd_in_extremes_df.shape[0])
 
     # shuffle and select 10 DWD stations randomly
@@ -420,6 +436,17 @@ for temp_agg in resample_frequencies:
             # drop stns
             all_dwd_stns_except_interp_loc = [
                 stn for stn in dwd_in_vals_df.columns if stn not in stn_comb]
+
+            # find distance to all dwd stations, sort them, select minimum
+            distances_dwd_to_stns = in_df_distance_netatmo_dwd.loc[
+                :, stn_dwd_id]
+
+            sorted_distances_ppt_dwd = distances_dwd_to_stns.sort_values(
+                ascending=True)
+
+#             # select only neyrby netatmo stations below 50km
+            sorted_distances_ppt_dwd = sorted_distances_ppt_dwd[
+                sorted_distances_ppt_dwd.values <= 5e4]
 
             if use_temporal_filter_after_kriging:
                 # print('\n++Creating DF to hold filtered netatmo stns++\n')
@@ -519,13 +546,13 @@ for temp_agg in resample_frequencies:
 
                     try:
                         for i in range(2, len(df_vgs_extremes.loc[event_date, :])):
-                            vgs_model_dwd_ppt = df_vgs_extremes.loc[event_date, i]
-                            if type(vgs_model_dwd_ppt) == np.float:
+                            vgs_model_dwd = df_vgs_extremes.loc[event_date, i]
+                            if type(vgs_model_dwd) == np.float:
                                 continue
-                            if ('Nug' in vgs_model_dwd_ppt
-                                    or len(vgs_model_dwd_ppt) == 0) and (
-                                        'Exp' not in vgs_model_dwd_ppt or
-                                    'Sph' not in vgs_model_dwd_ppt):
+                            if ('Nug' in vgs_model_dwd
+                                    or len(vgs_model_dwd) == 0) and (
+                                        'Exp' not in vgs_model_dwd or
+                                    'Sph' not in vgs_model_dwd):
                                 continue
                             else:
                                 break
@@ -534,6 +561,9 @@ for temp_agg in resample_frequencies:
                         print(msg)
                         print(
                             'Only Nugget variogram for this day')
+
+                if not isinstance(vgs_model_dwd, str):
+                    vgs_model_dwd = ''
 
                 # if type(vgs_model_dwd) != np.float and len(vgs_model_dwd) >
                 # 0:
@@ -545,7 +575,9 @@ for temp_agg in resample_frequencies:
                     # print('**Variogram model **\n', vgs_model_dwd)
 
                     # Netatmo data and coords
-                    netatmo_df = netatmo_in_vals_df.loc[event_date, :].dropna(
+                    netatmo_df = netatmo_in_vals_df.loc[
+                        event_date,
+                        sorted_distances_ppt_dwd.index].dropna(
                         how='all')
 
                     # =========================================================
@@ -616,7 +648,7 @@ for temp_agg in resample_frequencies:
                                                 _ppt_event_)
                                             netatmo_edf_event_ = edf_stn_new[
                                                 np.where(
-                                                    ppt_stn_new == ppt_ix_edf)]
+                                                    ppt_stn_new == ppt_ix_edf)][0]
 
                                         nearst_edf_new = find_nearest(
                                             edf_stn_new,
@@ -767,7 +799,7 @@ for temp_agg in resample_frequencies:
                                 #
                                 #==========================================
 
-                                if interpolated_vals_dwd_old > 0:
+                                if interpolated_vals_dwd_old >= 0:
                                     edf_netatmo_vals.append(
                                         np.round(interpolated_vals_dwd_old[0], 4))
                                     netatmo_xcoords.append(
@@ -790,6 +822,10 @@ for temp_agg in resample_frequencies:
 
                     netatmo_xcoords = np.array(netatmo_xcoords).ravel()
                     netatmo_ycoords = np.array(netatmo_ycoords).ravel()
+
+#                     xy_netatmo = list(set([(x, y) for x, y in zip(
+#                         netatmo_xcoords, netatmo_ycoords)]))
+
                     edf_netatmo_vals = np.array(edf_netatmo_vals).ravel()
 
                     if use_temporal_filter_after_kriging:
@@ -809,7 +845,6 @@ for temp_agg in resample_frequencies:
                             ordinary_kriging_filter_netamto.krige()
                         except Exception as msg:
                             print('Error while Error Kriging', msg)
-                            continue
 
                         # interpolated vals
                         interpolated_vals = ordinary_kriging_filter_netamto.zk
@@ -829,7 +864,7 @@ for temp_agg in resample_frequencies:
                         idx_bad_stns = np.where(
                             diff_obsv_interp > 3 * std_est_vals)
 
-                        if len(idx_bad_stns[0]) > 0:
+                        if len(idx_bad_stns[0]) or len(idx_good_stns[0]) > 0:
                             print('Number of Stations with bad index \n',
                                   len(idx_bad_stns[0]))
                             print('Number of Stations with good index \n',
@@ -921,7 +956,10 @@ for temp_agg in resample_frequencies:
 
                                     for i, ix_nbr in enumerate(idxs_neighbours):
 
-                                        edf_neighbor = netatmo_wet_gd[ix_nbr]
+                                        try:
+                                            edf_neighbor = netatmo_wet_gd.iloc[ix_nbr]
+                                        except Exception as msg:
+                                            print(msg)
                                         if np.abs(edf_stn - edf_neighbor) <= diff_thr:
                                             print(
                                                 'bad wet netatmo station is good')
@@ -1072,6 +1110,7 @@ for temp_agg in resample_frequencies:
 
                     # uncertainty for dwd is 0
                     uncert_dwd = np.zeros(shape=edf_dwd_vals.shape)
+
                     # combine both uncertainty terms
                     edf_dwd_netatmo_vals_uncert = np.concatenate([
                         uncert_dwd,
