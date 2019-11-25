@@ -76,8 +76,8 @@ qunatile_kriging = True
 use_netatmo_gd_stns = True  # general filter, Indicator kriging
 use_temporal_filter_after_kriging = True  # on day filter
 
-use_first_neghbr_as_gd_stns = False  # False
-use_first_and_second_nghbr_as_gd_stns = True  # True
+use_first_neghbr_as_gd_stns = True  # False
+use_first_and_second_nghbr_as_gd_stns = False  # True
 
 _acc_ = ''
 
@@ -96,10 +96,10 @@ if use_netatmo_gd_stns:
 #==============================================================================
 #
 #==============================================================================
-resample_frequencies = ['60min']
-#                         '720min', '1440min']  # '60min', '360min'
+resample_frequencies = ['360min']
+# '720min', '1440min']  # '60min', '360min'
 # '120min', '180min',
-title_ = r'Qt_ok_ok_un_'
+title_ = r'Qt_ok_ok_un_2'
 
 
 if not use_netatmo_gd_stns:
@@ -595,7 +595,7 @@ for temp_agg in resample_frequencies:
                                   % (i, len(netatmo_df.index)))
                             netatmo_edf_event_ = netatmo_in_vals_df.loc[
                                 event_date, netatmo_stn_id]
-                            if netatmo_edf_event_ > 0.99:
+                            if netatmo_edf_event_ >= 0.7:
                                 # print('Correcting Netatmo station',
                                 #                                   netatmo_stn_id)
                                 try:
@@ -891,18 +891,22 @@ for temp_agg in resample_frequencies:
                             netatmo_dry_gd = edf_gd_vals_df[
                                 edf_gd_vals_df.values < 0.9]
                             # gd
+
+                            cmn_wet_dry_stns = netatmo_in_coords_df.index.intersection(
+                                netatmo_dry_gd.index)
+                            x_coords_gd_netatmo_dry = netatmo_in_coords_df.loc[
+                                cmn_wet_dry_stns, 'X'].values.ravel()
+                            y_coords_gd_netatmo_dry = netatmo_in_coords_df.loc[
+                                cmn_wet_dry_stns, 'Y'].values.ravel()
+
                             netatmo_wet_gd = edf_gd_vals_df[
                                 edf_gd_vals_df.values >= 0.9]
-
-                            x_coords_gd_netatmo_dry = netatmo_in_coords_df.loc[
-                                netatmo_dry_gd.index, 'X'].values.ravel()
-                            y_coords_gd_netatmo_dry = netatmo_in_coords_df.loc[
-                                netatmo_dry_gd.index, 'Y'].values.ravel()
-
+                            cmn_wet_gd_stns = netatmo_in_coords_df.index.intersection(
+                                netatmo_wet_gd.index)
                             x_coords_gd_netatmo_wet = netatmo_in_coords_df.loc[
-                                netatmo_wet_gd.index, 'X'].values.ravel()
+                                cmn_wet_gd_stns, 'X'].values.ravel()
                             y_coords_gd_netatmo_wet = netatmo_in_coords_df.loc[
-                                netatmo_wet_gd.index, 'Y'].values.ravel()
+                                cmn_wet_gd_stns, 'Y'].values.ravel()
                             #====================================
                             #
                             #====================================
@@ -910,23 +914,27 @@ for temp_agg in resample_frequencies:
 
                             netatmo_dry_bad = edf_bad_vals_df[
                                 edf_bad_vals_df.values < 0.9]
+                            cmn_dry_bad_stns = netatmo_in_coords_df.index.intersection(
+                                netatmo_dry_bad.index)
                             # netatmo bad
                             netatmo_wet_bad = edf_bad_vals_df[
                                 edf_bad_vals_df.values >= 0.9]
+                            cmn_wet_bad_stns = netatmo_in_coords_df.index.intersection(
+                                netatmo_wet_bad.index)
                             # dry bad
                             x_coords_bad_netatmo_dry = netatmo_in_coords_df.loc[
-                                netatmo_dry_bad.index, 'X'].values.ravel()
+                                cmn_dry_bad_stns, 'X'].values.ravel()
                             y_coords_bad_netatmo_dry = netatmo_in_coords_df.loc[
-                                netatmo_dry_bad.index, 'Y'].values.ravel()
+                                cmn_dry_bad_stns, 'Y'].values.ravel()
                             # wet bad
                             x_coords_bad_netatmo_wet = netatmo_in_coords_df.loc[
-                                netatmo_wet_bad.index, 'X'].values.ravel()
+                                cmn_wet_bad_stns, 'X'].values.ravel()
                             y_coords_bad_netatmo_wet = netatmo_in_coords_df.loc[
-                                netatmo_wet_bad.index, 'Y'].values.ravel()
+                                cmn_wet_bad_stns, 'Y'].values.ravel()
                             # find if wet bad is really wet bad
                             # find neighboring netatmo stations wet good
 
-                            if netatmo_wet_bad.size > 0 and netatmo_wet_gd.size > 0:
+                            if netatmo_wet_gd.size > 0:
 
                                 for stn_, edf_stn, netatmo_x_stn, netatmo_y_stn in zip(
                                     netatmo_wet_bad.index,
@@ -966,6 +974,7 @@ for temp_agg in resample_frequencies:
                                                 edf_neighbor = netatmo_wet_gd.iloc[ix_nbr]
                                             except Exception as msg:
                                                 print(msg)
+                                                edf_neighbor = 1.1
                                             if np.abs(edf_stn - edf_neighbor) <= diff_thr:
                                                 print(
                                                     'bad wet netatmo station is good')
@@ -1110,148 +1119,119 @@ for temp_agg in resample_frequencies:
                             netatmo_ycoords_gd = netatmo_ycoords
                             netatmo_stn_ids_gd = netatmo_stn_ids
 
-                    # add uncertainty on quantiles
-                    edf_netatmo_vals_uncert = np.array(
-                        [(1 - per) * 0.1 for per in edf_netatmo_vals_gd])
+                        # add uncertainty on quantiles
+                        edf_netatmo_vals_uncert = np.array(
+                            [(1 - per) * 0.1 for per in edf_netatmo_vals_gd])
 
-                    # uncertainty for dwd is 0
-                    uncert_dwd = np.zeros(shape=edf_dwd_vals.shape)
+                        # uncertainty for dwd is 0
+                        uncert_dwd = np.zeros(shape=edf_dwd_vals.shape)
 
-                    # combine both uncertainty terms
-                    edf_dwd_netatmo_vals_uncert = np.concatenate([
-                        uncert_dwd,
-                        edf_netatmo_vals_uncert])
+                        # combine both uncertainty terms
+                        edf_dwd_netatmo_vals_uncert = np.concatenate([
+                            uncert_dwd,
+                            edf_netatmo_vals_uncert])
 
-                    dwd_netatmo_xcoords = np.concatenate(
-                        [dwd_xcoords, netatmo_xcoords_gd])
-                    dwd_netatmo_ycoords = np.concatenate(
-                        [dwd_ycoords, netatmo_ycoords_gd])
+                        dwd_netatmo_xcoords = np.concatenate(
+                            [dwd_xcoords, netatmo_xcoords_gd])
+                        dwd_netatmo_ycoords = np.concatenate(
+                            [dwd_ycoords, netatmo_ycoords_gd])
 
-                    dwd_netatmo_edf = np.concatenate([edf_dwd_vals,
-                                                      edf_netatmo_vals_gd])
+                        dwd_netatmo_edf = np.concatenate([edf_dwd_vals,
+                                                          edf_netatmo_vals_gd])
 
-                    #======================================================
-                    # KRIGING
-                    #=====================================================
-                    print('\n+++ KRIGING +++\n')
-                    ordinary_kriging_dwd_netatmo_comb = OrdinaryKriging(
-                        xi=dwd_netatmo_xcoords,
-                        yi=dwd_netatmo_ycoords,
-                        zi=dwd_netatmo_edf,
-                        xk=x_dwd_interpolate,
-                        yk=y_dwd_interpolate,
-                        model=vgs_model_dwd)
+                        #======================================================
+                        # KRIGING
+                        #=====================================================
+                        print('\n+++ KRIGING +++\n')
+                        ordinary_kriging_dwd_netatmo_comb = OrdinaryKriging(
+                            xi=dwd_netatmo_xcoords,
+                            yi=dwd_netatmo_ycoords,
+                            zi=dwd_netatmo_edf,
+                            xk=x_dwd_interpolate,
+                            yk=y_dwd_interpolate,
+                            model=vgs_model_dwd)
 
-                    ordinary_kriging_un_dwd_netatmo_comb = OrdinaryKrigingWithUncertainty(
-                        xi=dwd_netatmo_xcoords,
-                        yi=dwd_netatmo_ycoords,
-                        zi=dwd_netatmo_edf,
-                        uncert=edf_dwd_netatmo_vals_uncert,
-                        xk=x_dwd_interpolate,
-                        yk=y_dwd_interpolate,
-                        model=vgs_model_dwd)
+                        ordinary_kriging_un_dwd_netatmo_comb = OrdinaryKrigingWithUncertainty(
+                            xi=dwd_netatmo_xcoords,
+                            yi=dwd_netatmo_ycoords,
+                            zi=dwd_netatmo_edf,
+                            uncert=edf_dwd_netatmo_vals_uncert,
+                            xk=x_dwd_interpolate,
+                            yk=y_dwd_interpolate,
+                            model=vgs_model_dwd)
 
-                    ordinary_kriging_dwd_only = OrdinaryKriging(
-                        xi=dwd_xcoords,
-                        yi=dwd_ycoords,
-                        zi=edf_dwd_vals,
-                        xk=x_dwd_interpolate,
-                        yk=y_dwd_interpolate,
-                        model=vgs_model_dwd)
+                        ordinary_kriging_dwd_only = OrdinaryKriging(
+                            xi=dwd_xcoords,
+                            yi=dwd_ycoords,
+                            zi=edf_dwd_vals,
+                            xk=x_dwd_interpolate,
+                            yk=y_dwd_interpolate,
+                            model=vgs_model_dwd)
 
-                    ordinary_kriging_netatmo_only = OrdinaryKriging(
-                        xi=netatmo_xcoords_gd,
-                        yi=netatmo_ycoords_gd,
-                        zi=edf_netatmo_vals_gd,
-                        xk=x_dwd_interpolate,
-                        yk=y_dwd_interpolate,
-                        model=vgs_model_dwd)
+                        ordinary_kriging_netatmo_only = OrdinaryKriging(
+                            xi=netatmo_xcoords_gd,
+                            yi=netatmo_ycoords_gd,
+                            zi=edf_netatmo_vals_gd,
+                            xk=x_dwd_interpolate,
+                            yk=y_dwd_interpolate,
+                            model=vgs_model_dwd)
 
-                    ordinary_kriging_un_netatmo_only = OrdinaryKrigingWithUncertainty(
-                        xi=netatmo_xcoords_gd,
-                        yi=netatmo_ycoords_gd,
-                        zi=edf_netatmo_vals_gd,
-                        uncert=edf_netatmo_vals_uncert,
-                        xk=x_dwd_interpolate,
-                        yk=y_dwd_interpolate,
-                        model=vgs_model_dwd)
+                        ordinary_kriging_un_netatmo_only = OrdinaryKrigingWithUncertainty(
+                            xi=netatmo_xcoords_gd,
+                            yi=netatmo_ycoords_gd,
+                            zi=edf_netatmo_vals_gd,
+                            uncert=edf_netatmo_vals_uncert,
+                            xk=x_dwd_interpolate,
+                            yk=y_dwd_interpolate,
+                            model=vgs_model_dwd)
 
-                    try:
-                        ordinary_kriging_dwd_netatmo_comb.krige()
-                        ordinary_kriging_un_dwd_netatmo_comb.krige()
-                        ordinary_kriging_dwd_only.krige()
-                        ordinary_kriging_netatmo_only.krige()
-                        ordinary_kriging_un_netatmo_only.krige()
-                    except Exception as msg:
-                        print('Error while Kriging', msg)
+                        try:
+                            ordinary_kriging_dwd_netatmo_comb.krige()
+                            ordinary_kriging_un_dwd_netatmo_comb.krige()
+                            ordinary_kriging_dwd_only.krige()
+                            ordinary_kriging_netatmo_only.krige()
+                            ordinary_kriging_un_netatmo_only.krige()
+                        except Exception as msg:
+                            print('Error while Kriging', msg)
 
-                    interpolated_vals_dwd_netatmo = ordinary_kriging_dwd_netatmo_comb.zk.copy()
-                    interpolated_vals_dwd_netatmo_un = ordinary_kriging_un_dwd_netatmo_comb.zk.copy()
-                    interpolated_vals_dwd_only = ordinary_kriging_dwd_only.zk.copy()
-                    interpolated_vals_netatmo_only = ordinary_kriging_netatmo_only.zk.copy()
-                    interpolated_vals_netatmo_only_un = ordinary_kriging_un_netatmo_only.zk.copy()
+                        interpolated_vals_dwd_netatmo = ordinary_kriging_dwd_netatmo_comb.zk.copy()
+                        interpolated_vals_dwd_netatmo_un = ordinary_kriging_un_dwd_netatmo_comb.zk.copy()
+                        interpolated_vals_dwd_only = ordinary_kriging_dwd_only.zk.copy()
+                        interpolated_vals_netatmo_only = ordinary_kriging_netatmo_only.zk.copy()
+                        interpolated_vals_netatmo_only_un = ordinary_kriging_un_netatmo_only.zk.copy()
 
-                    if plot_events:
-                        plt.ioff()
-                        plt.figure(figsize=(12, 8), dpi=150)
-                        plt.scatter(netatmo_xcoords, netatmo_ycoords, c='g',
-                                    marker='d', s=10, label='Interp Netatmo Stns: %0.1f' %
-                                    interpolated_vals_dwd_netatmo)
-                        plt.scatter(x_dwd_interpolate, y_dwd_interpolate, c='r',
-                                    marker='x', s=15,
-                                    label='Obs DWD loc \nPpt %.1f, Perc %.1f'
-                                    % (_ppt_event_, _edf_event_))
-                        plt.scatter(dwd_xcoords, dwd_ycoords, c='b', marker='o', s=10,
-                                    label='Interp DWD Stns: %.1f' % interpolated_vals_dwd_only)
-                        plt.legend(loc=0)
-                        plt.title('Event Date ' + str(
-                            event_date) + 'Stn: %s Interpolated DWD-Netatmo %0.1f \n VG: %s'
-                            % (stn_dwd_id, interpolated_vals_dwd_netatmo, vgs_model_dwd))
-                        plt.grid(alpha=.25)
-                        plt.xlabel('Longitude')
-                        plt.ylabel('Latitude')
-                        plt.savefig((
-                            out_plots_path / ('%s_dwd_stn_%s_%s_event_%s' %
-                                              (title_, stn_dwd_id, temp_agg,
-                                               str(event_date).replace(
-                                                   '-', '_').replace(':',
-                                                                     '_').replace(' ', '_')
-                                               ))),
-                                    frameon=True, papertype='a4',
-                                    bbox_inches='tight', pad_inches=.2)
-                        plt.close()
-                    print('**Interpolated DWD: ',
-                          interpolated_vals_dwd_only,
-                          '\n**Interpolated DWD-Netatmo: ',
-                          interpolated_vals_dwd_netatmo,
-                          '\n**Interpolated DWD-Netatmo Un: ',
-                          interpolated_vals_dwd_netatmo_un,
-                          '\n**Interpolated Netatmo: ',
-                          interpolated_vals_netatmo_only,
-                          '\n**Interpolated Netatmo Un: ',
-                          interpolated_vals_netatmo_only_un,)
+                        print('**Interpolated DWD: ',
+                              interpolated_vals_dwd_only,
+                              '\n**Interpolated DWD-Netatmo: ',
+                              interpolated_vals_dwd_netatmo,
+                              '\n**Interpolated DWD-Netatmo Un: ',
+                              interpolated_vals_dwd_netatmo_un,
+                              '\n**Interpolated Netatmo: ',
+                              interpolated_vals_netatmo_only,
+                              '\n**Interpolated Netatmo Un: ',
+                              interpolated_vals_netatmo_only_un,)
 
-                    if interpolated_vals_dwd_netatmo < 0:
+                        if interpolated_vals_dwd_netatmo < 0:
+                            interpolated_vals_dwd_netatmo = np.nan
+
+                        if interpolated_vals_dwd_netatmo_un < 0:
+                            interpolated_vals_dwd_netatmo_un = np.nan
+
+                        if interpolated_vals_dwd_only < 0:
+                            interpolated_vals_dwd_only = np.nan
+
+                        if interpolated_vals_netatmo_only < 0:
+                            interpolated_vals_netatmo_only = np.nan
+
+                        if interpolated_vals_netatmo_only_un < 0:
+                            interpolated_vals_netatmo_only_un = np.nan
+                    else:
+                        print('no good variogram found, adding nans to df')
                         interpolated_vals_dwd_netatmo = np.nan
-
-                    if interpolated_vals_dwd_netatmo_un < 0:
                         interpolated_vals_dwd_netatmo_un = np.nan
-
-                    if interpolated_vals_dwd_only < 0:
                         interpolated_vals_dwd_only = np.nan
-
-                    if interpolated_vals_netatmo_only < 0:
                         interpolated_vals_netatmo_only = np.nan
-
-                    if interpolated_vals_netatmo_only_un < 0:
                         interpolated_vals_netatmo_only_un = np.nan
-                else:
-                    print('no good variogram found, adding nans to df')
-                    interpolated_vals_dwd_netatmo = np.nan
-                    interpolated_vals_dwd_netatmo_un = np.nan
-                    interpolated_vals_dwd_only = np.nan
-                    interpolated_vals_netatmo_only = np.nan
-                    interpolated_vals_netatmo_only_un = np.nan
 
                 print('+++ Saving result to DF +++\n')
 

@@ -77,8 +77,8 @@ use_netatmo_gd_stns = True  # general filter, Indicator kriging
 use_temporal_filter_after_kriging = True  # on day filter
 
 
-use_first_neghbr_as_gd_stns = False  # False
-use_first_and_second_nghbr_as_gd_stns = True  # True
+use_first_neghbr_as_gd_stns = True  # False
+use_first_and_second_nghbr_as_gd_stns = False  # True
 
 _acc_ = ''
 
@@ -98,8 +98,8 @@ if use_netatmo_gd_stns:
 #
 #==============================================================================
 
-resample_frequencies = [  # '360min',  # '60min', '720min',
-    '1440min']
+resample_frequencies = ['360min']  # ,  # '60min', '720min',
+#'1440min']
 
 # '120min', '180min',
 title_ = r'Qt_ok_ok_un_plots'
