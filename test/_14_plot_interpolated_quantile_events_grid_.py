@@ -60,10 +60,13 @@ path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 # path for data filter
 in_filter_path = main_dir / r'oridinary_kriging_compare_DWD_Netatmo'
 
+
 # path for interpolation grid
 path_grid_interpolate = in_filter_path / \
     r"coords_interpolate_small.csv"  # _small
 
+# path_to_dwd_stns_comb
+path_to_dwd_stns_comb = in_filter_path / r'dwd_combination_to_use.csv'
 #==============================================================================
 # # NETATMO FIRST FILTER
 #==============================================================================
@@ -77,7 +80,7 @@ use_netatmo_gd_stns = True  # general filter, Indicator kriging
 use_temporal_filter_after_kriging = True  # on day filter
 
 
-use_first_neghbr_as_gd_stns = True  # False
+use_first_neghbr_as_gd_stns = False  # False
 use_first_and_second_nghbr_as_gd_stns = False  # True
 
 _acc_ = ''
@@ -98,7 +101,8 @@ if use_netatmo_gd_stns:
 #
 #==============================================================================
 
-resample_frequencies = ['360min']  # ,  # '60min', '720min',
+resample_frequencies = ['60min', '360min', '720min', '1440min']
+# ,  # '60min', '720min',
 #'1440min']
 
 # '120min', '180min',
@@ -117,12 +121,12 @@ if use_temporal_filter_after_kriging:
 
 # def out plot path based on combination
 
-plot_2nd_filter_netatmo = True
+plot_2nd_filter_netatmo = False
 #==============================================================================
 #
 #==============================================================================
 
-plot_events = True
+plot_events = False
 
 strt_date = '2015-01-01 00:00:00 '  # '2015-01-01 00:00:00'
 end_date = '2019-09-01 00:00:00'
@@ -206,22 +210,6 @@ def find_nearest(array, value):
     except Exception as msg:
         print('Error finding nearest', msg)
     return array[idx]
-#==============================================================================
-#
-#==============================================================================
-
-
-def select_season(df,  # df to slice, index should be datetime
-                  month_lst  # list of month for convective season
-                  ):
-    """
-    return dataframe without the data corresponding to the winter season
-    """
-    df = df.copy()
-    df_conv_season = df[df.index.month.isin(month_lst)]
-
-    return df_conv_season
-
 
 #==============================================================================
 # SELECT GROUP OF 10 DWD STATIONS RANDOMLY
@@ -233,11 +221,19 @@ def chunks(l, n):
     for i in range(0, len(l), n):
         yield l[i:i + n]
 
+
 # =============================================================================
 #
 # =============================================================================
 
+# read df combinations to use
+df_dwd_stns_comb = pd.read_csv(
+    path_to_dwd_stns_comb, index_col=0,
+    sep=',', dtype=str)
 
+#==============================================================================
+#
+#==============================================================================
 cmap_data = ['darkblue', 'blue', 'lightblue',
              'green', 'greenyellow', 'yellow',
              'gold', 'orange', 'darkorange',
@@ -464,7 +460,7 @@ for temp_agg in resample_frequencies:
     # =========================================================================
     all_dwd_stns = dwd_in_vals_df.columns.tolist()
 
-    for event_date in dwd_in_extremes_df.index:
+    for event_date in dwd_in_extremes_df.index[::20]:
 
         _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
         if len(_stn_id_event_) < 5:
@@ -565,7 +561,7 @@ for temp_agg in resample_frequencies:
                       % (i, len(netatmo_df.index)))
                 netatmo_edf_event_ = netatmo_in_vals_df.loc[
                     event_date, netatmo_stn_id]
-                if netatmo_edf_event_ > 0.99:  # 0.99:
+                if netatmo_edf_event_ > 0.7:  # 0.99:
                     # print('Correcting Netatmo station',
                     #                                   netatmo_stn_id)
                     try:
@@ -856,18 +852,22 @@ for temp_agg in resample_frequencies:
                 netatmo_dry_gd = edf_gd_vals_df[
                     edf_gd_vals_df.values < 0.9]
                 # gd
+
+                cmn_wet_dry_stns = netatmo_in_coords_df.index.intersection(
+                    netatmo_dry_gd.index)
+                x_coords_gd_netatmo_dry = netatmo_in_coords_df.loc[
+                    cmn_wet_dry_stns, 'X'].values.ravel()
+                y_coords_gd_netatmo_dry = netatmo_in_coords_df.loc[
+                    cmn_wet_dry_stns, 'Y'].values.ravel()
+
                 netatmo_wet_gd = edf_gd_vals_df[
                     edf_gd_vals_df.values >= 0.9]
-
-                x_coords_gd_netatmo_dry = netatmo_in_coords_df.loc[
-                    netatmo_dry_gd.index, 'X'].values.ravel()
-                y_coords_gd_netatmo_dry = netatmo_in_coords_df.loc[
-                    netatmo_dry_gd.index, 'Y'].values.ravel()
-
+                cmn_wet_gd_stns = netatmo_in_coords_df.index.intersection(
+                    netatmo_wet_gd.index)
                 x_coords_gd_netatmo_wet = netatmo_in_coords_df.loc[
-                    netatmo_wet_gd.index, 'X'].values.ravel()
+                    cmn_wet_gd_stns, 'X'].values.ravel()
                 y_coords_gd_netatmo_wet = netatmo_in_coords_df.loc[
-                    netatmo_wet_gd.index, 'Y'].values.ravel()
+                    cmn_wet_gd_stns, 'Y'].values.ravel()
                 #====================================
                 #
                 #====================================
@@ -875,23 +875,27 @@ for temp_agg in resample_frequencies:
 
                 netatmo_dry_bad = edf_bad_vals_df[
                     edf_bad_vals_df.values < 0.9]
+                cmn_dry_bad_stns = netatmo_in_coords_df.index.intersection(
+                    netatmo_dry_bad.index)
                 # netatmo bad
                 netatmo_wet_bad = edf_bad_vals_df[
                     edf_bad_vals_df.values >= 0.9]
+                cmn_wet_bad_stns = netatmo_in_coords_df.index.intersection(
+                    netatmo_wet_bad.index)
                 # dry bad
                 x_coords_bad_netatmo_dry = netatmo_in_coords_df.loc[
-                    netatmo_dry_bad.index, 'X'].values.ravel()
+                    cmn_dry_bad_stns, 'X'].values.ravel()
                 y_coords_bad_netatmo_dry = netatmo_in_coords_df.loc[
-                    netatmo_dry_bad.index, 'Y'].values.ravel()
+                    cmn_dry_bad_stns, 'Y'].values.ravel()
                 # wet bad
                 x_coords_bad_netatmo_wet = netatmo_in_coords_df.loc[
-                    netatmo_wet_bad.index, 'X'].values.ravel()
+                    cmn_wet_bad_stns, 'X'].values.ravel()
                 y_coords_bad_netatmo_wet = netatmo_in_coords_df.loc[
-                    netatmo_wet_bad.index, 'Y'].values.ravel()
+                    cmn_wet_bad_stns, 'Y'].values.ravel()
                 # find if wet bad is really wet bad
                 # find neighboring netatmo stations wet good
 
-                if netatmo_wet_bad.size > 0 and netatmo_wet_gd.size > 0:
+                if netatmo_wet_gd.size > 0:
 
                     for stn_, edf_stn, netatmo_x_stn, netatmo_y_stn in zip(
                         netatmo_wet_bad.index,
@@ -914,7 +918,8 @@ for temp_agg in resample_frequencies:
                                                   neighbors_coords,
                                                   'euclidean')
                         # create a tree from coordinates
-                        points_tree = spatial.cKDTree(neighbors_coords)
+                        points_tree = spatial.cKDTree(
+                            neighbors_coords)
 
                         # This finds the index of all points within
                         # distance 1 of [1.5,2.5].
@@ -926,7 +931,11 @@ for temp_agg in resample_frequencies:
 
                             for i, ix_nbr in enumerate(idxs_neighbours):
 
-                                edf_neighbor = netatmo_wet_gd[ix_nbr]
+                                try:
+                                    edf_neighbor = netatmo_wet_gd.iloc[ix_nbr]
+                                except Exception as msg:
+                                    print(msg)
+                                    edf_neighbor = 1.1
                                 if np.abs(edf_stn - edf_neighbor) <= diff_thr:
                                     print(
                                         'bad wet netatmo station is good')

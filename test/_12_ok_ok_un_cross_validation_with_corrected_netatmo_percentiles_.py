@@ -63,7 +63,8 @@ in_filter_path = main_dir / r'oridinary_kriging_compare_DWD_Netatmo'
 distance_matrix_netatmo_dwd_df_file = path_to_data / \
     r'distance_mtx_in_m_NetAtmo_DWD.csv'
 
-
+# path_to_dwd_stns_comb
+path_to_dwd_stns_comb = in_filter_path / r'dwd_combination_to_use.csv'
 #==============================================================================
 # # NETATMO FIRST FILTER
 #==============================================================================
@@ -74,7 +75,7 @@ qunatile_kriging = True
 
 # run it to filter Netatmo
 use_netatmo_gd_stns = True  # general filter, Indicator kriging
-use_temporal_filter_after_kriging = True  # on day filter
+use_temporal_filter_after_kriging = False  # on day filter
 
 use_first_neghbr_as_gd_stns = True  # False
 use_first_and_second_nghbr_as_gd_stns = False  # True
@@ -226,6 +227,10 @@ def chunks(l, n):
 in_df_distance_netatmo_dwd = pd.read_csv(
     distance_matrix_netatmo_dwd_df_file, sep=';', index_col=0)
 
+# read df combinations to use
+df_dwd_stns_comb = pd.read_csv(
+    path_to_dwd_stns_comb, index_col=0,
+    sep=',', dtype=str)
 #==============================================================================
 #
 #==============================================================================
@@ -386,15 +391,18 @@ for temp_agg in resample_frequencies:
 
     # shuffle and select 10 DWD stations randomly
     # =========================================================================
-    all_dwd_stns = dwd_in_vals_df.columns.tolist()
-    shuffle(all_dwd_stns)
-    shuffled_dwd_stns_10stn = np.array(list(chunks(all_dwd_stns, 10)))
-
+#     all_dwd_stns = dwd_in_vals_df.columns.tolist()
+#     shuffle(all_dwd_stns)
+#     shuffled_dwd_stns_10stn = np.array(list(chunks(all_dwd_stns, 10)))
+#     for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
+#         stn_comb = shuffled_dwd_stns_10stn[idx_lst_comb]
     #==========================================================================
     # CREATE DFS HOLD RESULT KRIGING PER NETATMO STATION
     #==========================================================================
-    for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
-        stn_comb = shuffled_dwd_stns_10stn[idx_lst_comb]
+    for idx_lst_comb in df_dwd_stns_comb.index:
+
+        stn_comb = [stn.replace("'", "")
+                    for stn in df_dwd_stns_comb.iloc[idx_lst_comb, :].dropna().values]
 
         print('Interpolating for following DWD stations: \n',
               pprint.pformat(stn_comb))
@@ -446,7 +454,7 @@ for temp_agg in resample_frequencies:
 
 #             # select only neyrby netatmo stations below 50km
             sorted_distances_ppt_dwd = sorted_distances_ppt_dwd[
-                sorted_distances_ppt_dwd.values <= 5e4]
+                sorted_distances_ppt_dwd.values <= 10e4]
 
             if use_temporal_filter_after_kriging:
                 # print('\n++Creating DF to hold filtered netatmo stns++\n')

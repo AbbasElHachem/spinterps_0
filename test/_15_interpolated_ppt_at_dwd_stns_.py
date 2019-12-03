@@ -69,6 +69,9 @@ in_filter_path = main_dir / r'oridinary_kriging_compare_DWD_Netatmo'
 distance_matrix_netatmo_dwd_df_file = path_to_data / \
     r'distance_mtx_in_m_NetAtmo_DWD.csv'
 
+# path_to_dwd_stns_comb
+path_to_dwd_stns_comb = in_filter_path / r'dwd_combination_to_use.csv'
+
 #==============================================================================
 # # NETATMO FIRST FILTER
 #==============================================================================
@@ -104,7 +107,7 @@ if use_netatmo_gd_stns:
 resample_frequencies = ['1440min']
 # '120min', '180min', '60min',  '360min',
 #                         '720min',
-title_ = r'Ppt_ok_ok_un_'
+title_ = r'Ppt_ok_ok_un_new'
 
 
 if not use_netatmo_gd_stns:
@@ -232,6 +235,11 @@ def chunks(l, n):
 # read distance matrix dwd-netamot ppt
 in_df_distance_netatmo_dwd = pd.read_csv(
     distance_matrix_netatmo_dwd_df_file, sep=';', index_col=0)
+
+# read df combinations to use
+df_dwd_stns_comb = pd.read_csv(
+    path_to_dwd_stns_comb, index_col=0,
+    sep=',', dtype=str)
 
 #==============================================================================
 #
@@ -443,9 +451,14 @@ for temp_agg in resample_frequencies:
               'Quantile: ', _edf_event_, ' **\n')
 
         # start cross validating DWD stations for this event
-        for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
-            stn_comb = shuffled_dwd_stns_10stn[idx_lst_comb]
+#         for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
+#             stn_comb = shuffled_dwd_stns_10stn[idx_lst_comb]
 
+        for idx_lst_comb in df_dwd_stns_comb.index:
+
+            stn_comb = [stn.replace("'", "")
+                        for stn in df_dwd_stns_comb.iloc[
+                        idx_lst_comb, :].dropna().values]
             print('Interpolating for following DWD stations: \n',
                   pprint.pformat(stn_comb))
 

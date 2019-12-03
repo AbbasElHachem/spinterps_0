@@ -68,6 +68,9 @@ in_filter_path = main_dir / r'oridinary_kriging_compare_DWD_Netatmo'
 distance_matrix_netatmo_dwd_df_file = path_to_data / \
     r'distance_mtx_in_m_NetAtmo_DWD.csv'
 
+# path_to_dwd_stns_comb
+path_to_dwd_stns_comb = in_filter_path / r'dwd_combination_to_use.csv'
+
 #==============================================================================
 # # NETATMO FIRST FILTER
 #==============================================================================
@@ -80,8 +83,8 @@ qunatile_kriging = True
 use_netatmo_gd_stns = True  # general filter, Indicator kriging
 use_temporal_filter_after_kriging = True  # on day filter
 
-use_first_neghbr_as_gd_stns = True  # False
-use_first_and_second_nghbr_as_gd_stns = False  # True
+use_first_neghbr_as_gd_stns = False  # False
+use_first_and_second_nghbr_as_gd_stns = True  # True
 
 _acc_ = ''
 
@@ -99,15 +102,14 @@ if use_netatmo_gd_stns:
 # for second filter
 path_to_dwd_ratios = in_filter_path / 'ppt_ratios_'
 
-_acc_ = ''
 
 #==============================================================================
 #
 #==============================================================================
-resample_frequencies = ['60min']
+resample_frequencies = ['1440min']
 # '120min', '180min', '60min',  '360min',
 #                         '720min',
-title_ = r'Ppt_ok_ok_un_'
+title_ = r'Ppt_ok_ok_un_new'
 
 
 if not use_netatmo_gd_stns:
@@ -225,21 +227,26 @@ def chunks(l, n):
 in_df_distance_netatmo_dwd = pd.read_csv(
     distance_matrix_netatmo_dwd_df_file, sep=';', index_col=0)
 
+# read df combinations to use
+df_dwd_stns_comb = pd.read_csv(
+    path_to_dwd_stns_comb, index_col=0,
+    sep=',', dtype=str)
+
 #==============================================================================
 # make out dir
 #==============================================================================
-dir_path = title_ + '_' + _acc_
 
-out_plots_path = in_filter_path / dir_path
-
-if not os.path.exists(out_plots_path):
-    os.mkdir(out_plots_path)
 #==============================================================================
 
 for temp_agg in resample_frequencies:
 
     # out path directory
+    dir_path = title_ + '_' + _acc_ + '_' + temp_agg
 
+    out_plots_path = in_filter_path / dir_path
+
+    if not os.path.exists(out_plots_path):
+        os.mkdir(out_plots_path)
     print(out_plots_path)
 
     # path to data
@@ -439,8 +446,11 @@ for temp_agg in resample_frequencies:
         max_ratio = dwd_ratios_df.loc[event_date, :].max()
 
         # start cross validating DWD stations for this event
-        for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
-            stn_comb = shuffled_dwd_stns_10stn[idx_lst_comb]
+        for idx_lst_comb in df_dwd_stns_comb.index:
+
+            stn_comb = [stn.replace("'", "")
+                        for stn in df_dwd_stns_comb.iloc[
+                        idx_lst_comb, :].dropna().values]
 
             print('Interpolating for following DWD stations: \n',
                   pprint.pformat(stn_comb))
@@ -473,7 +483,7 @@ for temp_agg in resample_frequencies:
 
                 # select only nearby netatmo stations below 50km
                 sorted_distances_ppt_dwd = sorted_distances_ppt_dwd[
-                    sorted_distances_ppt_dwd.values <= 5e4]
+                    sorted_distances_ppt_dwd.values <= 10e4]
                 netatmo_stns_near = sorted_distances_ppt_dwd.index
 
                 # ppt data at other DWD stations
@@ -730,6 +740,7 @@ for temp_agg in resample_frequencies:
                         # Applying second filter
                         #======================================================
                         stns_filtered = False
+                        idxs_stns_remove = []
 
                         for i, netatmo_stn_to_test in enumerate(
                                 netatmo_stns_event_):
@@ -763,8 +774,8 @@ for temp_agg in resample_frequencies:
 
                             if min_ratio <= ratio_netatmo <= max_ratio:
                                 print('\n*/keeping stn, ', netatmo_stn_to_test)
-                                # print('Int:', int_netatmo_ppt,
-                                #      'Obs:', obs_netatmo_ppt_stn)
+                                print('Int:', int_netatmo_ppt,
+                                      'Obs:', obs_netatmo_ppt_stn)
                             else:
                                 print('\n*+-Removing stn for this event*+-')
                                 print('Int:', int_netatmo_ppt,
@@ -773,30 +784,37 @@ for temp_agg in resample_frequencies:
                                     (x_netatmo_ppt_vals_fr_dwd_interp ==
                                      x_netatmo_stn), (
                                         y_netatmo_ppt_vals_fr_dwd_interp ==
-                                         y_netatmo_stn)))[0]
-
-                                netatmo_ppt_vals_fr_dwd_interp_gd = [
-                                    ppt for ix, ppt in enumerate(
-                                        netatmo_ppt_vals_fr_dwd_interp)
-                                    if ix != idx_stn_remove]
-
-                                x_netatmo_ppt_vals_fr_dwd_interp = [
-                                    x for x in x_netatmo_ppt_vals_fr_dwd_interp
-                                    if x != x_netatmo_stn]
-                                y_netatmo_ppt_vals_fr_dwd_interp = [
-                                    y for y in y_netatmo_ppt_vals_fr_dwd_interp
-                                    if y != y_netatmo_stn]
-                                netatmo_stns_event_ = [
-                                    stn for stn in netatmo_stns_event_
-                                    if stn != netatmo_stn_to_test]
-                                edf_unc_term = [
-                                    unc for ix, unc in enumerate(
-                                        edf_unc_term)
-                                    if ix != idx_stn_remove]
-
+                                         y_netatmo_stn)))[0][0]
+                                idxs_stns_remove.append(idx_stn_remove)
                                 stns_filtered = True
-                            if not stns_filtered:
-                                netatmo_ppt_vals_fr_dwd_interp_gd = netatmo_ppt_vals_fr_dwd_interp
+
+                            netatmo_ppt_vals_fr_dwd_interp = [
+                                ppt for ix, ppt in enumerate(
+                                    netatmo_ppt_vals_fr_dwd_interp)
+                                if ix not in idxs_stns_remove]
+
+                            x_netatmo_ppt_vals_fr_dwd_interp = [
+                                x for ix, x in enumerate(
+                                    x_netatmo_ppt_vals_fr_dwd_interp)
+                                if ix not in idxs_stns_remove]
+
+                            y_netatmo_ppt_vals_fr_dwd_interp = [
+                                y for ix, y in enumerate(
+                                    y_netatmo_ppt_vals_fr_dwd_interp)
+                                if ix not in idxs_stns_remove]
+
+                            netatmo_stns_event_ = [
+                                stn for ix, stn in enumerate(
+                                    netatmo_stns_event_)
+                                if ix not in idxs_stns_remove]
+
+                            edf_unc_term = [
+                                unc for ix, unc in enumerate(
+                                    edf_unc_term)
+                                if ix not in idxs_stns_remove]
+
+#                             if not stns_filtered:
+#                                 netatmo_ppt_vals_fr_dwd_interp_gd = netatmo_ppt_vals_fr_dwd_interp
 
                         print('Krigging PPT at DWD Stns')
 
@@ -812,7 +830,7 @@ for temp_agg in resample_frequencies:
                             y_netatmo_ppt_vals_fr_dwd_interp).ravel()
 
                         ppt_netatmo_vals = np.round(np.array(
-                            netatmo_ppt_vals_fr_dwd_interp_gd).ravel(), 2)
+                            netatmo_ppt_vals_fr_dwd_interp).ravel(), 2)
 
                         netatmo_dwd_x_coords = np.concatenate([netatmo_xcoords,
                                                                x_dwd_all])
