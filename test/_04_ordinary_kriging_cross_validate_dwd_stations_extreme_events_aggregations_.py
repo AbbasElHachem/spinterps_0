@@ -42,6 +42,7 @@ plt.rcParams.update({'axes.labelsize': 12})
 # =============================================================================
 
 main_dir = Path(r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes')
+# main_dir = Path(r'/home/IWS/hachem/Extremes')
 os.chdir(main_dir)
 
 path_to_data = main_dir / r'NetAtmo_BW'
@@ -56,6 +57,9 @@ path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 
 # path for data filter
 in_filter_path = main_dir / r'oridinary_kriging_compare_DWD_Netatmo'
+
+# path_to_dwd_stns_comb
+path_to_dwd_stns_comb = in_filter_path / r'dwd_combination_to_use.csv'
 
 #==============================================================================
 # # NETATMO FIRST FILTER
@@ -89,10 +93,11 @@ if use_netatmo_gd_stns:
 #==============================================================================
 #
 #==============================================================================
-resample_frequencies = ['360min',
-                        '720min', '1440min']
+resample_frequencies = ['720min']
+# ,'360min',
+#                         '720min', '1440min']
 
-title_ = r'Qt_ok_ok_un'
+title_ = r'Qt_ok_ok_un_2'
 
 
 if not use_netatmo_gd_stns:
@@ -211,6 +216,11 @@ def chunks(l, n):
         yield l[i:i + n]
 
 
+# read df combinations to use
+df_dwd_stns_comb = pd.read_csv(
+    path_to_dwd_stns_comb, index_col=0,
+    sep=',', dtype=str)
+
 #==============================================================================
 #
 #==============================================================================
@@ -322,16 +332,19 @@ for temp_agg in resample_frequencies:
     print('\n%d Extreme Event to interpolate\n' % dwd_in_extremes_df.shape[0])
     # shuffle and select 10 DWD stations randomly
     # =========================================================================
-    all_dwd_stns = dwd_in_vals_df.columns.tolist()
-    shuffle(all_dwd_stns)
-    shuffled_dwd_stns_10stn = np.array(list(chunks(all_dwd_stns, 10)))
+#     all_dwd_stns = dwd_in_vals_df.columns.tolist()
+#     shuffle(all_dwd_stns)
+#     shuffled_dwd_stns_10stn = np.array(list(chunks(all_dwd_stns, 10)))
 
     #==========================================================================
     # CREATE DFS HOLD RESULT KRIGING PER NETATMO STATION
     #==========================================================================
-    for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
-        stn_comb = shuffled_dwd_stns_10stn[idx_lst_comb]
+#     for idx_lst_comb in range(len(shuffled_dwd_stns_10stn)):
+#         stn_comb = shuffled_dwd_stns_10stn[idx_lst_comb]
+    for idx_lst_comb in df_dwd_stns_comb.index:
 
+        stn_comb = [stn.replace("'", "")
+                    for stn in df_dwd_stns_comb.iloc[idx_lst_comb, :].dropna().values]
         print('Interpolating for following DWD stations: \n',
               pprint.pformat(stn_comb))
 
@@ -346,7 +359,18 @@ for temp_agg in resample_frequencies:
         df_interpolated_netatmo_only = pd.DataFrame(
             index=dwd_in_extremes_df.index,
             columns=[stn_comb])
+        # for back transformation
+        df_interpolated_dwd_netatmos_comb_std_dev = pd.DataFrame(
+            index=dwd_in_extremes_df.index,
+            columns=[stn_comb])
 
+        df_interpolated_dwd_only_std_dev = pd.DataFrame(
+            index=dwd_in_extremes_df.index,
+            columns=[stn_comb])
+
+        df_interpolated_netatmo_only_std_dev = pd.DataFrame(
+            index=dwd_in_extremes_df.index,
+            columns=[stn_comb])
         #======================================================================
         # START KRIGING
         #======================================================================
@@ -767,6 +791,15 @@ for temp_agg in resample_frequencies:
                     interpolated_vals_dwd_netatmo = ordinary_kriging_dwd_netatmo_comb.zk.copy()
                     interpolated_vals_dwd_only = ordinary_kriging_dwd_only.zk.copy()
                     interpolated_vals_netatmo_only = ordinary_kriging_netatmo_only.zk.copy()
+
+                    # calcualte standard deviation of estimated values
+                    std_est_vals_dwd_netatmo = np.sqrt(
+                        ordinary_kriging_dwd_netatmo_comb.est_vars)
+                    std_est_vals_dwd_only = np.sqrt(
+                        ordinary_kriging_dwd_only.est_vars)
+                    std_est_vals_netatmo_only = np.sqrt(
+                        ordinary_kriging_netatmo_only.est_vars)
+
                     if plot_events:
                         plt.ioff()
                         plt.figure(figsize=(12, 8), dpi=150)
@@ -817,6 +850,10 @@ for temp_agg in resample_frequencies:
                     interpolated_vals_dwd_only = np.nan
                     interpolated_vals_netatmo_only = np.nan
 
+                    std_est_vals_dwd_netatmo = np.nan
+                    std_est_vals_dwd_only = np.nan
+                    std_est_vals_netatmo_only = np.nan
+
                 print('+++ Saving result to DF +++\n')
 
                 df_interpolated_dwd_netatmos_comb.loc[
@@ -830,6 +867,19 @@ for temp_agg in resample_frequencies:
                 df_interpolated_netatmo_only.loc[
                     event_date,
                     stn_dwd_id] = interpolated_vals_netatmo_only
+
+                # save kriging standard deviation, for back transformation
+                df_interpolated_dwd_netatmos_comb_std_dev.loc[
+                    event_date,
+                    stn_dwd_id] = std_est_vals_dwd_netatmo
+
+                df_interpolated_dwd_only_std_dev.loc[
+                    event_date,
+                    stn_dwd_id] = std_est_vals_dwd_only
+
+                df_interpolated_netatmo_only_std_dev.loc[
+                    event_date,
+                    stn_dwd_id] = std_est_vals_netatmo_only
 
 #             df_stns_netatmo_gd_event.to_csv(out_plots_path / (
 #                 'netatmo_2nd_filter_stn_%s_%s_data_%s_grp_%d_.csv'
@@ -853,6 +903,25 @@ for temp_agg in resample_frequencies:
         df_interpolated_netatmo_only.to_csv(out_plots_path / (
             'interpolated_quantiles_dwd_%s_data_%s_using_netamo_only_grp_%d_%s.csv'
             % (temp_agg, title_, idx_lst_comb, _acc_)),
+            sep=';', float_format='%0.2f')
+
+        # std dev
+        df_interpolated_dwd_netatmos_comb_std_dev.to_csv(
+            out_plots_path / (
+                'std_dev_interpolated_quantiles_dwd_%s_data_%s_using_dwd_netamo_grp_%d_%s.csv'
+                % (temp_agg, title_, idx_lst_comb, _acc_)),
+            sep=';', float_format='%0.2f')
+
+        df_interpolated_dwd_only_std_dev.to_csv(
+            out_plots_path / (
+                'std_dev_interpolated_quantiles_dwd_%s_data_%s_using_dwd_only_grp_%d_%s.csv'
+                % (temp_agg, title_, idx_lst_comb, _acc_)),
+            sep=';', float_format='%0.2f')
+
+        df_interpolated_netatmo_only_std_dev.to_csv(
+            out_plots_path / (
+                'std_dev_interpolated_quantiles_dwd_%s_data_%s_using_netamo_only_grp_%d_%s.csv'
+                % (temp_agg, title_, idx_lst_comb, _acc_)),
             sep=';', float_format='%0.2f')
 
     stop = timeit.default_timer()  # Ending time

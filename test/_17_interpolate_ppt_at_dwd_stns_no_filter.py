@@ -104,7 +104,7 @@ if use_netatmo_gd_stns:
 #==============================================================================
 #
 #==============================================================================
-resample_frequencies = ['1440min']
+resample_frequencies = ['180min']
 # '120min', '180min', '60min',  '360min',
 #                         '720min',
 title_ = r'Ppt_ok_ok_un_2'
@@ -502,7 +502,7 @@ for temp_agg in resample_frequencies:
                     ascending=True)
 
                 sorted_distances_ppt_dwd = sorted_distances_ppt_dwd[
-                    sorted_distances_ppt_dwd.values <= 10e4]
+                    sorted_distances_ppt_dwd.values <= 3e4]
                 netatmo_stns_near = sorted_distances_ppt_dwd.index
 
                 # netatmo ppt values and stns fot this event
@@ -562,9 +562,11 @@ for temp_agg in resample_frequencies:
                         # list to hold result of all netatmo station for this
                         # event
                         netatmo_ppt_vals_fr_dwd_interp = netatmo_df.values
+                        netatmo_ppt_vals_fr_dwd_interp_unc = [
+                            0.1 * (1 - p) for p in netatmo_ppt_vals_fr_dwd_interp]
                         # TODO ASK AGAIN PROF.
-                        netatmo_ppt_vals_fr_dwd_interp_unc = (netatmo_ppt_vals_fr_dwd_interp +
-                                                              netatmo_ppt_vals_fr_dwd_interp * 0.1)
+#                         netatmo_ppt_vals_fr_dwd_interp_unc = (netatmo_ppt_vals_fr_dwd_interp +
+# netatmo_ppt_vals_fr_dwd_interp * 0.1)
 
                         x_netatmo_ppt_vals_fr_dwd_interp = netatmo_in_coords_df.loc[
                             netatmo_df.index, 'X'].values
@@ -588,8 +590,8 @@ for temp_agg in resample_frequencies:
                         ppt_netatmo_vals = np.round(np.array(
                             netatmo_ppt_vals_fr_dwd_interp).ravel(), 2)
 
-                        ppt_netatmo_vals_unc = np.round(np.array(
-                            netatmo_ppt_vals_fr_dwd_interp_unc).ravel(), 2)
+#                         ppt_netatmo_vals_unc = np.round(np.array(
+#                             netatmo_ppt_vals_fr_dwd_interp_unc).ravel(), 2)
 
                         netatmo_dwd_x_coords = np.concatenate([netatmo_xcoords,
                                                                x_dwd_all])
@@ -599,9 +601,9 @@ for temp_agg in resample_frequencies:
                             (ppt_netatmo_vals,
                              ppt_dwd_vals_nona.values)), 2).ravel()
 
-                        netatmo_dwd_ppt_vals_unc = np.round(np.concatenate(
-                            [ppt_netatmo_vals_unc,
-                             ppt_dwd_vals_nona.values]), 2).ravel()
+#                         netatmo_dwd_ppt_vals_unc = np.round(np.concatenate(
+#                             [ppt_netatmo_vals_unc,
+#                              ppt_dwd_vals_nona.values]), 2).ravel()
 
                         if (isinstance(vgs_model_dwd_ppt, str)) and (
                             'Nug' in vgs_model_dwd_ppt
@@ -610,7 +612,14 @@ for temp_agg in resample_frequencies:
                                 'Sph' in vgs_model_dwd_ppt):
 
                             print('Krigging PPT at DWD Stns')
+                            # uncertainty for dwd is 0
+                            uncert_dwd = np.zeros(
+                                shape=ppt_dwd_vals_nona.values.shape)
 
+                            # combine both uncertainty terms
+                            edf_dwd_netatmo_vals_uncert = np.concatenate([
+                                netatmo_ppt_vals_fr_dwd_interp_unc,
+                                uncert_dwd])
                             #==================================================
                             # Start kriging ppt at DWD
                             #==================================================
@@ -630,12 +639,13 @@ for temp_agg in resample_frequencies:
                                 xk=x_dwd_interpolate,
                                 yk=y_dwd_interpolate,
                                 model=vgs_model_dwd_ppt)
-
+#
                             # kriging with uncertainty
-                            ordinary_kriging_dwd_netatmo_ppt_unc = OrdinaryKriging(
+                            ordinary_kriging_dwd_netatmo_ppt_unc = OrdinaryKrigingWithUncertainty(
                                 xi=netatmo_dwd_x_coords,
                                 yi=netatmo_dwd_y_coords,
-                                zi=netatmo_dwd_ppt_vals_unc,
+                                zi=netatmo_dwd_ppt_vals,
+                                uncert=edf_dwd_netatmo_vals_uncert,
                                 xk=x_dwd_interpolate,
                                 yk=y_dwd_interpolate,
                                 model=vgs_model_dwd_ppt)
@@ -643,7 +653,7 @@ for temp_agg in resample_frequencies:
                             try:
                                 ordinary_kriging_dwd_netatmo_ppt.krige()
                                 ordinary_kriging_dwd_ppt.krige()
-                                ordinary_kriging_dwd_netatmo_ppt_unc.krige()
+#                                 ordinary_kriging_dwd_netatmo_ppt_unc.krige()
                             except Exception as msg:
                                 print('Error while Kriging', msg)
 
@@ -651,8 +661,8 @@ for temp_agg in resample_frequencies:
                                 0]
                             interpolated_dwd_ppt = ordinary_kriging_dwd_ppt.zk.copy()[
                                 0]
-                            interpolated_netatmo_dwd_ppt_unc = ordinary_kriging_dwd_netatmo_ppt_unc.zk.copy()[
-                                0]
+#                             interpolated_netatmo_dwd_ppt_unc = ordinary_kriging_dwd_netatmo_ppt_unc.zk.copy()[
+#                                 0]
 
                             if interpolated_netatmo_dwd_ppt < 0:
                                 interpolated_netatmo_dwd_ppt = np.nan
@@ -660,8 +670,8 @@ for temp_agg in resample_frequencies:
                             if interpolated_dwd_ppt < 0:
                                 interpolated_dwd_ppt = np.nan
 
-                            if interpolated_netatmo_dwd_ppt_unc < 0:
-                                interpolated_netatmo_dwd_ppt_unc = np.nan
+#                             if interpolated_netatmo_dwd_ppt_unc < 0:
+#                                 interpolated_netatmo_dwd_ppt_unc = np.nan
 
                             print('**Interpolated PPT by DWD_Netatmo: ',
                                   interpolated_netatmo_dwd_ppt)
@@ -669,13 +679,13 @@ for temp_agg in resample_frequencies:
                             print('**Interpolated PPT by DWD Only: ',
                                   interpolated_dwd_ppt)
 
-                            print('**Interpolated PPT by DWD-Netatmo Uncert: ',
-                                  interpolated_netatmo_dwd_ppt_unc)
+#                             print('**Interpolated PPT by DWD-Netatmo Uncert: ',
+#                                   interpolated_netatmo_dwd_ppt_unc)
                         else:
                             print('no good VG found,\n adding nans to df')
                             interpolated_netatmo_dwd_ppt = np.nan
                             interpolated_dwd_ppt = np.nan
-                            interpolated_netatmo_dwd_ppt_unc = np.nan
+#                             interpolated_netatmo_dwd_ppt_unc = np.nan
 
                         print('+++ Saving result to DF +++\n')
 
@@ -683,9 +693,9 @@ for temp_agg in resample_frequencies:
                             event_date,
                             stn_dwd_id] = interpolated_netatmo_dwd_ppt
 
-                        df_interpolated_dwd_netatmos_comb_un.loc[
-                            event_date,
-                            stn_dwd_id] = interpolated_netatmo_dwd_ppt_unc
+#                         df_interpolated_dwd_netatmos_comb_un.loc[
+#                             event_date,
+#                             stn_dwd_id] = interpolated_netatmo_dwd_ppt_unc
 
                         df_interpolated_dwd_only.loc[
                             event_date,

@@ -104,7 +104,7 @@ if use_netatmo_gd_stns:
 #==============================================================================
 #
 #==============================================================================
-resample_frequencies = ['1440min']
+resample_frequencies = ['180min']
 # '120min', '180min', '60min',  '360min',
 #                         '720min',
 title_ = r'Ppt_ok_ok_un_new'
@@ -590,7 +590,7 @@ for temp_agg in resample_frequencies:
                             y_netatmo_interpolate = np.array(
                                 [netatmo_in_coords_df.loc[netatmo_stn_id, 'Y']])
 
-                            if netatmo_edf_event_ > 0.7:  # 0.99:
+                            if netatmo_edf_event_ > 0.9:  # 0.99:
                                 print('Correcting Netatmo station',
                                       netatmo_stn_id)
                                 try:

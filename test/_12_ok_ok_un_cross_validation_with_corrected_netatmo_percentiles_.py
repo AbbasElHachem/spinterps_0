@@ -42,7 +42,8 @@ plt.rcParams.update({'axes.labelsize': 12})
 
 
 # =============================================================================
-
+#main_dir = Path(r'/home/abbas/Documents/Python/Extremes')
+# main_dir = Path(r'/home/IWS/hachem/Extremes')
 main_dir = Path(r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes')
 os.chdir(main_dir)
 
@@ -77,8 +78,8 @@ qunatile_kriging = True
 use_netatmo_gd_stns = True  # general filter, Indicator kriging
 use_temporal_filter_after_kriging = False  # on day filter
 
-use_first_neghbr_as_gd_stns = True  # False
-use_first_and_second_nghbr_as_gd_stns = False  # True
+use_first_neghbr_as_gd_stns = False  # False
+use_first_and_second_nghbr_as_gd_stns = True  # True
 
 _acc_ = ''
 
@@ -97,7 +98,7 @@ if use_netatmo_gd_stns:
 #==============================================================================
 #
 #==============================================================================
-resample_frequencies = ['360min']
+resample_frequencies = ['720min']
 # '720min', '1440min']  # '60min', '360min'
 # '120min', '180min',
 title_ = r'Qt_ok_ok_un_2'
@@ -427,6 +428,28 @@ for temp_agg in resample_frequencies:
             index=dwd_in_extremes_df.index,
             columns=[stn_comb])
 
+        # for back transformation
+
+        df_interpolated_dwd_netatmos_comb_std_dev = pd.DataFrame(
+            index=dwd_in_extremes_df.index,
+            columns=[stn_comb])
+
+        df_interpolated_dwd_netatmos_comb_un_std_dev = pd.DataFrame(
+            index=dwd_in_extremes_df.index,
+            columns=[stn_comb])
+
+        df_interpolated_dwd_only_std_dev = pd.DataFrame(
+            index=dwd_in_extremes_df.index,
+            columns=[stn_comb])
+
+        df_interpolated_netatmo_only_std_dev = pd.DataFrame(
+            index=dwd_in_extremes_df.index,
+            columns=[stn_comb])
+
+        df_interpolated_netatmo_only_un_std_dev = pd.DataFrame(
+            index=dwd_in_extremes_df.index,
+            columns=[stn_comb])
+
         #======================================================================
         # START KRIGING
         #======================================================================
@@ -454,7 +477,7 @@ for temp_agg in resample_frequencies:
 
 #             # select only neyrby netatmo stations below 50km
             sorted_distances_ppt_dwd = sorted_distances_ppt_dwd[
-                sorted_distances_ppt_dwd.values <= 10e4]
+                sorted_distances_ppt_dwd.values <= 3e4]
 
             if use_temporal_filter_after_kriging:
                 # print('\n++Creating DF to hold filtered netatmo stns++\n')
@@ -502,41 +525,6 @@ for temp_agg in resample_frequencies:
                 dwd_xcoords = np.array(dwd_xcoords)
                 dwd_ycoords = np.array(dwd_ycoords)
                 edf_dwd_vals = np.array(edf_dwd_vals)
-#
-#                 # print('\a\a\a Doing Ordinary Kriging \a\a\a')
-#
-#                 # print('*Done getting data* \n *Fitting variogram*\n')
-#                 try:
-#
-#                     vg_dwd = VG(
-#                         x=dwd_xcoords,
-#                         y=dwd_ycoords,
-#                         z=edf_dwd_vals,
-#                         mdr=mdr,
-#                         nk=5,
-#                         typ='cnst',
-#                         perm_r_list=perm_r_list_,
-#                         fil_nug_vg=fil_nug_vg,
-#                         ld=None,
-#                         uh=None,
-#                         h_itrs=100,
-#                         opt_meth='L-BFGS-B',
-#                         opt_iters=1000,
-#                         fit_vgs=fit_vgs,
-#                         n_best=n_best,
-#                         evg_name='robust',
-#                         use_wts=False,
-#                         ngp=ngp,
-#                         fit_thresh=0.01)
-#
-#                     vg_dwd.fit()
-#
-#                     fit_vg_list = vg_dwd.vg_str_list
-#
-#                 except Exception as msg:
-#                     print(msg)
-#                     #fit_vg_list = ['']
-#                     continue
 
                 # get vg model for this day
                 vgs_model_dwd = df_vgs_extremes.loc[event_date, 1]
@@ -580,7 +568,7 @@ for temp_agg in resample_frequencies:
                         'Exp' in vgs_model_dwd or
                         'Sph' in vgs_model_dwd):
 
-                    # print('**Variogram model **\n', vgs_model_dwd)
+                    print('**Variogram model **\n', vgs_model_dwd)
 
                     # Netatmo data and coords
                     netatmo_df = netatmo_in_vals_df.loc[
@@ -1103,7 +1091,7 @@ for temp_agg in resample_frequencies:
                             #==================================================
                             # Interpolate DWD QUANTILES
                             #==================================================
-                            # TODO: FIX BUG ADD COORDS AND EDF OF GOOD BAD WET
+
                             edf_netatmo_vals_gd = edf_netatmo_vals[idx_good_stns[0]]
                             netatmo_xcoords_gd = netatmo_xcoords[idx_good_stns[0]]
                             netatmo_ycoords_gd = netatmo_ycoords[idx_good_stns[0]]
@@ -1208,6 +1196,20 @@ for temp_agg in resample_frequencies:
                         interpolated_vals_netatmo_only = ordinary_kriging_netatmo_only.zk.copy()
                         interpolated_vals_netatmo_only_un = ordinary_kriging_un_netatmo_only.zk.copy()
 
+                        # calcualte standard deviation of estimated values
+                        std_est_vals_dwd_netatmo = np.sqrt(
+                            ordinary_kriging_dwd_netatmo_comb.est_vars)
+
+                        std_est_vals_dwd_netatmo_un = np.sqrt(
+                            ordinary_kriging_un_dwd_netatmo_comb.est_vars)
+
+                        std_est_vals_dwd_only = np.sqrt(
+                            ordinary_kriging_dwd_only.est_vars)
+                        std_est_vals_netatmo_only = np.sqrt(
+                            ordinary_kriging_netatmo_only.est_vars)
+                        std_est_vals_dwd_netatmo_unc = np.sqrt(
+                            ordinary_kriging_un_netatmo_only.est_vars)
+
                         print('**Interpolated DWD: ',
                               interpolated_vals_dwd_only,
                               '\n**Interpolated DWD-Netatmo: ',
@@ -1233,13 +1235,33 @@ for temp_agg in resample_frequencies:
 
                         if interpolated_vals_netatmo_only_un < 0:
                             interpolated_vals_netatmo_only_un = np.nan
+
                     else:
-                        print('no good variogram found, adding nans to df')
+                        print('no netatmo neighbours found adding nans')
                         interpolated_vals_dwd_netatmo = np.nan
                         interpolated_vals_dwd_netatmo_un = np.nan
                         interpolated_vals_dwd_only = np.nan
                         interpolated_vals_netatmo_only = np.nan
                         interpolated_vals_netatmo_only_un = np.nan
+
+                        std_est_vals_dwd_netatmo = np.nan
+                        std_est_vals_dwd_netatmo_un = np.nan
+                        std_est_vals_dwd_only = np.nan
+                        std_est_vals_netatmo_only = np.nan
+                        std_est_vals_dwd_netatmo_unc = np.nan
+                else:
+                    print('no good variogram found, adding nans to df')
+                    interpolated_vals_dwd_netatmo = np.nan
+                    interpolated_vals_dwd_netatmo_un = np.nan
+                    interpolated_vals_dwd_only = np.nan
+                    interpolated_vals_netatmo_only = np.nan
+                    interpolated_vals_netatmo_only_un = np.nan
+
+                    std_est_vals_dwd_netatmo = np.nan
+                    std_est_vals_dwd_netatmo_un = np.nan
+                    std_est_vals_dwd_only = np.nan
+                    std_est_vals_netatmo_only = np.nan
+                    std_est_vals_dwd_netatmo_unc = np.nan
 
                 print('+++ Saving result to DF +++\n')
 
@@ -1263,11 +1285,32 @@ for temp_agg in resample_frequencies:
                     event_date,
                     stn_dwd_id] = interpolated_vals_netatmo_only_un
 
-            if use_temporal_filter_after_kriging:
-                df_stns_netatmo_gd_event.to_csv(out_plots_path / (
-                    'netatmo_2nd_filter_stn_%s_%s_data_%s_grp_%d_.csv'
-                    % (stn_dwd_id, temp_agg, title_, idx_lst_comb)),
-                    sep=';', float_format='%0.2f')
+                # save kriging standard deviation, for back transformation
+                df_interpolated_dwd_netatmos_comb_std_dev.loc[
+                    event_date,
+                    stn_dwd_id] = std_est_vals_dwd_netatmo
+
+                df_interpolated_dwd_netatmos_comb_un_std_dev.loc[
+                    event_date,
+                    stn_dwd_id] = std_est_vals_dwd_netatmo_un
+
+                df_interpolated_dwd_only_std_dev.loc[
+                    event_date,
+                    stn_dwd_id] = std_est_vals_dwd_only
+
+                df_interpolated_netatmo_only_std_dev.loc[
+                    event_date,
+                    stn_dwd_id] = std_est_vals_netatmo_only
+
+                df_interpolated_netatmo_only_un_std_dev.loc[
+                    event_date,
+                    stn_dwd_id] = std_est_vals_dwd_netatmo_unc
+
+                if use_temporal_filter_after_kriging:
+                    df_stns_netatmo_gd_event.to_csv(out_plots_path / (
+                        'netatmo_2nd_filter_stn_%s_%s_data_%s_grp_%d_.csv'
+                        % (stn_dwd_id, temp_agg, title_, idx_lst_comb)),
+                        sep=';', float_format='%0.2f')
 
         df_interpolated_dwd_netatmos_comb.dropna(how='all', inplace=True)
         df_interpolated_dwd_netatmos_comb_un.dropna(how='all', inplace=True)
@@ -1300,6 +1343,36 @@ for temp_agg in resample_frequencies:
             % (temp_agg, title_, idx_lst_comb, _acc_)),
             sep=';', float_format='%0.2f')
 
+        # std dev
+        df_interpolated_dwd_netatmos_comb_std_dev.to_csv(
+            out_plots_path / (
+                'std_dev_interpolated_quantiles_dwd_%s_data_%s_using_dwd_netamo_grp_%d_%s.csv'
+                % (temp_agg, title_, idx_lst_comb, _acc_)),
+            sep=';', float_format='%0.2f')
+
+        df_interpolated_dwd_netatmos_comb_un_std_dev.to_csv(
+            out_plots_path / (
+                'std_dev_interpolated_quantiles_un_dwd_%s_data_%s_using_dwd_netamo_grp_%d_%s.csv'
+                % (temp_agg, title_, idx_lst_comb, _acc_)),
+            sep=';', float_format='%0.2f')
+
+        df_interpolated_dwd_only_std_dev.to_csv(
+            out_plots_path / (
+                'std_dev_interpolated_quantiles_dwd_%s_data_%s_using_dwd_only_grp_%d_%s.csv'
+                % (temp_agg, title_, idx_lst_comb, _acc_)),
+            sep=';', float_format='%0.2f')
+
+        df_interpolated_netatmo_only_std_dev.to_csv(
+            out_plots_path / (
+                'std_dev_interpolated_quantiles_dwd_%s_data_%s_using_netamo_only_grp_%d_%s.csv'
+                % (temp_agg, title_, idx_lst_comb, _acc_)),
+            sep=';', float_format='%0.2f')
+
+        df_interpolated_netatmo_only_un_std_dev.to_csv(
+            out_plots_path / (
+                'std_dev_interpolated_quantiles_un_dwd_%s_data_%s_using_netamo_only_grp_%d_%s.csv'
+                % (temp_agg, title_, idx_lst_comb, _acc_)),
+            sep=';', float_format='%0.2f')
 
 stop = timeit.default_timer()  # Ending time
 print('\n\a\a\a Done with everything on %s \a\a\a' %
