@@ -26,8 +26,8 @@ import matplotlib.pyplot as plt
 
 from scipy.stats import beta
 from scipy.stats import norm
-from scipy.special import gamma as gammaf
-from scipy.optimize import fmin
+
+from scipy.stats import rankdata
 
 from spinterps import (OrdinaryKriging, OrdinaryKrigingWithUncertainty)
 from spinterps import variograms
@@ -82,8 +82,8 @@ qunatile_kriging = True
 use_netatmo_gd_stns = True  # general filter, Indicator kriging
 use_temporal_filter_after_kriging = True  # on day filter
 
-use_first_neghbr_as_gd_stns = True  # False
-use_first_and_second_nghbr_as_gd_stns = False  # True
+use_first_neghbr_as_gd_stns = False  # False
+use_first_and_second_nghbr_as_gd_stns = True  # True
 
 _acc_ = ''
 
@@ -102,11 +102,11 @@ if use_netatmo_gd_stns:
 #==============================================================================
 #
 #==============================================================================
-resample_frequencies = ['180min']
+resample_frequencies = ['1440min']
 # , '180min', '360min', '720min', '1440min'
 # '720min', '1440min']  # '60min', '360min'
 # '120min', '180min',
-title_ = r'Qt_ok_ok_un_error'
+title_ = r'Qt_ok_ok_un_3'
 
 
 if not use_netatmo_gd_stns:
@@ -719,7 +719,7 @@ for temp_agg in resample_frequencies:
                                 #                                       % (i, len(netatmo_df.index)))
                                 netatmo_edf_event_ = netatmo_in_vals_df.loc[
                                     event_date, netatmo_stn_id]
-                                if netatmo_edf_event_ >= 0.7:
+                                if netatmo_edf_event_ >= 0.9:
                                     # print('Correcting Netatmo station',
                                     # netatmo_stn_id)
                                     try:
@@ -866,13 +866,13 @@ for temp_agg in resample_frequencies:
                                                         edf_for_ppt = edf_stn_old[edf_idx]
                                                 except Exception as msg:
                                                     print(msg)
+                                                    continue
                                                 try:
                                                     edf_for_ppt = edf_for_ppt[0]
 
                                                 except Exception as msg:
                                                     edf_for_ppt = edf_for_ppt
-                                                    print('ERROR CDF 1')
-                                                    continue
+                                                    # print('ERROR CDF 1')
 
                                                 if edf_for_ppt >= 0:
                                                     edf_vals_dwd_old_for_interp_ppt.append(
@@ -1265,42 +1265,65 @@ for temp_agg in resample_frequencies:
                                 dwd_netatmo_ycoords = np.concatenate(
                                     [dwd_ycoords, netatmo_ycoords_gd])
 
-                                edf_netatmo_vals_gd = [
-                                    val if val <= 0.999 else 0.999
-                                    for val in edf_netatmo_vals_gd]
-                                # transform everything
-                                # fit a beta distribution to quantiles
-                                alpha1, beta1, xx, yy = beta.fit(
-                                    edf_dwd_vals)  # , floc=0, fscale=1)
-                                # find for every Pi the Beta_Cdf(a, b, Pi)
-                                beta_edf_dwd_vals = beta.cdf(edf_dwd_vals,
-                                                             a=alpha1,
-                                                             b=beta1, loc=xx,
-                                                             scale=yy)
-                                # transform to normal using the inv standard
-                                # normal
-                                std_norm_edf_dwd_vals = norm.ppf(
-                                    beta_edf_dwd_vals)
-
-                                # transform netatmo quantiles
+#                                 edf_netatmo_vals_gd = [
+#                                     val if val <= 0.999 else 0.999
+#                                     for val in edf_netatmo_vals_gd]
 
                                 dwd_netatmo_edf = np.concatenate(
                                     [edf_dwd_vals,
                                      edf_netatmo_vals_gd])
-                                # fit a beta distribution to quantiles
-                                alpha2, beta2, xx2, yy2 = beta.fit(
-                                    dwd_netatmo_edf)  # , floc=0, fscale=1)
-                                # find for every Pi the Beta_Cdf(a, b, Pi)
-                                beta_netatmo_dwd_vals = beta.cdf(
-                                    dwd_netatmo_edf,
-                                    a=alpha2,
-                                    b=beta2, loc=xx2,
-                                    scale=yy2)
-                                # transform to normal using the inv standard
-                                # normal
-                                std_norm_edf_dwd_netatmo_vals = norm.ppf(
-                                    beta_netatmo_dwd_vals)
+#                                 #==============================================
+#                                 # Method 1
+#                                 #==============================================
+#                                 # transform everything
+#                                 # fit a beta distribution to quantiles
+#                                 alpha1, beta1, xx, yy = beta.fit(
+#                                     edf_dwd_vals)  # , floc=0, fscale=1)
+#                                 # find for every Pi the Beta_Cdf(a, b, Pi)
+#                                 beta_edf_dwd_vals = beta.cdf(edf_dwd_vals,
+#                                                              a=alpha1,
+#                                                              b=beta1, loc=xx,
+#                                                              scale=yy)
+#                                 # transform to normal using the inv standard
+#                                 # normal
+#                                 std_norm_edf_dwd_vals = norm.ppf(
+#                                     beta_edf_dwd_vals)
+#
+#                                 # transform netatmo quantiles
+#
 
+#                                 # fit a beta distribution to quantiles
+#                                 alpha2, beta2, xx2, yy2 = beta.fit(
+#                                     dwd_netatmo_edf)  # , floc=0, fscale=1)
+#                                 # find for every Pi the Beta_Cdf(a, b, Pi)
+#                                 beta_netatmo_dwd_vals = beta.cdf(
+#                                     dwd_netatmo_edf,
+#                                     a=alpha2,
+#                                     b=beta2, loc=xx2,
+#                                     scale=yy2)
+#                                 # transform to normal using the inv standard
+#                                 # normal
+#                                 std_norm_edf_dwd_netatmo_vals = norm.ppf(
+#                                     beta_netatmo_dwd_vals)
+
+                                #==============================================
+                                # METHOD 2 NST
+                                #==============================================
+
+
+#                                 from scipy import stats
+#                                 plt.ioff()
+                                std_norm_edf_dwd_vals = norm.ppf(
+                                    rankdata(edf_dwd_vals) / (
+                                        len(edf_dwd_vals) + 1))
+
+                                std_norm_edf_dwd_netatmo_vals = norm.ppf(
+                                    rankdata(dwd_netatmo_edf) / (
+                                        len(dwd_netatmo_edf) + 1))
+#
+#                                 ax4 = plt.subplot(111)
+#                                 res = stats.probplot(std_norm_edf_dwd_netatmo_vals, plot=plt)
+#                                 plt.show()
 #                                 dwd_netatmo_edf = np.concatenate(
 #                                     [std_norm_edf_dwd_vals,
 #                                      std_norm_edf_netatmo_vals])
@@ -1413,37 +1436,37 @@ for temp_agg in resample_frequencies:
                                         interpolated_vals_dwd_netatmo_un_plus_std)
 
                                     # transorm using the inverse of the beta
-                                    interpolated_vals_dwd_netatmo_min_std_tranf_beta = beta.ppf(
-                                        interpolated_vals_dwd_netatmo_min_std_tranf, a=alpha2,
-                                        b=beta2, loc=xx2,
-                                        scale=yy2)
-
-                                    interpolated_vals_dwd_netatmo_plus_std_tranf_beta = beta.ppf(
-                                        interpolated_vals_dwd_netatmo_plus_std_tranf, a=alpha2,
-                                        b=beta2, loc=xx2,
-                                        scale=yy2)
-
-                                    # transorm using the inverse of the beta
-                                    interpolated_vals_dwd_min_std_tranf_beta = beta.ppf(
-                                        interpolated_vals_dwd_min_std_tranf, a=alpha1,
-                                        b=beta1, loc=xx,
-                                        scale=yy)
-
-                                    interpolated_vals_dwd_plus_std_tranf_beta = beta.ppf(
-                                        interpolated_vals_dwd_plus_std_tranf, a=alpha1,
-                                        b=beta1, loc=xx,
-                                        scale=yy)
-
-                                    # transorm using the inverse of the beta
-                                    interpolated_vals_dwd_netatmo_un_min_std_tranf_beta = beta.ppf(
-                                        interpolated_vals_dwd_netatmo_un_min_std_tranf, a=alpha2,
-                                        b=beta2, loc=xx2,
-                                        scale=yy2)
-
-                                    interpolated_vals_dwd_netatmo_un_plus_std_tranf_beta = beta.ppf(
-                                        interpolated_vals_dwd_netatmo_un_plus_std_tranf, a=alpha2,
-                                        b=beta2, loc=xx2,
-                                        scale=yy2)
+#                                     interpolated_vals_dwd_netatmo_min_std_tranf_beta = beta.ppf(
+#                                         interpolated_vals_dwd_netatmo_min_std_tranf, a=alpha2,
+#                                         b=beta2, loc=xx2,
+#                                         scale=yy2)
+#
+#                                     interpolated_vals_dwd_netatmo_plus_std_tranf_beta = beta.ppf(
+#                                         interpolated_vals_dwd_netatmo_plus_std_tranf, a=alpha2,
+#                                         b=beta2, loc=xx2,
+#                                         scale=yy2)
+#
+#                                     # transorm using the inverse of the beta
+#                                     interpolated_vals_dwd_min_std_tranf_beta = beta.ppf(
+#                                         interpolated_vals_dwd_min_std_tranf, a=alpha1,
+#                                         b=beta1, loc=xx,
+#                                         scale=yy)
+#
+#                                     interpolated_vals_dwd_plus_std_tranf_beta = beta.ppf(
+#                                         interpolated_vals_dwd_plus_std_tranf, a=alpha1,
+#                                         b=beta1, loc=xx,
+#                                         scale=yy)
+#
+#                                     # transorm using the inverse of the beta
+#                                     interpolated_vals_dwd_netatmo_un_min_std_tranf_beta = beta.ppf(
+#                                         interpolated_vals_dwd_netatmo_un_min_std_tranf, a=alpha2,
+#                                         b=beta2, loc=xx2,
+#                                         scale=yy2)
+#
+#                                     interpolated_vals_dwd_netatmo_un_plus_std_tranf_beta = beta.ppf(
+#                                         interpolated_vals_dwd_netatmo_un_plus_std_tranf, a=alpha2,
+#                                         b=beta2, loc=xx2,
+#                                         scale=yy2)
                                     # get inv of quantiles using CDF of station
 
                                     try:
@@ -1451,7 +1474,7 @@ for temp_agg in resample_frequencies:
                                             xppt[np.where(
                                                 yppt == find_nearest(
                                                     yppt,
-                                                 interpolated_vals_dwd_netatmo_min_std_tranf_beta))])
+                                                 interpolated_vals_dwd_netatmo_min_std_tranf))])
                                     except Exception as msg:
                                         print(msg, 'RRPR TR')
                                         continue
@@ -1459,23 +1482,23 @@ for temp_agg in resample_frequencies:
                                     ppt_vals_dwd_netatmo_plus_std = np.mean(
                                         xppt[np.where(yppt == find_nearest(
                                             yppt,
-                                             interpolated_vals_dwd_netatmo_plus_std_tranf_beta))])
+                                             interpolated_vals_dwd_netatmo_plus_std_tranf))])
 
                                     ppt_vals_dwd_netatmo_un_min_std = np.mean(
                                         xppt[np.where(yppt == find_nearest(
                                             yppt,
-                                             interpolated_vals_dwd_netatmo_un_min_std_tranf_beta))])
+                                             interpolated_vals_dwd_netatmo_un_min_std_tranf))])
                                     ppt_vals_dwd_netatmo_un_plus_std = np.mean(
                                         xppt[np.where(yppt == find_nearest(
                                             yppt,
-                                             interpolated_vals_dwd_netatmo_un_plus_std_tranf_beta))])
+                                             interpolated_vals_dwd_netatmo_un_plus_std_tranf))])
 
                                     ppt_vals_dwd_min_std = np.mean(
                                         xppt[np.where(yppt == find_nearest(
-                                            yppt, interpolated_vals_dwd_min_std_tranf_beta))])
+                                            yppt, interpolated_vals_dwd_min_std_tranf))])
                                     ppt_vals_dwd_plus_std = np.mean(
                                         xppt[np.where(yppt == find_nearest(
-                                            yppt, interpolated_vals_dwd_plus_std_tranf_beta))])
+                                            yppt, interpolated_vals_dwd_plus_std_tranf))])
 
                                     # get mean of 2
                                     ppt_interpolated_vals_dwd_netatmo = (
