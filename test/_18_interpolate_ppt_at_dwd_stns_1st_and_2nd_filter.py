@@ -406,24 +406,31 @@ for temp_agg in resample_frequencies:
     # shuffle and select 10 DWD stations randomly
     # =========================================================================
     all_dwd_stns = dwd_in_vals_df.columns.tolist()
-    shuffle(all_dwd_stns)
-    shuffled_dwd_stns_10stn = np.array(list(chunks(all_dwd_stns, 10)))
+#     shuffle(all_dwd_stns)
+#     shuffled_dwd_stns_10stn = np.array(list(chunks(all_dwd_stns, 10)))
+    stn_comb_order = []
+    for idx_lst_comb in df_dwd_stns_comb.index:
 
+        stn_comb_order.append([stn.replace("'", "")
+                               for stn in df_dwd_stns_comb.iloc[
+            idx_lst_comb, :].dropna().values])
+    stn_comb_order_only = [stn for stn_co in stn_comb_order
+                           for stn in stn_co]
     #==========================================================================
     # # CREATE DFS FOR RESULT; Index is Date, Columns as Stns
     #==========================================================================
 
     df_interpolated_dwd_netatmos_comb = pd.DataFrame(
         index=dwd_in_extremes_df.index,
-        columns=all_dwd_stns)
+        columns=stn_comb_order_only)
 
     df_interpolated_dwd_netatmos_comb_un = pd.DataFrame(
         index=dwd_in_extremes_df.index,
-        columns=all_dwd_stns)
+        columns=stn_comb_order_only)
 
     df_interpolated_dwd_only = pd.DataFrame(
         index=dwd_in_extremes_df.index,
-        columns=all_dwd_stns)
+        columns=stn_comb_order_only)
 
     #==========================================================================
     # # Go thourgh events ,interpolate all DWD for this event
