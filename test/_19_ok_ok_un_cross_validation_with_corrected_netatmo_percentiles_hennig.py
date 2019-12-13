@@ -78,12 +78,12 @@ use_dwd_stns_for_kriging = True
 
 qunatile_kriging = True
 
-# run it to filter Netatmo
+# run it to filter True
 use_netatmo_gd_stns = True  # general filter, Indicator kriging
-use_temporal_filter_after_kriging = True  # on day filter
+use_temporal_filter_after_kriging = False  # on day filter
 
-use_first_neghbr_as_gd_stns = False  # False
-use_first_and_second_nghbr_as_gd_stns = True  # True
+use_first_neghbr_as_gd_stns = True  # False
+use_first_and_second_nghbr_as_gd_stns = False  # True
 
 _acc_ = ''
 
@@ -106,7 +106,7 @@ resample_frequencies = ['1440min']
 # , '180min', '360min', '720min', '1440min'
 # '720min', '1440min']  # '60min', '360min'
 # '120min', '180min',
-title_ = r'Qt_ok_ok_un_3'
+title_ = r'Qt_ok_ok_un_3_test'
 
 
 if not use_netatmo_gd_stns:
@@ -155,7 +155,11 @@ def build_edf_fr_vals(ppt_data):
     # Construct EDF, need to check if it works
     """ construct empirical distribution function given data values """
     data_sorted = np.sort(ppt_data, axis=0)[::-1]
-    x0 = np.round(np.squeeze(data_sorted)[::-1], 1)
+    try:
+        x0 = np.round(np.squeeze(data_sorted)[::-1], 1)
+    except Exception as msg:
+        print(msg)
+        pass
     y0 = np.round((np.arange(data_sorted.size) / len(data_sorted)), 3)
 
     return x0, y0
@@ -342,11 +346,6 @@ for temp_agg in resample_frequencies:
     netatmo_in_vals_df = netatmo_in_vals_df.loc[strt_date:end_date, :]
     netatmo_in_vals_df.dropna(how='all', axis=0, inplace=True)
 
-    cmn_stns = netatmo_in_coords_df.index.intersection(
-        netatmo_in_vals_df.columns)
-
-    netatmo_in_vals_df = netatmo_in_vals_df.loc[:, cmn_stns]
-
     # ppt data
     netatmo_in_ppt_vals_df = pd.read_csv(
         path_to_netatmo_ppt, sep=';',
@@ -359,8 +358,6 @@ for temp_agg in resample_frequencies:
     netatmo_in_ppt_vals_df = netatmo_in_ppt_vals_df.loc[strt_date:end_date, :]
     netatmo_in_ppt_vals_df.dropna(how='all', axis=0, inplace=True)
 
-    netatmo_in_ppt_vals_df = netatmo_in_ppt_vals_df.loc[:, cmn_stns]
-
     # apply first filter
     if use_netatmo_gd_stns:
         print('\n**using Netatmo gd stns**')
@@ -368,6 +365,15 @@ for temp_agg in resample_frequencies:
         cmn_gd_stns = netatmo_in_vals_df.columns.intersection(
             good_netatmo_stns)
         netatmo_in_vals_df = netatmo_in_vals_df.loc[:, cmn_gd_stns]
+
+    cmn_stns = netatmo_in_vals_df.columns.intersection(
+        netatmo_in_coords_df.index)
+
+    netatmo_in_coords_df = netatmo_in_coords_df.loc[
+        netatmo_in_coords_df.index.intersection(cmn_stns), :]
+    netatmo_in_vals_df = netatmo_in_vals_df.loc[
+        :, netatmo_in_vals_df.columns.intersection(cmn_stns)]
+    netatmo_in_ppt_vals_df = netatmo_in_ppt_vals_df.loc[:, cmn_stns]
 
     # DWD Extremes
     #=========================================================================
@@ -457,13 +463,17 @@ for temp_agg in resample_frequencies:
 #         dwd_xcoords = np.array(dwd_xcoords)
 #         dwd_ycoords = np.array(dwd_ycoords)
 #         edf_dwd_vals = np.array(edf_dwd_vals)
-#         # fit a beta distribution to quantiles
-#         alpha1, beta1, xx, yy = beta.fit(edf_dwd_vals)  # , floc=0, fscale=1)
-#         # find for every Pi the Beta_Cdf(a, b, Pi)
-#         beta_edf_dwd_vals = beta.cdf(edf_dwd_vals, a=alpha1, b=beta1, loc=xx,
-#                                      scale=yy)
-#         # transform to normal using the inv standard normal
-#         std_norm_edf_dwd_vals = norm.ppf(beta_edf_dwd_vals)
+#
+#         std_norm_edf_dwd_vals = norm.ppf(
+#             rankdata(edf_dwd_vals) / (
+#                 len(edf_dwd_vals) + 1))
+# #         # fit a beta distribution to quantiles
+# #         alpha1, beta1, xx, yy = beta.fit(edf_dwd_vals)  # , floc=0, fscale=1)
+# #         # find for every Pi the Beta_Cdf(a, b, Pi)
+# #         beta_edf_dwd_vals = beta.cdf(edf_dwd_vals, a=alpha1, b=beta1, loc=xx,
+# #                                      scale=yy)
+# #         # transform to normal using the inv standard normal
+# #         std_norm_edf_dwd_vals = norm.ppf(beta_edf_dwd_vals)
 #         # fit variogram
 #         print('*Done getting data* \n *Fitting variogram*\n')
 #         try:
@@ -565,7 +575,7 @@ for temp_agg in resample_frequencies:
         #======================================================================
         # START KRIGING
         #======================================================================
-        for event_date in dwd_in_extremes_df.index:
+        for event_date in dwd_in_extremes_df.index[99:]:
             #                 if event_date == '2016-08-18 20:00:00':
             #                     print(event_date)
             #                     raise Exception
@@ -719,7 +729,7 @@ for temp_agg in resample_frequencies:
                                 #                                       % (i, len(netatmo_df.index)))
                                 netatmo_edf_event_ = netatmo_in_vals_df.loc[
                                     event_date, netatmo_stn_id]
-                                if netatmo_edf_event_ >= 0.9:
+                                if netatmo_edf_event_ >= 0.98:
                                     # print('Correcting Netatmo station',
                                     # netatmo_stn_id)
                                     try:
@@ -760,10 +770,15 @@ for temp_agg in resample_frequencies:
                                             ppt_vals_stn_new = ppt_dwd_stn_vals.loc[
                                                 :, dwd_stn_id_new].dropna()
 
-                                            if ppt_vals_stn_new.size > 0:
+                                            if ppt_vals_stn_new.size > 10:
 
-                                                ppt_stn_new, edf_stn_new = build_edf_fr_vals(
-                                                    ppt_vals_stn_new)
+                                                try:
+                                                    ppt_stn_new, edf_stn_new = build_edf_fr_vals(
+                                                        ppt_vals_stn_new)
+                                                except Exception as msg:
+                                                    print(msg)
+                                                    continue
+                                                    pass
 
                                                 if netatmo_edf_event_ == 1:
                                                     # correct edf event, 1 is due to
@@ -1025,7 +1040,7 @@ for temp_agg in resample_frequencies:
                                     print(msg, 'error while second filter')
                                     continue
                                 netatmo_dry_gd = edf_gd_vals_df[
-                                    edf_gd_vals_df.values < 0.9]
+                                    edf_gd_vals_df.values < 0.5].dropna()
                                 # gd
 
                                 cmn_wet_dry_stns = netatmo_in_coords_df.index.intersection(
@@ -1036,25 +1051,27 @@ for temp_agg in resample_frequencies:
                                     cmn_wet_dry_stns, 'Y'].values.ravel()
 
                                 netatmo_wet_gd = edf_gd_vals_df[
-                                    edf_gd_vals_df.values >= 0.9]
+                                    edf_gd_vals_df.values >= 0.5].dropna(how='all')
                                 cmn_wet_gd_stns = netatmo_in_coords_df.index.intersection(
                                     netatmo_wet_gd.index)
                                 x_coords_gd_netatmo_wet = netatmo_in_coords_df.loc[
                                     cmn_wet_gd_stns, 'X'].values.ravel()
                                 y_coords_gd_netatmo_wet = netatmo_in_coords_df.loc[
                                     cmn_wet_gd_stns, 'Y'].values.ravel()
+
+                                assert x_coords_gd_netatmo_wet.size == netatmo_wet_gd.size
                                 #====================================
                                 #
                                 #====================================
                                 edf_bad_vals_df = netatmo_df.loc[ids_netatmo_stns_bad]
 
                                 netatmo_dry_bad = edf_bad_vals_df[
-                                    edf_bad_vals_df.values < 0.9]
+                                    edf_bad_vals_df.values < 0.5].dropna()
                                 cmn_dry_bad_stns = netatmo_in_coords_df.index.intersection(
                                     netatmo_dry_bad.index)
                                 # netatmo bad
                                 netatmo_wet_bad = edf_bad_vals_df[
-                                    edf_bad_vals_df.values >= 0.9]
+                                    edf_bad_vals_df.values >= 0.5].dropna()
                                 cmn_wet_bad_stns = netatmo_in_coords_df.index.intersection(
                                     netatmo_wet_bad.index)
                                 # dry bad
@@ -1070,7 +1087,13 @@ for temp_agg in resample_frequencies:
                                 # find if wet bad is really wet bad
                                 # find neighboring netatmo stations wet good
 
-                                if netatmo_wet_gd.size > 0:
+                                # make copy of arrays
+                                netatmo_wet_gd_cp = netatmo_wet_gd.copy()
+                                x_coords_gd_netatmo_wet_cp = x_coords_gd_netatmo_wet.copy()
+                                y_coords_gd_netatmo_wet_cp = y_coords_gd_netatmo_wet.copy()
+                                ids_netatmo_stns_gd_cp = ids_netatmo_stns_gd.copy()
+
+                                if netatmo_wet_gd_cp.size > 0:
 
                                     for stn_, edf_stn, netatmo_x_stn, netatmo_y_stn in zip(
                                         netatmo_wet_bad.index,
@@ -1082,17 +1105,17 @@ for temp_agg in resample_frequencies:
                                         # coords of stns self
                                         stn_coords = np.array([(netatmo_x_stn,
                                                                 netatmo_y_stn)])
+
+                                        ix_stn = np.where(np.logical_and(
+                                            netatmo_xcoords == netatmo_x_stn,
+                                            netatmo_ycoords == netatmo_y_stn))
+
                                         # coords of neighbors
                                         neighbors_coords = np.array(
                                             [(x, y) for x, y
                                              in zip(x_coords_gd_netatmo_wet,
                                                     y_coords_gd_netatmo_wet)])
 
-                                        # get distance to neighboring wet
-                                        # stations
-                                        sep_dist = distance.cdist(stn_coords,
-                                                                  neighbors_coords,
-                                                                  'euclidean')
                                         # create a tree from coordinates
                                         points_tree = spatial.cKDTree(
                                             neighbors_coords)
@@ -1103,12 +1126,19 @@ for temp_agg in resample_frequencies:
                                             np.array((netatmo_x_stn,
                                                       netatmo_y_stn)),
                                             radius)
+
+                                        x_coords_gd_netatmo_wet_neighbors = x_coords_gd_netatmo_wet[
+                                            idxs_neighbours]
+
+                                        y_coords_gd_netatmo_wet_neighbors = y_coords_gd_netatmo_wet[
+                                            idxs_neighbours]
+
                                         if len(idxs_neighbours) > 0:
 
                                             for i, ix_nbr in enumerate(idxs_neighbours):
 
                                                 try:
-                                                    edf_neighbor = netatmo_wet_gd.iloc[ix_nbr]
+                                                    edf_neighbor = netatmo_wet_gd_cp.iloc[ix_nbr]
                                                 except Exception as msg:
                                                     print(msg, 'ERROR 2nD F')
                                                     edf_neighbor = 1.1
@@ -1116,16 +1146,19 @@ for temp_agg in resample_frequencies:
                                                     #                                                     print(
                                                     #                                                         'bad wet netatmo station is good')
                                                     # add to good wet netatmos
-                                                    netatmo_wet_gd[stn_] = edf_stn
-                                                    ids_netatmo_stns_gd = np.append(
-                                                        ids_netatmo_stns_gd,
+                                                    netatmo_wet_gd_cp[stn_] = edf_stn
+                                                    ids_netatmo_stns_gd_cp = np.append(
+                                                        ids_netatmo_stns_gd_cp,
                                                         stn_)
-                                                    x_coords_gd_netatmo_wet = np.append(
-                                                        x_coords_gd_netatmo_wet,
+                                                    x_coords_gd_netatmo_wet_cp = np.append(
+                                                        x_coords_gd_netatmo_wet_cp,
                                                         netatmo_x_stn)
-                                                    y_coords_gd_netatmo_wet = np.append(
-                                                        y_coords_gd_netatmo_wet,
+                                                    y_coords_gd_netatmo_wet_cp = np.append(
+                                                        y_coords_gd_netatmo_wet_cp,
                                                         netatmo_y_stn)
+
+                                                    idx_good_stns = np.unique(np.append(
+                                                        idx_good_stns, ix_stn))
 
                                                     # remove from original bad
                                                     # wet
@@ -1186,8 +1219,8 @@ for temp_agg in resample_frequencies:
                                                label='Netatmo %d stations with dry good values' %
                                                x_coords_gd_netatmo_dry.shape[0])
 
-                                    ax.scatter(x_coords_gd_netatmo_wet,
-                                               y_coords_gd_netatmo_wet, c='b',
+                                    ax.scatter(x_coords_gd_netatmo_wet_cp,
+                                               y_coords_gd_netatmo_wet_cp, c='b',
                                                marker='o', s=m_size,
                                                label='Netatmo %d stations with wet good values' %
                                                x_coords_gd_netatmo_wet.shape[0])
@@ -1236,13 +1269,23 @@ for temp_agg in resample_frequencies:
                                 # Interpolate DWD QUANTILES
                                 #==============================================
 
-                                edf_netatmo_vals_gd = edf_netatmo_vals[idx_good_stns[0]]
-                                netatmo_xcoords_gd = netatmo_xcoords[idx_good_stns[0]]
-                                netatmo_ycoords_gd = netatmo_ycoords[idx_good_stns[0]]
+                                idx_good_stns_int = [
+                                    ix for ix in idx_good_stns]
+#                                 try:
+#                                     idx_good_stns = idx_good_stns[0]
+#                                 except Exception:
+#                                     idx_good_stns = idx_good_stns
+                                edf_netatmo_vals_gd = edf_netatmo_vals[idx_good_stns_int]
+                                netatmo_xcoords_gd = netatmo_xcoords[idx_good_stns_int]
+                                netatmo_ycoords_gd = netatmo_ycoords[idx_good_stns_int]
 
-                                netatmo_stn_ids_gd = [netatmo_stn_ids[ix]
-                                                      for ix in idx_good_stns[0]]
 
+#                                 netatmo_stn_ids_gd = ids_netatmo_stns_gd_cp
+#                                 netatmo_xcoords_gd = netatmo_in_coords_df.loc[
+#                                     netatmo_stn_ids_gd, 'X'].values.ravel()
+#                                 netatmo_ycoords_gd = netatmo_in_coords_df.loc[
+#                                     netatmo_stn_ids_gd, 'Y'].values.ravel()
+#                                 edf_netatmo_vals_gd = netatmo_wet_gd_cp.values.ravel()
                                 # keep only good stations
         #                         df_gd_stns_per_event = netatmo_df.loc[ids_netatmo_stns_gd]
 
@@ -1265,9 +1308,13 @@ for temp_agg in resample_frequencies:
                                 dwd_netatmo_ycoords = np.concatenate(
                                     [dwd_ycoords, netatmo_ycoords_gd])
 
-#                                 edf_netatmo_vals_gd = [
-#                                     val if val <= 0.999 else 0.999
-#                                     for val in edf_netatmo_vals_gd]
+                                edf_dwd_vals = np.array([
+                                    val if val < 1 else 0.99999
+                                    for val in edf_dwd_vals])
+
+                                edf_netatmo_vals_gd = np.array([
+                                    val if val < 1 else 0.99999
+                                    for val in edf_netatmo_vals_gd])
 
                                 dwd_netatmo_edf = np.concatenate(
                                     [edf_dwd_vals,
@@ -1290,7 +1337,7 @@ for temp_agg in resample_frequencies:
 #                                     beta_edf_dwd_vals)
 #
 #                                 # transform netatmo quantiles
-#
+                            #
 
 #                                 # fit a beta distribution to quantiles
 #                                 alpha2, beta2, xx2, yy2 = beta.fit(
@@ -1315,12 +1362,14 @@ for temp_agg in resample_frequencies:
 #                                 plt.ioff()
                                 std_norm_edf_dwd_vals = norm.ppf(
                                     rankdata(edf_dwd_vals) / (
-                                        len(edf_dwd_vals) + 1))
+                                        len(edf_dwd_vals) + 1),
+                                    loc=0, scale=1)
 
                                 std_norm_edf_dwd_netatmo_vals = norm.ppf(
                                     rankdata(dwd_netatmo_edf) / (
-                                        len(dwd_netatmo_edf) + 1))
-#
+                                        len(dwd_netatmo_edf) + 1),
+                                    loc=0, scale=1)
+
 #                                 ax4 = plt.subplot(111)
 #                                 res = stats.probplot(std_norm_edf_dwd_netatmo_vals, plot=plt)
 #                                 plt.show()
@@ -1351,7 +1400,7 @@ for temp_agg in resample_frequencies:
                                     zi=std_norm_edf_dwd_netatmo_vals,
                                     xk=x_dwd_interpolate,
                                     yk=y_dwd_interpolate,
-                                    model=vgs_model_dwd)
+                                    model=vgs_model_dwd_transf)
 
                                 ordinary_kriging_un_dwd_netatmo_comb = OrdinaryKrigingWithUncertainty(
                                     xi=dwd_netatmo_xcoords,
@@ -1360,7 +1409,7 @@ for temp_agg in resample_frequencies:
                                     uncert=edf_dwd_netatmo_vals_uncert,
                                     xk=x_dwd_interpolate,
                                     yk=y_dwd_interpolate,
-                                    model=vgs_model_dwd)
+                                    model=vgs_model_dwd_transf)
 
                                 ordinary_kriging_dwd_only = OrdinaryKriging(
                                     xi=dwd_xcoords,
@@ -1368,7 +1417,7 @@ for temp_agg in resample_frequencies:
                                     zi=std_norm_edf_dwd_vals,
                                     xk=x_dwd_interpolate,
                                     yk=y_dwd_interpolate,
-                                    model=vgs_model_dwd)
+                                    model=vgs_model_dwd_transf)
 
                                 try:
                                     ordinary_kriging_dwd_netatmo_comb.krige()
@@ -1394,9 +1443,9 @@ for temp_agg in resample_frequencies:
                                 std_est_vals_dwd_only = np.sqrt(
                                     ordinary_kriging_dwd_only.est_vars)
 
-                                if (interpolated_vals_dwd_netatmo >= 0) and (
-                                    interpolated_vals_dwd_netatmo_un >= 0) and (
-                                        interpolated_vals_dwd_only >= 0):
+                                if (- np.inf < interpolated_vals_dwd_netatmo < np.inf) and (
+                                        - np.inf < interpolated_vals_dwd_netatmo_un < np.inf) and (
+                                        - np.inf < interpolated_vals_dwd_only < np.inf):
 
                                     #==========================================
                                     # # backtransform everything to ppt
@@ -1421,19 +1470,25 @@ for temp_agg in resample_frequencies:
                                     # transorm using the standard normal
 
                                     interpolated_vals_dwd_netatmo_min_std_tranf = norm.cdf(
-                                        interpolated_vals_dwd_netatmo_min_std)
+                                        interpolated_vals_dwd_netatmo_min_std,
+                                        loc=0, scale=1)
                                     interpolated_vals_dwd_netatmo_plus_std_tranf = norm.cdf(
-                                        interpolated_vals_dwd_netatmo_plus_std)
+                                        interpolated_vals_dwd_netatmo_plus_std,
+                                        loc=0, scale=1)
 
                                     interpolated_vals_dwd_min_std_tranf = norm.cdf(
-                                        interpolated_vals_dwd_min_std)
+                                        interpolated_vals_dwd_min_std,
+                                        loc=0, scale=1)
                                     interpolated_vals_dwd_plus_std_tranf = norm.cdf(
-                                        interpolated_vals_dwd_plus_std)
+                                        interpolated_vals_dwd_plus_std,
+                                        loc=0, scale=1)
 
                                     interpolated_vals_dwd_netatmo_un_min_std_tranf = norm.cdf(
-                                        interpolated_vals_dwd_netatmo_un_min_std)
+                                        interpolated_vals_dwd_netatmo_un_min_std,
+                                        loc=0, scale=1)
                                     interpolated_vals_dwd_netatmo_un_plus_std_tranf = norm.cdf(
-                                        interpolated_vals_dwd_netatmo_un_plus_std)
+                                        interpolated_vals_dwd_netatmo_un_plus_std,
+                                        loc=0, scale=1)
 
                                     # transorm using the inverse of the beta
 #                                     interpolated_vals_dwd_netatmo_min_std_tranf_beta = beta.ppf(
@@ -1516,6 +1571,7 @@ for temp_agg in resample_frequencies:
                                     #print('+++ Saving result to DF +++\n')
                                     print('\n** Obersved Rainfall at Stn: ',
                                           _ppt_event_stn)
+
                                     print('**Interpolated DWD: ',
                                           ppt_interpolated_vals_dwd_only,
                                           '\n**Interpolated DWD-Netatmo: ',
