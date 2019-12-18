@@ -408,99 +408,6 @@ for temp_agg in resample_frequencies:
     in_df_distance_netatmo_dwd = in_df_distance_netatmo_dwd.loc[
         cmn_netatmo_stns, :]
 
-    #==============================================================
-    # # DWD qunatiles for every event, fit a variogram
-    #==============================================================
-#     df_vgs_extremes_norm = pd.DataFrame(index=dwd_in_extremes_df.index)
-#
-#     for event_date in dwd_in_extremes_df.index:
-#         #                 if event_date == '2016-08-18 20:00:00':
-#         #                     print(event_date)
-#         #                     raise Exception
-#         _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
-#         if len(_stn_id_event_) < 5:
-#             _stn_id_event_ = (5 - len(_stn_id_event_)) * \
-#                 '0' + _stn_id_event_
-#
-#         _ppt_event_ = dwd_in_extremes_df.loc[event_date, 1]
-#         _edf_event_ = dwd_in_vals_df.loc[event_date, _stn_id_event_]
-#         print('**Calculating for Date ',
-#               event_date, '\n Rainfall: ',  _ppt_event_,
-#               'Quantile: ', _edf_event_, ' **\n')
-#         edf_dwd_vals = []
-#         dwd_xcoords = []
-#         dwd_ycoords = []
-#         dwd_stn_ids = []
-#         for stn_id in all_dwd_stns:
-#             #print('station is', stn_id)
-#
-#             edf_stn_vals = dwd_in_vals_df.loc[
-#                 event_date, stn_id]
-#
-#             if edf_stn_vals > 0:
-#                 edf_dwd_vals.append(np.round(edf_stn_vals, 4))
-#                 dwd_xcoords.append(dwd_in_coords_df.loc[stn_id, 'X'])
-#                 dwd_ycoords.append(dwd_in_coords_df.loc[stn_id, 'Y'])
-#                 dwd_stn_ids.append(stn_id)
-#
-#         dwd_xcoords = np.array(dwd_xcoords)
-#         dwd_ycoords = np.array(dwd_ycoords)
-#         edf_dwd_vals = np.array(edf_dwd_vals)
-#
-#         std_norm_edf_dwd_vals = norm.ppf(
-#             rankdata(edf_dwd_vals) / (
-#                 len(edf_dwd_vals) + 1))
-# #         # fit a beta distribution to quantiles
-# #         alpha1, beta1, xx, yy = beta.fit(edf_dwd_vals)  # , floc=0, fscale=1)
-# #         # find for every Pi the Beta_Cdf(a, b, Pi)
-# #         beta_edf_dwd_vals = beta.cdf(edf_dwd_vals, a=alpha1, b=beta1, loc=xx,
-# #                                      scale=yy)
-# #         # transform to normal using the inv standard normal
-# #         std_norm_edf_dwd_vals = norm.ppf(beta_edf_dwd_vals)
-#         # fit variogram
-#         print('*Done getting data* \n *Fitting variogram*\n')
-#         try:
-#
-#             vg_dwd = VG(
-#                 x=dwd_xcoords,
-#                 y=dwd_ycoords,
-#                 z=std_norm_edf_dwd_vals,
-#                 mdr=mdr,
-#                 nk=5,
-#                 typ='cnst',
-#                 perm_r_list=perm_r_list_,
-#                 fil_nug_vg=fil_nug_vg,
-#                 ld=None,
-#                 uh=None,
-#                 h_itrs=100,
-#                 opt_meth='L-BFGS-B',
-#                 opt_iters=1000,
-#                 fit_vgs=fit_vgs,
-#                 n_best=n_best,
-#                 evg_name='robust',
-#                 use_wts=False,
-#                 ngp=ngp,
-#                 fit_thresh=0.01)
-#
-#             vg_dwd.fit()
-#
-#             fit_vg_list = vg_dwd.vg_str_list
-#
-#         except Exception as msg:
-#             print(msg)
-#             fit_vg_list = ['']
-#             # continue
-#
-#         vgs_model_dwd = fit_vg_list[0]
-#         if len(vgs_model_dwd) > 0:
-#             df_vgs_extremes_norm.loc[event_date, 1] = vgs_model_dwd
-#         else:
-#             df_vgs_extremes_norm.loc[event_date, 1] = np.nan
-#     df_vgs_extremes_norm.dropna(how='all', inplace=True)
-#     df_vgs_extremes_norm.to_csv((path_to_vgs /
-#                                  ('dwd_edf_transf_vg_%s.csv' % temp_agg)),
-#                                 sep=';')
-
     #==========================================================================
     # CREATE DFS HOLD RESULT KRIGING PER NETATMO STATION
     #==========================================================================
@@ -1044,7 +951,7 @@ for temp_agg in resample_frequencies:
                                             netatmo_xcoords == netatmo_x_stn,
                                             netatmo_ycoords == netatmo_y_stn))
 
-                                        # coords of neighbors√§
+                                        # coords of neighbors‰
                                         neighbors_coords = np.array(
                                             [(x, y) for x, y
                                              in zip(x_coords_gd_netatmo_wet,
