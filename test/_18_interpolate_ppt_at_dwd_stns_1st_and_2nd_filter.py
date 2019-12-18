@@ -424,7 +424,18 @@ for temp_agg in resample_frequencies:
         index=dwd_in_extremes_df.index,
         columns=stn_comb_order_only)
 
-    df_interpolated_dwd_netatmos_comb_un = pd.DataFrame(
+    df_interpolated_dwd_netatmos_comb_un_20perc = pd.DataFrame(
+        index=dwd_in_extremes_df.index,
+        columns=stn_comb_order_only)
+    df_interpolated_dwd_netatmos_comb_un_10perc = pd.DataFrame(
+        index=dwd_in_extremes_df.index,
+        columns=stn_comb_order_only)
+
+    df_interpolated_dwd_netatmos_comb_un_5perc = pd.DataFrame(
+        index=dwd_in_extremes_df.index,
+        columns=stn_comb_order_only)
+
+    df_interpolated_dwd_netatmos_comb_un_2perc = pd.DataFrame(
         index=dwd_in_extremes_df.index,
         columns=stn_comb_order_only)
 
@@ -437,7 +448,7 @@ for temp_agg in resample_frequencies:
     #==========================================================================
     for iev, event_date in enumerate(dwd_in_extremes_df.index):
 
-        _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
+        _stn_id_event_ = str(int(dwd_in_extremes_df.loc[event_date, 2]))
         if len(_stn_id_event_) < 5:
             _stn_id_event_ = (5 - len(_stn_id_event_)) * \
                 '0' + _stn_id_event_
@@ -565,7 +576,7 @@ for temp_agg in resample_frequencies:
 
                     x_netatmo_ppt_vals_fr_dwd_interp = []
                     y_netatmo_ppt_vals_fr_dwd_interp = []
-                    edf_unc_term = []
+
                     if netatmo_df.size > 0:
 
                         netatmo_stns_event_ = []
@@ -715,10 +726,7 @@ for temp_agg in resample_frequencies:
 
                                             netatmo_stns_event_.append(
                                                 netatmo_stn_id)
-                                            # add unertainty term on netatmo
-                                            # quantiles
-                                            edf_unc_term.append(
-                                                0.1 * (1 - netatmo_edf_event_))
+
                                     except Exception as msg:
                                         print(
                                             msg, 'Error when getting ppt from dwd interp')
@@ -743,9 +751,7 @@ for temp_agg in resample_frequencies:
                                         y_netatmo_interpolate[0])
 
                                     netatmo_stns_event_.append(netatmo_stn_id)
-                                    # add unertainty term on netatmo quantiles
-                                    edf_unc_term.append(
-                                        0.1 * (1 - netatmo_edf_event_))
+
                         #==================================================
                         # Applying second filter
                         #==================================================
@@ -825,10 +831,6 @@ for temp_agg in resample_frequencies:
                                 netatmo_stns_event_)
                             if ix not in idxs_stns_remove]
 
-                        edf_unc_term_gd = [
-                            unc for ix, unc in enumerate(
-                                edf_unc_term)
-                            if ix not in idxs_stns_remove]
 
 #                             if not stns_filtered:
 #                                 netatmo_ppt_vals_fr_dwd_interp_gd = netatmo_ppt_vals_fr_dwd_interp
@@ -857,15 +859,36 @@ for temp_agg in resample_frequencies:
                             (ppt_netatmo_vals,
                              ppt_dwd_vals_nona.values)), 2).ravel()
 
+                        # add unertainty term on netatmo ppt
+                        ppt_unc_term_20perc = np.array([
+                            0.2 * p for p in ppt_netatmo_vals])
+                        ppt_unc_term_10perc = np.array([
+                            0.1 * p for p in ppt_netatmo_vals])
+                        ppt_unc_term_5perc = np.array([
+                            0.05 * p for p in ppt_netatmo_vals])
+                        ppt_unc_term_2perc = np.array([
+                            0.02 * p for p in ppt_netatmo_vals])
+                        # combine both uncertainty terms
                         # uncertainty for dwd is 0
                         uncert_dwd = np.zeros(
                             shape=ppt_dwd_vals_nona.values.shape)
 
                         # combine both uncertainty terms
-                        edf_dwd_netatmo_vals_uncert = np.concatenate([
-                            edf_unc_term_gd,
+                        ppt_dwd_netatmo_vals_uncert_20perc = np.concatenate([
+                            ppt_unc_term_20perc,
                             uncert_dwd])
 
+                        ppt_dwd_netatmo_vals_uncert_10perc = np.concatenate([
+                            ppt_unc_term_10perc,
+                            uncert_dwd])
+
+                        ppt_dwd_netatmo_vals_uncert_5perc = np.concatenate([
+                            ppt_unc_term_5perc,
+                            uncert_dwd])
+
+                        ppt_dwd_netatmo_vals_uncert_2perc = np.concatenate([
+                            ppt_unc_term_2perc,
+                            uncert_dwd])
                         # Start kriging ppt at DWD
                         #======================================================
 
@@ -886,11 +909,38 @@ for temp_agg in resample_frequencies:
                             model=vgs_model_dwd_ppt)
 
                         # kriging with uncertainty
-                        ordinary_kriging_dwd_netatmo_ppt_unc = OrdinaryKrigingWithUncertainty(
+                        ordinary_kriging_dwd_netatmo_ppt_unc_20perc = OrdinaryKrigingWithUncertainty(
                             xi=netatmo_dwd_x_coords,
                             yi=netatmo_dwd_y_coords,
                             zi=netatmo_dwd_ppt_vals,
-                            uncert=edf_dwd_netatmo_vals_uncert,
+                            uncert=ppt_dwd_netatmo_vals_uncert_20perc,
+                            xk=x_dwd_interpolate,
+                            yk=y_dwd_interpolate,
+                            model=vgs_model_dwd_ppt)
+
+                        ordinary_kriging_dwd_netatmo_ppt_unc_10perc = OrdinaryKrigingWithUncertainty(
+                            xi=netatmo_dwd_x_coords,
+                            yi=netatmo_dwd_y_coords,
+                            zi=netatmo_dwd_ppt_vals,
+                            uncert=ppt_dwd_netatmo_vals_uncert_10perc,
+                            xk=x_dwd_interpolate,
+                            yk=y_dwd_interpolate,
+                            model=vgs_model_dwd_ppt)
+
+                        ordinary_kriging_dwd_netatmo_ppt_unc_5perc = OrdinaryKrigingWithUncertainty(
+                            xi=netatmo_dwd_x_coords,
+                            yi=netatmo_dwd_y_coords,
+                            zi=netatmo_dwd_ppt_vals,
+                            uncert=ppt_dwd_netatmo_vals_uncert_5perc,
+                            xk=x_dwd_interpolate,
+                            yk=y_dwd_interpolate,
+                            model=vgs_model_dwd_ppt)
+
+                        ordinary_kriging_dwd_netatmo_ppt_unc_2perc = OrdinaryKrigingWithUncertainty(
+                            xi=netatmo_dwd_x_coords,
+                            yi=netatmo_dwd_y_coords,
+                            zi=netatmo_dwd_ppt_vals,
+                            uncert=ppt_dwd_netatmo_vals_uncert_2perc,
                             xk=x_dwd_interpolate,
                             yk=y_dwd_interpolate,
                             model=vgs_model_dwd_ppt)
@@ -898,7 +948,10 @@ for temp_agg in resample_frequencies:
                         try:
                             ordinary_kriging_dwd_netatmo_ppt.krige()
                             ordinary_kriging_dwd_ppt.krige()
-                            ordinary_kriging_dwd_netatmo_ppt_unc.krige()
+                            ordinary_kriging_dwd_netatmo_ppt_unc_20perc.krige()
+                            ordinary_kriging_dwd_netatmo_ppt_unc_10perc.krige()
+                            ordinary_kriging_dwd_netatmo_ppt_unc_5perc.krige()
+                            ordinary_kriging_dwd_netatmo_ppt_unc_2perc.krige()
                         except Exception as msg:
                             print('Error while Kriging', msg)
 
@@ -906,7 +959,15 @@ for temp_agg in resample_frequencies:
                             0]
                         interpolated_dwd_ppt = ordinary_kriging_dwd_ppt.zk.copy()[
                             0]
-                        interpolated_netatmo_dwd_ppt_unc = ordinary_kriging_dwd_netatmo_ppt_unc.zk.copy()[
+                        interpolated_netatmo_dwd_ppt_unc_20perc = ordinary_kriging_dwd_netatmo_ppt_unc_20perc.zk.copy()[
+                            0]
+
+                        interpolated_netatmo_dwd_ppt_unc_10perc = ordinary_kriging_dwd_netatmo_ppt_unc_10perc.zk.copy()[
+                            0]
+
+                        interpolated_netatmo_dwd_ppt_unc_5perc = ordinary_kriging_dwd_netatmo_ppt_unc_5perc.zk.copy()[
+                            0]
+                        interpolated_netatmo_dwd_ppt_unc_2perc = ordinary_kriging_dwd_netatmo_ppt_unc_2perc.zk.copy()[
                             0]
 
                         if interpolated_netatmo_dwd_ppt < 0:
@@ -915,8 +976,17 @@ for temp_agg in resample_frequencies:
                         if interpolated_dwd_ppt < 0:
                             interpolated_dwd_ppt = np.nan
 
-                        if interpolated_netatmo_dwd_ppt_unc < 0:
-                            interpolated_netatmo_dwd_ppt_unc = np.nan
+                        if interpolated_netatmo_dwd_ppt_unc_20perc < 0:
+                            interpolated_netatmo_dwd_ppt_unc_20perc = np.nan
+
+                        if interpolated_netatmo_dwd_ppt_unc_10perc < 0:
+                            interpolated_netatmo_dwd_ppt_unc_10perc = np.nan
+
+                        if interpolated_netatmo_dwd_ppt_unc_5perc < 0:
+                            interpolated_netatmo_dwd_ppt_unc_5perc = np.nan
+
+                        if interpolated_netatmo_dwd_ppt_unc_2perc < 0:
+                            interpolated_netatmo_dwd_ppt_unc_2perc = np.nan
 
 #                         print('**Interpolated PPT by DWD_Netatmo: ',
 #                               interpolated_netatmo_dwd_ppt)
@@ -933,9 +1003,21 @@ for temp_agg in resample_frequencies:
                             event_date,
                             stn_dwd_id] = interpolated_netatmo_dwd_ppt
 
-                        df_interpolated_dwd_netatmos_comb_un.loc[
+                        df_interpolated_dwd_netatmos_comb_un_20perc.loc[
                             event_date,
-                            stn_dwd_id] = interpolated_netatmo_dwd_ppt_unc
+                            stn_dwd_id] = interpolated_netatmo_dwd_ppt_unc_20perc
+
+                        df_interpolated_dwd_netatmos_comb_un_10perc.loc[
+                            event_date,
+                            stn_dwd_id] = interpolated_netatmo_dwd_ppt_unc_10perc
+
+                        df_interpolated_dwd_netatmos_comb_un_5perc.loc[
+                            event_date,
+                            stn_dwd_id] = interpolated_netatmo_dwd_ppt_unc_5perc
+
+                        df_interpolated_dwd_netatmos_comb_un_2perc.loc[
+                            event_date,
+                            stn_dwd_id] = interpolated_netatmo_dwd_ppt_unc_2perc
 
                         df_interpolated_dwd_only.loc[
                             event_date,
@@ -948,7 +1030,10 @@ for temp_agg in resample_frequencies:
         print('Done with this event', iev, '/', dwd_in_extremes_df.shape[0])
 
     df_interpolated_dwd_netatmos_comb.dropna(how='all', inplace=True)
-    df_interpolated_dwd_netatmos_comb_un.dropna(how='all', inplace=True)
+    df_interpolated_dwd_netatmos_comb_un_20perc.dropna(how='all', inplace=True)
+    df_interpolated_dwd_netatmos_comb_un_10perc.dropna(how='all', inplace=True)
+    df_interpolated_dwd_netatmos_comb_un_5perc.dropna(how='all', inplace=True)
+    df_interpolated_dwd_netatmos_comb_un_2perc.dropna(how='all', inplace=True)
     df_interpolated_dwd_only.dropna(how='all', inplace=True)
 
     df_interpolated_dwd_netatmos_comb.to_csv(out_plots_path / (
@@ -956,8 +1041,23 @@ for temp_agg in resample_frequencies:
         % (temp_agg, title_, idx_lst_comb, _acc_)),
         sep=';', float_format='%0.2f')
 #
-    df_interpolated_dwd_netatmos_comb_un.to_csv(out_plots_path / (
-        'interpolated_ppt_dwd_%s_data_%s_using_dwd_netamo_grp_%d_%s_unc.csv'
+    df_interpolated_dwd_netatmos_comb_un_20perc.to_csv(out_plots_path / (
+        'interpolated_ppt_dwd_%s_data_%s_using_dwd_netamo_grp_%d_%s_unc20perc.csv'
+        % (temp_agg, title_, idx_lst_comb, _acc_)),
+        sep=';', float_format='%0.2f')
+
+    df_interpolated_dwd_netatmos_comb_un_10perc.to_csv(out_plots_path / (
+        'interpolated_ppt_dwd_%s_data_%s_using_dwd_netamo_grp_%d_%s_unc10perc.csv'
+        % (temp_agg, title_, idx_lst_comb, _acc_)),
+        sep=';', float_format='%0.2f')
+
+    df_interpolated_dwd_netatmos_comb_un_5perc.to_csv(out_plots_path / (
+        'interpolated_ppt_dwd_%s_data_%s_using_dwd_netamo_grp_%d_%s_unc5perc.csv'
+        % (temp_agg, title_, idx_lst_comb, _acc_)),
+        sep=';', float_format='%0.2f')
+
+    df_interpolated_dwd_netatmos_comb_un_2perc.to_csv(out_plots_path / (
+        'interpolated_ppt_dwd_%s_data_%s_using_dwd_netamo_grp_%d_%s_unc2perc.csv'
         % (temp_agg, title_, idx_lst_comb, _acc_)),
         sep=';', float_format='%0.2f')
 
