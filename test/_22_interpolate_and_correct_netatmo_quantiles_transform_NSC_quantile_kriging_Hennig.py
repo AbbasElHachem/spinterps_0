@@ -73,10 +73,10 @@ use_dwd_stns_for_kriging = True
 qunatile_kriging = True
 
 # run it to filter True
-use_netatmo_gd_stns = False  # general filter, Indicator kriging
-use_temporal_filter_after_kriging = False  # on day filter
+use_netatmo_gd_stns = True  # general filter, Indicator kriging
+use_temporal_filter_after_kriging = True  # on day filter
 
-use_first_neghbr_as_gd_stns = False  # False
+use_first_neghbr_as_gd_stns = True  # False
 use_first_and_second_nghbr_as_gd_stns = False  # True
 
 _acc_ = ''
@@ -135,8 +135,9 @@ ngp = 5
 idx_time_fmt = '%Y-%m-%d %H:%M:%S'
 
 radius = 10000
-max_dist_neighbrs = 3e4
+max_dist_neighbrs = 500e4
 diff_thr = 0.1
+
 
 #==============================================================================
 # Needed functions
@@ -193,7 +194,69 @@ def test_if_vg_model_is_suitable(vg_model, df_vgs, event_date):
         except Exception as msg:
             print(msg)
             print('Only Nugget variogram for this day')
+    if not isinstance(vg_model, str):
+        vg_model = ''
     return vg_model
+
+# =============================================================================
+
+
+def sum_calc_phi_nks(mean_val, std_val):
+    xvals = np.linspace(
+        -(mean_val + 30 * std_val),
+        +(mean_val + 30 * std_val),
+        1000, endpoint=True)
+
+    phi_densities = [norm.pdf(x, loc=mean_val,
+                              scale=std_val)[0]
+                     for x in xvals]
+
+    sum_densities = np.sum(phi_densities)
+    return sum_densities
+
+# =============================================================================
+
+
+def calc_sum_inv_F_norm_nk_times_phi_k(mean_val, std_val,
+                                       ppt_obsv, edf_obsv):
+    xvals = np.linspace(
+        -(mean_val + 30 * std_val),
+        +(mean_val + 30 * std_val),
+        1000, endpoint=True)
+
+    sum_weighted_ppts = []
+
+    phi_densities = []
+
+    for x in xvals:
+        density_x = norm.pdf(
+            x,
+            loc=mean_val,
+            scale=std_val)[0]
+
+        inv_interp = norm.cdf(
+            x,
+            loc=0,
+            scale=1)[0]
+
+        ppt_x = ppt_obsv[np.where(
+            edf_obsv == find_nearest(
+                edf_obsv, inv_interp))][0]
+
+        weighted_ppt = ppt_x * density_x
+        sum_weighted_ppts.append(
+            weighted_ppt)
+
+        phi_densities.append(ppt_x)
+    sum_densities_sr = pd.Series(data=phi_densities,
+                                 index=xvals)
+    onsc_edf = pd.Series(index=edf_obsv, data=ppt_obsv)
+    onsc_edf.plot()
+    sum_densities_sr.plot()
+
+    sum_ppts = np.sum(
+        sum_weighted_ppts)
+    return sum_ppts
 
 
 #==============================================================================
@@ -441,7 +504,7 @@ for temp_agg in resample_frequencies:
         #======================================================================
         # START KRIGING EVENTS
         #======================================================================
-        for event_date in dwd_in_extremes_df.index[170:]:
+        for ievt, event_date in enumerate(dwd_in_extremes_df.index):
 
             _stn_id_event_ = str(int(dwd_in_extremes_df.loc[event_date, 2]))
             if len(_stn_id_event_) < 5:
@@ -451,7 +514,7 @@ for temp_agg in resample_frequencies:
             _ppt_event_ = dwd_in_extremes_df.loc[event_date, 1]
             _edf_event_ = dwd_in_vals_df.loc[event_date, _stn_id_event_]
 
-            for i, stn_dwd_id in enumerate(stn_comb):
+            for i, stn_dwd_id in enumerate(stn_comb[:1]):
 
                 x_dwd_interpolate = np.array(
                     [dwd_in_coords_df.loc[stn_dwd_id, 'X']])
@@ -951,7 +1014,7 @@ for temp_agg in resample_frequencies:
                                             netatmo_xcoords == netatmo_x_stn,
                                             netatmo_ycoords == netatmo_y_stn))
 
-                                        # coords of neighborsä
+                                        # coords of neighborsï¿½
                                         neighbors_coords = np.array(
                                             [(x, y) for x, y
                                              in zip(x_coords_gd_netatmo_wet,
@@ -1048,8 +1111,17 @@ for temp_agg in resample_frequencies:
                             #==================================================
                             # Interpolate DWD QUANTILES
                             #==============================================
-                            if len(edf_netatmo_vals_gd) > 0:
+                            try:
+                                assert len(edf_netatmo_vals_gd) > 0
+                            except Exception as msg:
+                                netatmo_xcoords_gd = np.array(
+                                    [netatmo_xcoords_gd])
+                                netatmo_ycoords_gd = np.array(
+                                    [netatmo_ycoords_gd])
+                                edf_netatmo_vals_gd = np.array(
+                                    [edf_netatmo_vals_gd])
 
+                            if edf_netatmo_vals_gd.size > 0:
                                 # combine coordinates of DWD and Netatmo
                                 dwd_netatmo_xcoords = np.concatenate(
                                     [dwd_xcoords, netatmo_xcoords_gd])
@@ -1087,25 +1159,47 @@ for temp_agg in resample_frequencies:
                                         len(edf_dwd_vals) + 1),
                                     loc=0, scale=1)
 
+                                std_norm_edf_netatmo_vals = norm.ppf(
+                                    rankdata(edf_netatmo_vals_gd) / (
+                                        len(edf_netatmo_vals_gd) + 1),
+                                    loc=0, scale=1)
+
+                                # dwd-netatmo comb
                                 std_norm_edf_dwd_netatmo_vals = norm.ppf(
                                     rankdata(dwd_netatmo_edf) / (
                                         len(dwd_netatmo_edf) + 1),
                                     loc=0, scale=1)
-
+#
                                 # plot histogram of transformed vals
-#                                 plt.ioff()
-#                                 std_norm_edf_dwd_vals_sr = pd.Series(
-#                                     std_norm_edf_dwd_vals)
-#                                 std_norm_edf_dwd_vals_sr.plot.hist(
-#                                     grid=True, bins=5, rwidth=0.9,
-#                                     alpha=0.5, color='b', label='dwd')
-#                                 std_norm_edf_dwd_netatmo_vals_sr = pd.Series(
-#                                     std_norm_edf_dwd_netatmo_vals)
-#                                 std_norm_edf_dwd_netatmo_vals_sr.plot.hist(
-#                                     grid=True, bins=5, rwidth=0.9,
-#                                     alpha=0.5, color='r', label='dwd-netatmo')
-#                                 plt.show()
-#                                 plt.close()
+                                if std_norm_edf_netatmo_vals.size > 5:
+                                    plt.ioff()
+                                    plt.figure(figsize=(12, 8), dpi=150)
+                                    std_norm_edf_dwd_vals_sr = pd.Series(
+                                        std_norm_edf_dwd_vals)
+                                    std_norm_edf_netatmo_vals_sr = pd.Series(
+                                        std_norm_edf_netatmo_vals)
+                                    std_norm_edf_netatmo_vals_sr.plot.hist(
+                                        grid=True, bins=5, rwidth=0.9,
+                                        alpha=0.25, color='r',
+                                        label=('netatmo %d vals' %
+                                               std_norm_edf_netatmo_vals.size))
+
+                                    std_norm_edf_dwd_vals_sr.plot.hist(
+                                        grid=True, bins=5, rwidth=0.9,
+                                        alpha=0.25, color='b',
+                                        label=('dwd %d vals' %
+                                               std_norm_edf_dwd_vals_sr.size))
+                                    plt.legend(loc=0)
+                                    plt.title('Tranformed Quantiles Event Date: %s'
+                                              % event_date)
+                                    plt.savefig(Path(
+                                        out_plots_path /
+                                        (r'dwd_stn_%s_event_%s_.png'
+                                         % (stn_dwd_id,
+                                            str(event_date).replace(
+                                                '-', '_').replace(':', '_')))))
+#                                     plt.show()
+                                    plt.close()
 
                                 # Test for normality
 #                                 from scipy import stats
@@ -1190,133 +1284,72 @@ for temp_agg in resample_frequencies:
                                     #==========================================
                                     # # backtransform everything to ppt
                                     #==========================================
-                                    # DWD-Netatmo +- std
-                                    interpolated_vals_dwd_netatmo_min_std = (
-                                        interpolated_vals_dwd_netatmo -
-                                        std_est_vals_dwd_netatmo)
-                                    interpolated_vals_dwd_netatmo_plus_std = (
-                                        interpolated_vals_dwd_netatmo +
-                                        std_est_vals_dwd_netatmo)
 
-                                    # DWD +- std
-                                    interpolated_vals_dwd_min_std = (
-                                        interpolated_vals_dwd_only -
-                                        std_est_vals_dwd_only)
-                                    interpolated_vals_dwd_plus_std = (
-                                        interpolated_vals_dwd_only +
-                                        std_est_vals_dwd_only)
+                                    # discritize distribution
+                                    # TODO: CONTINUE HERE
 
-                                    # DWD-Netatmo with Unc +- std
-                                    interpolated_vals_dwd_netatmo_un_min_std = (
-                                        interpolated_vals_dwd_netatmo_un -
-                                        std_est_vals_dwd_netatmo_un)
-                                    interpolated_vals_dwd_netatmo_un_plus_std = (
-                                        interpolated_vals_dwd_netatmo_un +
-                                        std_est_vals_dwd_netatmo_un)
+                                    # sum phi nks
+                                    sum_densities_netatmo_dwd = sum_calc_phi_nks(
+                                        mean_val=interpolated_vals_dwd_netatmo,
+                                        std_val=std_est_vals_dwd_netatmo)
 
-                                    #==========================================
-                                    # # transorm using the standard normal
-                                    #==========================================
-                                    # DWD-Netatmo +- std
-                                    interpolated_vals_dwd_netatmo_min_std_tranf = norm.cdf(
-                                        interpolated_vals_dwd_netatmo_min_std,
-                                        loc=0, scale=1)
-                                    interpolated_vals_dwd_netatmo_plus_std_tranf = norm.cdf(
-                                        interpolated_vals_dwd_netatmo_plus_std,
-                                        loc=0, scale=1)
+                                    sum_densities_netatmo_dwd_unc = sum_calc_phi_nks(
+                                        mean_val=interpolated_vals_dwd_netatmo_un,
+                                        std_val=std_est_vals_dwd_netatmo_un)
 
-                                    # DWD +- std
-                                    interpolated_vals_dwd_min_std_tranf = norm.cdf(
-                                        interpolated_vals_dwd_min_std,
-                                        loc=0, scale=1)
-                                    interpolated_vals_dwd_plus_std_tranf = norm.cdf(
-                                        interpolated_vals_dwd_plus_std,
-                                        loc=0, scale=1)
+                                    sum_densities_dwd_only = sum_calc_phi_nks(
 
-                                    # DWD-Netatmo with Unc +- std
-                                    interpolated_vals_dwd_netatmo_un_min_std_tranf = norm.cdf(
-                                        interpolated_vals_dwd_netatmo_un_min_std,
-                                        loc=0, scale=1)
-                                    interpolated_vals_dwd_netatmo_un_plus_std_tranf = norm.cdf(
-                                        interpolated_vals_dwd_netatmo_un_plus_std,
-                                        loc=0, scale=1)
+                                        mean_val=interpolated_vals_dwd_only,
+                                        std_val=std_est_vals_dwd_only)
 
-                                    #==========================================
-                                    # get inv of quantiles using CDF of station
-                                    #==========================================
+                                    # sum F^-1obsv(Phi(nk))*phi(nk)
+                                    sum_ppts_netatmo_dwd = calc_sum_inv_F_norm_nk_times_phi_k(
+                                        mean_val=interpolated_vals_dwd_netatmo,
+                                        std_val=std_est_vals_dwd_netatmo,
+                                        ppt_obsv=xppt,
+                                        edf_obsv=yppt)
 
-                                    # DWD-Netatmo +- std
+                                    sum_ppts_netatmo_dwd_unc = calc_sum_inv_F_norm_nk_times_phi_k(
+                                        mean_val=interpolated_vals_dwd_netatmo_un,
+                                        std_val=std_est_vals_dwd_netatmo_un,
+                                        ppt_obsv=xppt,
+                                        edf_obsv=yppt)
 
-                                    ppt_vals_dwd_netatmo_min_std = np.mean(
-                                        xppt[np.where(
-                                            yppt == find_nearest(
-                                                yppt,
-                                             interpolated_vals_dwd_netatmo_min_std_tranf
-                                             ))])
+                                    sum_ppts_dwd_only = calc_sum_inv_F_norm_nk_times_phi_k(
+                                        mean_val=interpolated_vals_dwd_only,
+                                        std_val=std_est_vals_dwd_only,
+                                        ppt_obsv=xppt,
+                                        edf_obsv=yppt)
 
-                                    ppt_vals_dwd_netatmo_plus_std = np.mean(
-                                        xppt[np.where(yppt == find_nearest(
-                                            yppt,
-                                             interpolated_vals_dwd_netatmo_plus_std_tranf
-                                             ))])
-
-                                    # DWD +- std
-                                    ppt_vals_dwd_min_std = np.mean(
-                                        xppt[np.where(yppt == find_nearest(
-                                            yppt,
-                                            interpolated_vals_dwd_min_std_tranf
-                                        ))])
-                                    ppt_vals_dwd_plus_std = np.mean(
-                                        xppt[np.where(yppt == find_nearest(
-                                            yppt,
-                                            interpolated_vals_dwd_plus_std_tranf
-                                        ))])
-
-                                    # DWD-Netatmo with Unc +- std
-                                    ppt_vals_dwd_netatmo_un_min_std = np.mean(
-                                        xppt[np.where(yppt == find_nearest(
-                                            yppt,
-                                             interpolated_vals_dwd_netatmo_un_min_std_tranf
-                                             ))])
-                                    ppt_vals_dwd_netatmo_un_plus_std = np.mean(
-                                        xppt[np.where(yppt == find_nearest(
-                                            yppt,
-                                             interpolated_vals_dwd_netatmo_un_plus_std_tranf
-                                             ))])
-
-                                    # get mean of 2
-                                    ppt_interpolated_vals_dwd_netatmo = (
-                                        ppt_vals_dwd_netatmo_min_std +
-                                        ppt_vals_dwd_netatmo_plus_std) / 2
-
-                                    ppt_interpolated_vals_dwd_netatmo_un = (
-                                        ppt_vals_dwd_netatmo_un_min_std +
-                                        ppt_vals_dwd_netatmo_un_plus_std) / 2
-
-                                    ppt_interpolated_vals_dwd_only = (
-                                        ppt_vals_dwd_min_std +
-                                        ppt_vals_dwd_plus_std) / 2
+                                    interpolated_ppt_dwd_netatmo = (
+                                        sum_ppts_netatmo_dwd /
+                                        sum_densities_netatmo_dwd)
+                                    interpolated_ppt_dwd_netatmo_un = (
+                                        sum_ppts_netatmo_dwd_unc /
+                                        sum_densities_netatmo_dwd_unc)
+                                    interpolated_ppt_dwd_only = (
+                                        sum_ppts_dwd_only /
+                                        sum_densities_dwd_only)
 
                                     print('**Interpolated DWD: ',
-                                          ppt_interpolated_vals_dwd_only,
+                                          interpolated_ppt_dwd_only,
                                           '\n**Interpolated DWD-Netatmo: ',
-                                          ppt_interpolated_vals_dwd_netatmo,
+                                          interpolated_ppt_dwd_netatmo,
                                           '\n**Interpolated DWD-Netatmo Un: ',
-                                          ppt_interpolated_vals_dwd_netatmo_un)
+                                          interpolated_ppt_dwd_netatmo_un)
 
                                     # Saving result to DF
                                     df_interpolated_dwd_netatmos_comb.loc[
                                         event_date,
-                                        stn_dwd_id] = ppt_interpolated_vals_dwd_netatmo
+                                        stn_dwd_id] = interpolated_ppt_dwd_netatmo
 
                                     df_interpolated_dwd_netatmos_comb_un.loc[
                                         event_date,
-                                        stn_dwd_id] = ppt_interpolated_vals_dwd_netatmo_un
+                                        stn_dwd_id] = interpolated_ppt_dwd_netatmo_un
 
                                     df_interpolated_dwd_only.loc[
                                         event_date,
-                                        stn_dwd_id] = ppt_interpolated_vals_dwd_only
-                break
+                                        stn_dwd_id] = interpolated_ppt_dwd_only
 
         # drop nans from df and save results
         df_interpolated_dwd_netatmos_comb.dropna(how='all', inplace=True)
