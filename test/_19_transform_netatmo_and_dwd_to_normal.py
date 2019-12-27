@@ -73,10 +73,10 @@ use_dwd_stns_for_kriging = True
 qunatile_kriging = True
 
 # run it to filter True
-use_netatmo_gd_stns = False  # general filter, Indicator kriging
+use_netatmo_gd_stns = True  # general filter, Indicator kriging
 use_temporal_filter_after_kriging = False  # on day filter
 
-use_first_neghbr_as_gd_stns = False  # False
+use_first_neghbr_as_gd_stns = True  # False
 use_first_and_second_nghbr_as_gd_stns = False  # True
 
 _acc_ = ''
