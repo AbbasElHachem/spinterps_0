@@ -250,8 +250,6 @@ bound = [0., 0.5, 1,
          45]
 
 
-# cmap = mcolors.ListedColormap(cmap_data, 'precipitation')
-
 cmap = plt.get_cmap('jet')
 norm = mcolors.BoundaryNorm(bound, cmap.N)
 
@@ -635,7 +633,10 @@ for temp_agg in resample_frequencies:
                     (ppt_netatmo_vals,
                      ppt_dwd_vals)), 2).ravel()
 
-                # Krigging PPT at DWD station
+                #==============================================================
+                # # Krigging PPT
+                #==============================================================
+                # using Netatmo-DWD data
                 ordinary_kriging_dwd_netatmo_ppt = OrdinaryKriging(
                     xi=netatmo_dwd_x_coords,
                     yi=netatmo_dwd_y_coords,
@@ -643,7 +644,7 @@ for temp_agg in resample_frequencies:
                     xk=x_coords_grd,
                     yk=y_coords_grd,
                     model=vgs_model_dwd_ppt)
-
+                # using DWD data
                 ordinary_kriging_dwd_ppt = OrdinaryKriging(
                     xi=dwd_xcoords,
                     yi=dwd_ycoords,
@@ -651,6 +652,15 @@ for temp_agg in resample_frequencies:
                     xk=x_coords_grd,
                     yk=y_coords_grd,
                     model=vgs_model_dwd_ppt)
+                # using Netatmo data
+                ordinary_kriging_netatmo_ppt = OrdinaryKriging(
+                    xi=netatmo_xcoords,
+                    yi=netatmo_ycoords,
+                    zi=ppt_netatmo_vals,
+                    xk=x_coords_grd,
+                    yk=y_coords_grd,
+                    model=vgs_model_dwd_ppt)
+
 #                     try:
                 print('\nOK using DWD-Netatmo')
                 ordinary_kriging_dwd_netatmo_ppt.krige()
@@ -658,11 +668,14 @@ for temp_agg in resample_frequencies:
                 print('\nOK using DWD')
                 ordinary_kriging_dwd_ppt.krige()
 
+                print('\nOK using Netatmo')
+                ordinary_kriging_netatmo_ppt.krige()
 #                     except Exception as msg:
 #                         print('Error while Kriging', msg)
 
                 interpolated_vals_dwd_netatmo = ordinary_kriging_dwd_netatmo_ppt.zk.copy()
                 interpolated_vals_dwd_only = ordinary_kriging_dwd_ppt.zk.copy()
+                interpolated_vals_netatmo_only = ordinary_kriging_netatmo_ppt.zk.copy()
 
                 # put negative values to 0
                 interpolated_vals_dwd_netatmo[
@@ -670,14 +683,11 @@ for temp_agg in resample_frequencies:
 
                 interpolated_vals_dwd_only[
                     interpolated_vals_dwd_only < 0] = 0
-                plt.ioff()
-                # interpolated_vals_dwd_only
-                plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_dwd_only,
-                                     str_title=' DWD only',
-                                     out_plot_path=out_plots_path,
-                                     temp_agg=temp_agg,
-                                     event_date=event_date)
 
+                interpolated_vals_netatmo_only[
+                    interpolated_vals_netatmo_only < 0] = 0
+
+                plt.ioff()
                 # interpolated_vals_dwd_netatmo
                 plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_dwd_netatmo,
                                      str_title=' DWD-Netatmo',
@@ -685,6 +695,19 @@ for temp_agg in resample_frequencies:
                                      temp_agg=temp_agg,
                                      event_date=event_date)
 
+                # interpolated_vals_dwd_only
+                plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_dwd_only,
+                                     str_title=' DWD only',
+                                     out_plot_path=out_plots_path,
+                                     temp_agg=temp_agg,
+                                     event_date=event_date)
+
+                # interpolated_vals_netatmo
+                plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_netatmo_only,
+                                     str_title=' Netatmo',
+                                     out_plot_path=out_plots_path,
+                                     temp_agg=temp_agg,
+                                     event_date=event_date)
 
 stop = timeit.default_timer()  # Ending time
 print('\n\a\a\a Done with everything on %s \a\a\a' %
