@@ -252,7 +252,7 @@ def sum_calc_phi_nks(mean_val, std_val):
                      for x in xvals]
 
     phi_densities_sr = pd.Series(index=xvals, data=phi_densities)
-#     phi_densities_sr.plot()
+    phi_densities_sr.plot()
 
     # plt.show()
     sum_densities = np.sum(phi_densities)
@@ -271,6 +271,7 @@ def calc_sum_inv_F_norm_nk_times_phi_k(mean_val, std_val,
         1000, endpoint=True)
 
     sum_densities = sum_calc_phi_nks(mean_val, std_val)
+
     sum_weighted_ppts = []
 
 #     phi_densities = []
@@ -301,15 +302,15 @@ def calc_sum_inv_F_norm_nk_times_phi_k(mean_val, std_val,
                 edf_obsv, std_normal_inv_nk))][0]
 
         weighted_ppt = ppt_nk * weight_ppt
-        if weighted_ppt > 5:
-            print(weighted_ppt)
+#         if weighted_ppt >
+#             print(weighted_ppt)
         ppt_nks.append(weighted_ppt)
 
         sum_weighted_ppts.append(
             weighted_ppt)
 
-#     sum_densities_sr = pd.DataFrame(index=inv_obs_std_norm)
-#     sum_densities_sr['sum_weighted_ppts'] = sum_weighted_ppts
+    sum_densities_sr = pd.DataFrame(index=inv_obs_std_norm)
+    sum_densities_sr['sum_weighted_ppts'] = sum_weighted_ppts
 #     sum_densities_sr['phi_nk'] = phi_densities
 #     sum_densities_sr['inv_obs_std_norm'] = inv_obs_std_norm
 #     sum_densities_sr['ppt_nks'] = ppt_nks
@@ -654,7 +655,7 @@ for temp_agg in resample_frequencies:
         #======================================================================
         # START KRIGING EVENTS
         #======================================================================
-        for ievt, event_date in enumerate(dwd_in_extremes_df.index):
+        for ievt, event_date in enumerate(dwd_in_extremes_df.index[50:]):
 
             _stn_id_event_ = str(int(dwd_in_extremes_df.loc[event_date, 2]))
             if len(_stn_id_event_) < 5:

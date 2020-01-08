@@ -244,11 +244,10 @@ cmap_data = ['darkblue', 'blue', 'deepskyblue', 'lightblue',
              'gold', 'orange', 'darkorange', 'orangered'][::-1]
 
 cmap = mcolors.ListedColormap(cmap_data, 'precipitation')
-bound = [0., 0.5, 1,
+bound = [0., 1,
          2, 5, 8,
          10, 15, 20,
-         25, 30, 35, 40,
-         45]
+         25, 30]
 
 
 cmap = plt.get_cmap('jet')
