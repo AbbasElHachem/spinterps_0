@@ -44,9 +44,9 @@ bw_area_shp = (r"X:\hiwi\ElHachem\GitHub\extremes"
 #==============================================================================
 
 
-nrows = 1000
-ncols = 1000
-cellsize = 50
+nrows = 250
+ncols = 250
+cellsize = 50000
 
 
 # informationen aus shapefiles holen
@@ -108,5 +108,5 @@ coords_interpolate['X'] = coords_xk
 coords_interpolate['Y'] = coords_yk
 
 coords_interpolate.to_csv(
-    r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\oridinary_kriging_compare_DWD_Netatmo\coords_interpolate.csv',
+    r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\oridinary_kriging_compare_DWD_Netatmo\coords_interpolate_midle.csv',
     sep=';')
