@@ -25,6 +25,9 @@ import time
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import matplotlib.gridspec as gridspec
+
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from spinterps import (OrdinaryKriging)
 from spinterps import variograms
@@ -69,7 +72,7 @@ path_to_dwd_stns_comb = in_filter_path / r'dwd_combination_to_use.csv'
 
 # path for interpolation grid
 path_grid_interpolate = in_filter_path / \
-    r"coords_interpolate_midle.csv"  # _small
+    r"coords_interpolate_small.csv"  # _small
 
 #==============================================================================
 # # NETATMO FIRST FILTER
@@ -80,10 +83,10 @@ use_dwd_stns_for_kriging = True
 qunatile_kriging = True
 
 # run it to filter Netatmo
-use_netatmo_gd_stns = True  # general filter, Indicator kriging
-use_temporal_filter_after_kriging = True  # on day filter
+use_netatmo_gd_stns = False  # general filter, Indicator kriging
+use_temporal_filter_after_kriging = False  # on day filter
 
-use_first_neghbr_as_gd_stns = True  # False
+use_first_neghbr_as_gd_stns = False  # False
 use_first_and_second_nghbr_as_gd_stns = False  # True
 
 _acc_ = ''
@@ -251,79 +254,243 @@ def chunks(l, n):
         yield l[i:i + n]
 
 
-cmap_data = ['darkblue', 'blue', 'deepskyblue', 'lightblue',
-             'darkgreen', 'olive',
-             'lightgreen', 'greenyellow', 'yellow',
-             'gold', 'orange', 'darkorange', 'orangered'][::-1]
+# cmap_data = ['darkblue', 'blue', 'deepskyblue', 'lightblue',
+#              'darkgreen', 'olive',
+#              'lightgreen', 'greenyellow', 'yellow',
+#              'gold', 'orange', 'darkorange', 'orangered'][::-1]
+#
+# cmap = mcolors.ListedColormap(cmap_data, 'precipitation')
+#
+#
+# def plot_interp_ppt_evnt(vals_to_plot, str_title,
+#                          out_plot_path,
+#                          temp_agg,
+#                          event_date):
+#     '''plot interpolated events, grid wise '''
+#
+#     plt.figure(figsize=(12, 8), dpi=200)
+#
+#     plt.scatter(x_coords_grd, y_coords_grd,
+#                 c=vals_to_plot,
+#                 marker=',', s=40, cmap=cmap,
+#                 vmin=min(vals_to_plot), norm=norm,
+#                 vmax=max(vals_to_plot))
+#
+#     plt.colorbar(cmap=cmap,
+#                  norm=norm,
+#                  ticks=bound,
+#                  label='mm/%s' % temp_agg)
+#
+#     if 'DWD' not in str_title and 'Netatmo' in str_title:
+#         plt.scatter(netatmo_xcoords, netatmo_ycoords, c='m',
+#                     marker='1', s=10, label='Netatmo', alpha=0.85)
+#
+#     if 'DWD' in str_title and 'Netatmo' not in str_title:
+#         plt.scatter(dwd_xcoords, dwd_ycoords, c='darkgreen',
+#                     marker='x', s=10, label='DWD', alpha=0.85)
+#
+#     if 'DWD' in str_title and 'Netatmo' in str_title:
+#         plt.scatter(dwd_xcoords, dwd_ycoords, c='darkgreen',
+#                     marker='x', s=10, label='DWD')
+#         plt.scatter(netatmo_xcoords, netatmo_ycoords, c='m',
+#                     marker='1', s=10, label='Netatmo', alpha=0.85)
+#     plt.legend(loc=0)
+#     plt.title('Event Date ' + str(
+#         event_date) + ' Using %s' % (str_title))
+# #     plt.grid(alpha=.25)
+# #     plt.xlabel('Longitude')
+# #     plt.ylabel('Latitude')
+#     plt.tick_params(axis='both', which='both', bottom='False', top='False',
+#                     labelbottom='False', right='False',
+#                     left='False', labelleft='False')
+# #     plt.axis('equal')
+#
+#     plt.margins(0, 0)
+#     plt.gca().xaxis.set_major_locator(plt.NullLocator())
+#     plt.gca().yaxis.set_major_locator(plt.NullLocator())
+#
+#     plt.box(False)
+#     plt.tight_layout()
+#     # plt.show()
+#     plt.savefig((
+#         out_plot_path / (
+#                 '%s_%s_%s_event_test' %
+#                 (str_title, temp_agg,
+#                  str(event_date).replace(
+#                      '-', '_').replace(':',
+#                                        '_').replace(' ', '_')
+#                  ))),
+#                 papertype='a4',
+#                 bbox_inches='tight',
+#                 pad_inches=0.05)
+#     plt.close()
+#     return
 
-cmap = mcolors.ListedColormap(cmap_data, 'precipitation')
+#==============================================================================
+#
+#==============================================================================
 
 
-def plot_interp_ppt_evnt(vals_to_plot, str_title,
-                         out_plot_path,
-                         temp_agg,
-                         event_date):
+def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
+                                    vals_to_plot_dwd,
+                                    vals_to_plot_netatmo,
+                                    vals_to_plot_dwd_min_dwd_netatmo,
+                                    vals_to_plot_dwd_min_netatmo,
+                                    out_plot_path,
+                                    temp_agg,
+                                    event_date):
     '''plot interpolated events, grid wise '''
+    from matplotlib.colors import LinearSegmentedColormap
 
-    plt.figure(figsize=(12, 8), dpi=200)
+    if temp_agg == '60min':
+        min_val, max_val = 0, 30
+        clbr_label = 'mm/h'
+    if temp_agg == '1440min':
+        min_val, max_val = 0, 45
+        clbr_label = 'mm/d'
 
-    plt.scatter(x_coords_grd, y_coords_grd,
-                c=vals_to_plot,
-                marker=',', s=40, cmap=cmap,
-                vmin=min(vals_to_plot), norm=norm,
-                vmax=max(vals_to_plot))
+    plt.ioff()
 
-    plt.colorbar(cmap=cmap,
-                 norm=norm,
-                 ticks=bound,
-                 label='mm/%s' % temp_agg)
+    bound_ppt = [0., 1, 2, 5, 8,
+                 10, 15, 20, 25, 30]  # , 35, 40, 45]
 
-    if 'DWD' not in str_title and 'Netatmo' in str_title:
-        plt.scatter(netatmo_xcoords, netatmo_ycoords, c='m',
-                    marker='1', s=10, label='Netatmo', alpha=0.85)
+    cmap_ppt = plt.get_cmap('jet_r')
+    norm_ppt = mcolors.BoundaryNorm(bound_ppt, cmap_ppt.N)
 
-    if 'DWD' in str_title and 'Netatmo' not in str_title:
-        plt.scatter(dwd_xcoords, dwd_ycoords, c='darkgreen',
-                    marker='x', s=10, label='DWD', alpha=0.85)
+    bound_diff = [-15, -15., -10, -5, -2, 0, 2,
+                  5, 10, 15, 15]
 
-    if 'DWD' in str_title and 'Netatmo' in str_title:
-        plt.scatter(dwd_xcoords, dwd_ycoords, c='darkgreen',
-                    marker='x', s=10, label='DWD')
-        plt.scatter(netatmo_xcoords, netatmo_ycoords, c='m',
-                    marker='1', s=10, label='Netatmo', alpha=0.85)
-    plt.legend(loc=0)
-    plt.title('Event Date ' + str(
-        event_date) + ' Using %s' % (str_title))
-#     plt.grid(alpha=.25)
-#     plt.xlabel('Longitude')
-#     plt.ylabel('Latitude')
-    plt.tick_params(axis='both', which='both', bottom='False', top='False',
-                    labelbottom='False', right='False',
-                    left='False', labelleft='False')
+    # Remove the middle 10% of the RdBu_r colormap
+    interval = np.hstack([np.linspace(0, 0.48), np.linspace(0.52, 1)])
+    colors = plt.get_cmap('PiYG')(interval)
+    cmap_diff = LinearSegmentedColormap.from_list('name', colors)
+
+    #cmap_diff = plt.get_cmap('PiYG')
+    norm_diff = mcolors.BoundaryNorm(bound_diff, cmap_diff.N)
+
+    fig = plt.figure(figsize=(20, 10), constrained_layout=False, dpi=600)
+    gs = gridspec.GridSpec(2, 8)
+
+    gs.update(left=0.25, right=1, wspace=0.01)
+    # dwd-netatmo
+    ax1 = fig.add_subplot(gs[:1, :2])
+    ax1.scatter(x_coords_grd, y_coords_grd,
+                c=vals_to_plot_dwd_netatmo,
+                marker=',', s=40, cmap=cmap_ppt,
+                vmin=min_val,
+                norm=norm_ppt,
+                vmax=max_val)
+    ax1.legend(title='a)', loc='upper left')._legend_box.align = 'left'
+    # dwd
+    ax2 = fig.add_subplot(gs[:1, 2:4])
+    ax2.scatter(x_coords_grd, y_coords_grd,
+                c=vals_to_plot_dwd,
+                marker=',', s=40, cmap=cmap_ppt,
+                vmin=min_val,
+                norm=norm_ppt,
+                vmax=max_val)
+    ax2.legend(title='b)', loc='upper left')._legend_box.align = 'left'
+
+    # netatmo
+    ax3 = fig.add_subplot(gs[:1, 4:6])
+    im3 = ax3.scatter(x_coords_grd, y_coords_grd,
+                      c=vals_to_plot_netatmo,
+                      marker=',', s=40, cmap=cmap_ppt,
+                      vmin=min_val,
+                      norm=norm_ppt,
+                      vmax=max_val)
+    ax3.legend(title='c)', loc='upper left')._legend_box.align = 'left'
+
+    # colorbar
+    ax4 = fig.add_subplot(gs[:1, 6:7])
+    fig.colorbar(im3, ax=ax3, cax=ax4, norm=norm_ppt,
+                 ticks=bound_ppt, label=clbr_label)
+
+    # second row
+    # dwd-dwd_netatmo
+    ax5 = fig.add_subplot(gs[1:, 1:3])
+    ax5.scatter(x_coords_grd, y_coords_grd,
+                c=vals_to_plot_dwd_min_dwd_netatmo,
+                marker=',', s=40, cmap=cmap_diff,
+                vmin=bound_diff[0],
+                norm=norm_diff,
+                vmax=bound_diff[-1])
+    ax5.legend(title='d)', loc='upper left')._legend_box.align = 'left'
+
+    # dwd-netatmo
+    ax6 = fig.add_subplot(gs[1:, 3:5])
+    im6 = ax6.scatter(x_coords_grd, y_coords_grd,
+                      c=vals_to_plot_dwd_min_netatmo,
+                      marker=',', s=40, cmap=cmap_diff,
+                      vmin=bound_diff[0],
+                      norm=norm_diff,
+                      vmax=bound_diff[-1])
+    ax6.legend(title='e)', loc='upper left')._legend_box.align = 'left'
+
+    ax7 = fig.add_subplot(gs[1:, 5:6])  # , sharey=ax6)
+    fig.colorbar(im6, ax=ax6, cax=ax7, norm=norm_diff,
+                 ticks=bound_diff, label=clbr_label)
+
+    plt.setp(plt.gcf().get_axes(), xticks=[], yticks=[])
+#     plt.tick_params(axis='both', which='both', bottom='False', top='False',
+#                     labelbottom='False', right='False',
+#                     left='False', labelleft='False')
 #     plt.axis('equal')
 
     plt.margins(0, 0)
-    plt.gca().xaxis.set_major_locator(plt.NullLocator())
-    plt.gca().yaxis.set_major_locator(plt.NullLocator())
+#     plt.gca().xaxis.set_major_locator(plt.NullLocator())
+#     plt.gca().yaxis.set_major_locator(plt.NullLocator())
 
     plt.box(False)
-    plt.tight_layout()
+#     plt.tight_layout()
     # plt.show()
     plt.savefig((
         out_plot_path / (
-                '%s_%s_%s_event_test' %
-                (str_title, temp_agg,
+                '%s_%s_event_test' %
+                (temp_agg,
                  str(event_date).replace(
                      '-', '_').replace(':',
-                                       '_').replace(' ', '_')
-                 ))),
+                                       '_').replace(' ', '_')))),
                 papertype='a4',
                 bbox_inches='tight',
                 pad_inches=0.05)
     plt.close()
-    return
+
+    pass
+#==============================================================================
+#
+#==============================================================================
 
 
+'''
+
+
+import numpy as np
+widths = [1, 1, 1]
+heights = [1, 1, 1]
+
+#gs_kw = dict(width_ratios=widths, height_ratios=heights)
+
+
+
+#ax7.plot(range(0,10), range(0,10))
+
+#divider = make_axes_locatable(ax6)
+#cax = divider.append_axes("right", size="10%", pad=0.15)
+
+#plt.colorbar(im, cax=cax)
+
+
+#fig.colorbar(im, cax=cax)
+
+
+#plt.legend(loc=0)
+
+# one liner to remove *all axes in all subplots*
+#plt.tight_layout(h_pad=1)
+
+
+'''
 #==============================================================================
 #
 #==============================================================================
@@ -680,14 +847,15 @@ for temp_agg in resample_frequencies:
                         #======================================================
                         # # Krigging PPT
                         #======================================================
-                        # using Netatmo-DWD data
-                        ordinary_kriging_dwd_netatmo_ppt = OrdinaryKriging(
-                            xi=netatmo_dwd_x_coords,
-                            yi=netatmo_dwd_y_coords,
-                            zi=netatmo_dwd_ppt_vals,
-                            xk=x_coords_grd,
-                            yk=y_coords_grd,
-                            model=vgs_model_dwd_ppt)
+#                         # using Netatmo-DWD data
+#                         ordinary_kriging_dwd_netatmo_ppt = OrdinaryKriging(
+#                             xi=netatmo_dwd_x_coords,
+#                             yi=netatmo_dwd_y_coords,
+#                             zi=netatmo_dwd_ppt_vals,
+#                             xk=x_coords_grd,
+#                             yk=y_coords_grd,
+#                             model=vgs_model_dwd_ppt)
+
                         # using DWD data
                         ordinary_kriging_dwd_ppt = OrdinaryKriging(
                             xi=dwd_xcoords,
@@ -707,7 +875,7 @@ for temp_agg in resample_frequencies:
 
         #                     try:
                         print('\nOK using DWD-Netatmo')
-                        ordinary_kriging_dwd_netatmo_ppt.krige()
+#                         ordinary_kriging_dwd_netatmo_ppt.krige()
 
                         print('\nOK using DWD')
                         ordinary_kriging_dwd_ppt.krige()
@@ -717,14 +885,14 @@ for temp_agg in resample_frequencies:
         #                     except Exception as msg:
         #                         print('Error while Kriging', msg)
 
-                        interpolated_vals_dwd_netatmo = ordinary_kriging_dwd_netatmo_ppt.zk.copy()
+#                         interpolated_vals_dwd_netatmo = ordinary_kriging_dwd_netatmo_ppt.zk.copy()
                         interpolated_vals_dwd_only = ordinary_kriging_dwd_ppt.zk.copy()
                         interpolated_vals_netatmo_only = ordinary_kriging_netatmo_ppt.zk.copy()
 
                         # put negative values to 0
-                        interpolated_vals_dwd_netatmo[
-                            interpolated_vals_dwd_netatmo < 0] = 0
-
+#                         interpolated_vals_dwd_netatmo[
+#                             interpolated_vals_dwd_netatmo < 0] = 0
+#
                         interpolated_vals_dwd_only[
                             interpolated_vals_dwd_only < 0] = 0
 
@@ -732,347 +900,64 @@ for temp_agg in resample_frequencies:
                             interpolated_vals_netatmo_only < 0] = 0
 
                         # difference netatmo-dwd - dwd
-                        diff_map_plus = interpolated_vals_dwd_only - interpolated_vals_dwd_netatmo
+#                         diff_map_plus = interpolated_vals_dwd_only - interpolated_vals_dwd_netatmo
                         diff_map_plus2 = interpolated_vals_dwd_only - interpolated_vals_netatmo_only
-                        plt.ioff()
 
-                        bound = [0., 1,
-                                 2, 5, 8,
-                                 10, 15, 20,
-                                 25, 30]  # , 35, 40, 45]
 
-                        cmap = plt.get_cmap('jet')
-                        norm = mcolors.BoundaryNorm(bound, cmap.N)
-                        # interpolated_vals_dwd_netatmo
-                        plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_dwd_netatmo,
-                                             str_title=' DWD-Netatmo',
-                                             out_plot_path=out_plots_path,
-                                             temp_agg=temp_agg,
-                                             event_date=event_date)
+#                         bound = [0., 1,
+#                                  2, 5, 8,
+#                                  10, 15, 20,
+#                                  25, 30]  # , 35, 40, 45]
 
-                        # interpolated_vals_dwd_only
-                        plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_dwd_only,
-                                             str_title=' DWD only',
-                                             out_plot_path=out_plots_path,
-                                             temp_agg=temp_agg,
-                                             event_date=event_date)
-
-                        # interpolated_vals_netatmo
-                        plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_netatmo_only,
-                                             str_title=' Netatmo',
-                                             out_plot_path=out_plots_path,
-                                             temp_agg=temp_agg,
-                                             event_date=event_date)
-
-                        bound = [-30, -15., -10,
-                                 -5, -2, 0, 2,
-                                 5, 10, 15,
-                                 30]
-
-                        cmap = plt.get_cmap('jet')
-                        norm = mcolors.BoundaryNorm(bound, cmap.N)
-
-                        plot_interp_ppt_evnt(vals_to_plot=diff_map_plus,
-                                             str_title=' DWD minus DWD-Netatmo',
-                                             out_plot_path=out_plots_path,
-                                             temp_agg=temp_agg,
-                                             event_date=event_date)
-
-                        plot_interp_ppt_evnt(vals_to_plot=diff_map_plus2,
-                                             str_title=' DWD minus Netatmo',
-                                             out_plot_path=out_plots_path,
-                                             temp_agg=temp_agg,
-                                             event_date=event_date)
-                    #
-                    #                 #==========================================================
-                    #                 # USE FIRST NETATMO FILTER
-                    #                 #==========================================================
-                    #                 if (use_netatmo_gd_stns and
-                    #                         not use_temporal_filter_after_kriging):
-                    #
-                    #                     print('NETATMO 1st FILTERED')
-                    #                     netatmo_stns_event_ = []
-                    #                     netatmo_ppt_vals_fr_dwd_interp = []
-                    # #                     netatmo_ppt_vals_fr_dwd_interp_unc = []
-                    #
-                    #                     x_netatmo_ppt_vals_fr_dwd_interp = []
-                    #                     y_netatmo_ppt_vals_fr_dwd_interp = []
-                    #                     # netatmo stations to correct
-                    #
-                    #                     for netatmo_stn_id in netatmo_df.index:
-                    #
-                    #                         netatmo_edf_event_ = netatmo_in_vals_df.loc[
-                    #                             event_date,
-                    #                             netatmo_stn_id]
-                    #
-                    #                         netatmo_ppt_event_ = netatmo_in_ppt_vals_df.loc[
-                    #                             event_date,
-                    #                             netatmo_stn_id]
-                    #
-                    #                         x_netatmo_interpolate = np.array(
-                    #                             [netatmo_in_coords_df.loc[netatmo_stn_id, 'X']])
-                    #                         y_netatmo_interpolate = np.array(
-                    #                             [netatmo_in_coords_df.loc[netatmo_stn_id, 'Y']])
-                    #
-                    #                         if netatmo_edf_event_ > 0.7:  # 0.99:
-                    #                             print('Correcting Netatmo station',
-                    #                                   netatmo_stn_id)
-                    #                             try:
-                    #                                 #==========================================
-                    #                                 # # Correct Netatmo Quantiles
-                    #                                 #==========================================
-                    #
-                    #                                 netatmo_stn_edf_df = netatmo_in_vals_df.loc[
-                    #                                     :, netatmo_stn_id].dropna()
-                    #
-                    #                                 netatmo_start_date = netatmo_stn_edf_df.index[0]
-                    #                                 netatmo_end_date = netatmo_stn_edf_df.index[-1]
-                    #
-                    #                                 print('\nOriginal Netatmo Ppt: ',
-                    #                                       netatmo_ppt_event_,
-                    #                                       '\nOriginal Netatmo Edf: ',
-                    #                                       netatmo_edf_event_)
-                    #
-                    #                                 # select dwd stations with only same period as
-                    #                                 # netatmo stn
-                    #                                 ppt_dwd_stn_vals = dwd_in_ppt_vals_df.loc[
-                    #                                     netatmo_start_date:netatmo_end_date,
-                    #                                     :].dropna(how='all')
-                    #
-                    #                                 dwd_xcoords_new = []
-                    #                                 dwd_ycoords_new = []
-                    #                                 ppt_vals_dwd_new_for_obsv_ppt = []
-                    #
-                    #                                 for dwd_stn_id_new in ppt_dwd_stn_vals.columns:
-                    #
-                    #                                     ppt_vals_stn_new = ppt_dwd_stn_vals.loc[
-                    #                                         :, dwd_stn_id_new].dropna()
-                    #
-                    #                                     if ppt_vals_stn_new.size > 0:
-                    #
-                    #                                         ppt_stn_new, edf_stn_new = build_edf_fr_vals(
-                    #                                             ppt_vals_stn_new)
-                    #
-                    #                                         if netatmo_edf_event_ == 1.0:
-                    #                                             # correct edf event, 1 is bcz
-                    #                                             # rounding error
-                    #                                             ppt_ix_edf = find_nearest(
-                    #                                                 ppt_stn_new,
-                    #                                                 _ppt_event_)
-                    #
-                    #                                             netatmo_edf_event_ = edf_stn_new[
-                    #                                                 np.where(
-                    #                                                     ppt_stn_new == ppt_ix_edf)][0]
-                    #
-                    # #                                                 netatmo_edf_event_unc = netatmo_edf_event_ + (
-                    # #                                                     (1 - netatmo_edf_event_) * 0.1)
-                    #                                             print('\nChanged Original Netatmo Edf: ',
-                    #                                                   netatmo_edf_event_)
-                    #
-                    #                                         nearst_edf_new = find_nearest(
-                    #                                             edf_stn_new,
-                    #                                             netatmo_edf_event_)
-                    #
-                    #                                         ppt_idx = np.where(
-                    #                                             edf_stn_new == nearst_edf_new)
-                    #
-                    #                                         try:
-                    #                                             if ppt_idx[0].size > 1:
-                    #                                                 ppt_for_edf = np.mean(
-                    #                                                     ppt_stn_new[ppt_idx])
-                    #                                             else:
-                    #                                                 ppt_for_edf = ppt_stn_new[ppt_idx]
-                    #                                         except Exception as msg:
-                    #                                             print(msg)
-                    #
-                    #                                         if ppt_for_edf[0] >= 0:
-                    #
-                    #                                             ppt_vals_dwd_new_for_obsv_ppt.append(
-                    #                                                 ppt_for_edf[0])
-                    #
-                    #                                             stn_xcoords_new = dwd_in_coords_df.loc[
-                    #                                                 dwd_stn_id_new, 'X']
-                    #                                             stn_ycoords_new = dwd_in_coords_df.loc[
-                    #                                                 dwd_stn_id_new, 'Y']
-                    #
-                    #                                             dwd_xcoords_new.append(
-                    #                                                 stn_xcoords_new)
-                    #                                             dwd_ycoords_new.append(
-                    #                                                 stn_xcoords_new)
-                    #
-                    #                                 # get ppt from dwd recent for netatmo stns
-                    #                                 ppt_vals_dwd_new_for_obsv_ppt = np.array(
-                    #                                     ppt_vals_dwd_new_for_obsv_ppt)
-                    #                                 # for kriging with uncertainty
-                    #
-                    #                                 dwd_xcoords_new = np.array(dwd_xcoords_new)
-                    #                                 dwd_ycoords_new = np.array(dwd_ycoords_new)
-                    #
-                    #                                 try:
-                    #                                     print(
-                    #                                         '\n+++ KRIGING CORRECTING QT +++\n')
-                    #
-                    #                                     ordinary_kriging_dwd_netatmo_crt = OrdinaryKriging(
-                    #                                         xi=dwd_xcoords_new,
-                    #                                         yi=dwd_ycoords_new,
-                    #                                         zi=ppt_vals_dwd_new_for_obsv_ppt,
-                    #                                         xk=x_netatmo_interpolate,
-                    #                                         yk=y_netatmo_interpolate,
-                    #                                         model=vgs_model_dwd_ppt)
-                    #
-                    #                                     try:
-                    #                                         ordinary_kriging_dwd_netatmo_crt.krige()
-                    #                                     except Exception as msg:
-                    #                                         print('Error while Kriging', msg)
-                    #
-                    #                                     interpolated_netatmo_prct = ordinary_kriging_dwd_netatmo_crt.zk.copy()
-                    #
-                    #                                     if interpolated_netatmo_prct < 0:
-                    #                                         interpolated_netatmo_prct = np.nan
-                    #
-                    #                                     print('**Interpolated PPT by DWD recent: \n',
-                    #                                           interpolated_netatmo_prct)
-                    #
-                    #                                     if interpolated_netatmo_prct >= 0.:
-                    #                                         netatmo_ppt_vals_fr_dwd_interp.append(
-                    #                                             interpolated_netatmo_prct[0])
-                    #
-                    #                                         x_netatmo_ppt_vals_fr_dwd_interp.append(
-                    #                                             x_netatmo_interpolate[0])
-                    #
-                    #                                         y_netatmo_ppt_vals_fr_dwd_interp.append(
-                    #                                             y_netatmo_interpolate[0])
-                    #
-                    #                                         netatmo_stns_event_.append(
-                    #                                             netatmo_stn_id)
-                    #                                 except Exception as msg:
-                    #                                     print(
-                    #                                         msg, 'Error when getting ppt from dwd interp')
-                    #                                     continue
-                    #
-                    #                             except Exception as msg:
-                    #                                 print(msg, 'Error when KRIGING')
-                    #                                 continue
-                    #
-                    #                         else:
-                    #                             print('QT to small no need to correct it\n')
-                    #                             # check if nan, if so don't add it
-                    #                             if netatmo_ppt_event_ >= 0:
-                    #                                 netatmo_ppt_vals_fr_dwd_interp.append(
-                    #                                     netatmo_ppt_event_)
-                    #
-                    # #                                     netatmo_ppt_vals_fr_dwd_interp_unc.append(
-                    # #                                         netatmo_ppt_event_)
-                    #                                 x_netatmo_ppt_vals_fr_dwd_interp.append(
-                    #                                     x_netatmo_interpolate[0])
-                    #
-                    #                                 y_netatmo_ppt_vals_fr_dwd_interp.append(
-                    #                                     y_netatmo_interpolate[0])
-                    #
-                    #                                 netatmo_stns_event_.append(netatmo_stn_id)
-                    #
-                    #                     #======================================================
-                    #                     # Transform everything to arrays and combine
-                    #                     # dwd-netatmo
-                    #
-                    #                     netatmo_xcoords = np.array(
-                    #                         x_netatmo_ppt_vals_fr_dwd_interp).ravel()
-                    #                     netatmo_ycoords = np.array(
-                    #                         y_netatmo_ppt_vals_fr_dwd_interp).ravel()
-                    #
-                    #                     ppt_netatmo_vals = np.round(np.array(
-                    #                         netatmo_ppt_vals_fr_dwd_interp).ravel(), 2)
-                    #
-                    #                     netatmo_dwd_x_coords = np.concatenate([netatmo_xcoords,
-                    #                                                            dwd_xcoords])
-                    #                     netatmo_dwd_y_coords = np.concatenate([netatmo_ycoords,
-                    #                                                            dwd_ycoords])
-                    #                     netatmo_dwd_ppt_vals = np.round(np.hstack(
-                    #                         (ppt_netatmo_vals,
-                    #                          ppt_dwd_vals)), 2).ravel()
-                    #
-                    #                     #======================================================
-                    #                     # # Krigging PPT
-                    #                     #======================================================
-                    #                     # using Netatmo-DWD data
-                    #                     ordinary_kriging_dwd_netatmo_ppt = OrdinaryKriging(
-                    #                         xi=netatmo_dwd_x_coords,
-                    #                         yi=netatmo_dwd_y_coords,
-                    #                         zi=netatmo_dwd_ppt_vals,
-                    #                         xk=x_coords_grd,
-                    #                         yk=y_coords_grd,
-                    #                         model=vgs_model_dwd_ppt)
-                    #                     # using DWD data
-                    #                     ordinary_kriging_dwd_ppt = OrdinaryKriging(
-                    #                         xi=dwd_xcoords,
-                    #                         yi=dwd_ycoords,
-                    #                         zi=ppt_dwd_vals,
-                    #                         xk=x_coords_grd,
-                    #                         yk=y_coords_grd,
-                    #                         model=vgs_model_dwd_ppt)
-                    #                     # using Netatmo data
-                    #                     ordinary_kriging_netatmo_ppt = OrdinaryKriging(
-                    #                         xi=netatmo_xcoords,
-                    #                         yi=netatmo_ycoords,
-                    #                         zi=ppt_netatmo_vals,
-                    #                         xk=x_coords_grd,
-                    #                         yk=y_coords_grd,
-                    #                         model=vgs_model_dwd_ppt)
-                    #
-                    #     #                     try:
-                    #                     print('\nOK using DWD-Netatmo')
-                    #                     ordinary_kriging_dwd_netatmo_ppt.krige()
-                    #
-                    #                     print('\nOK using DWD')
-                    #                     ordinary_kriging_dwd_ppt.krige()
-                    #
-                    #                     print('\nOK using Netatmo')
-                    #                     ordinary_kriging_netatmo_ppt.krige()
-                    #     #                     except Exception as msg:
-                    #     #                         print('Error while Kriging', msg)
-                    #
-                    #                     interpolated_vals_dwd_netatmo = ordinary_kriging_dwd_netatmo_ppt.zk.copy()
-                    #                     interpolated_vals_dwd_only = ordinary_kriging_dwd_ppt.zk.copy()
-                    #                     interpolated_vals_netatmo_only = ordinary_kriging_netatmo_ppt.zk.copy()
-                    #
-                    #                     # put negative values to 0
-                    #                     interpolated_vals_dwd_netatmo[
-                    #                         interpolated_vals_dwd_netatmo < 0] = 0
-                    #
-                    #                     interpolated_vals_dwd_only[
-                    #                         interpolated_vals_dwd_only < 0] = 0
-                    #
-                    #                     interpolated_vals_netatmo_only[
-                    #                         interpolated_vals_netatmo_only < 0] = 0
-                    #
-                    #                     plt.ioff()
-                    #                     # interpolated_vals_dwd_netatmo
-                    #                     plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_dwd_netatmo,
-                    #                                          str_title=' DWD-Netatmo',
-                    #                                          out_plot_path=out_plots_path,
-                    #                                          temp_agg=temp_agg,
-                    #                                          event_date=event_date)
-                    #
-                    #                     # interpolated_vals_dwd_only
-                    #                     plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_dwd_only,
-                    #                                          str_title=' DWD',
-                    #                                          out_plot_path=out_plots_path,
-                    #                                          temp_agg=temp_agg,
-                    #                                          event_date=event_date)
-                    #
-                    #                     # interpolated_vals_netatmo
-                    #                     plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_netatmo_only,
-                    #                                          str_title=' Netatmo',
-                    #                                          out_plot_path=out_plots_path,
-                    #                                          temp_agg=temp_agg,
-                    #                                          event_date=event_date)
+#                         cmap = plt.get_cmap('jet')
+#                         norm = mcolors.BoundaryNorm(bound, cmap.N)
+#                         # interpolated_vals_dwd_netatmo
+#                         plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_dwd_netatmo,
+#                                              str_title=' DWD-Netatmo',
+#                                              out_plot_path=out_plots_path,
+#                                              temp_agg=temp_agg,
+#                                              event_date=event_date)
+#
+#                         # interpolated_vals_dwd_only
+#                         plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_dwd_only,
+#                                              str_title=' DWD only',
+#                                              out_plot_path=out_plots_path,
+#                                              temp_agg=temp_agg,
+#                                              event_date=event_date)
+#
+#                         # interpolated_vals_netatmo
+#                         plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_netatmo_only,
+#                                              str_title=' Netatmo',
+#                                              out_plot_path=out_plots_path,
+#                                              temp_agg=temp_agg,
+#                                              event_date=event_date)
+#
+#                         bound = [-30, -15., -10,
+#                                  -5, -2, 0, 2,
+#                                  5, 10, 15,
+#                                  30]
+#
+#                         cmap = plt.get_cmap('jet')
+#                         norm = mcolors.BoundaryNorm(bound, cmap.N)
+#
+#                         plot_interp_ppt_evnt(vals_to_plot=diff_map_plus,
+#                                              str_title=' DWD minus DWD-Netatmo',
+#                                              out_plot_path=out_plots_path,
+#                                              temp_agg=temp_agg,
+#                                              event_date=event_date)
+#
+#                         plot_interp_ppt_evnt(vals_to_plot=diff_map_plus2,
+#                                              str_title=' DWD minus Netatmo',
+#                                              out_plot_path=out_plots_path,
+#                                              temp_agg=temp_agg,
+#                                              event_date=event_date)
 
                     #==========================================================
                     # FIRST AND SECOND FILTER
                     #==========================================================
 
-                    if (use_netatmo_gd_stns and
-                            use_temporal_filter_after_kriging):
+#                     if (use_netatmo_gd_stns and
+#                             use_temporal_filter_after_kriging):
 
                         print('NETATMO 1st FILTERED and 2nd Filter')
                         netatmo_stns_event_ = []
@@ -1370,102 +1255,397 @@ for temp_agg in resample_frequencies:
                         model=vgs_model_dwd_ppt)
 
                     # using DWD data
-                    ordinary_kriging_dwd_ppt = OrdinaryKriging(
-                        xi=dwd_xcoords,
-                        yi=dwd_ycoords,
-                        zi=ppt_dwd_vals,
-                        xk=x_coords_grd,
-                        yk=y_coords_grd,
-                        model=vgs_model_dwd_ppt)
+#                     ordinary_kriging_dwd_ppt = OrdinaryKriging(
+#                         xi=dwd_xcoords,
+#                         yi=dwd_ycoords,
+#                         zi=ppt_dwd_vals,
+#                         xk=x_coords_grd,
+#                         yk=y_coords_grd,
+#                         model=vgs_model_dwd_ppt)
 
                     # using Netatmo data
-                    ordinary_kriging_netatmo_ppt = OrdinaryKriging(
-                        xi=netatmo_xcoords,
-                        yi=netatmo_ycoords,
-                        zi=ppt_netatmo_vals,
-                        xk=x_coords_grd,
-                        yk=y_coords_grd,
-                        model=vgs_model_dwd_ppt)
+#                     ordinary_kriging_netatmo_ppt = OrdinaryKriging(
+#                         xi=netatmo_xcoords,
+#                         yi=netatmo_ycoords,
+#                         zi=ppt_netatmo_vals,
+#                         xk=x_coords_grd,
+#                         yk=y_coords_grd,
+#                         model=vgs_model_dwd_ppt)
 
     #                     try:
     #                     print('\nOK using DWD-Netatmo')
                     ordinary_kriging_dwd_netatmo_ppt.krige()
 
     #                     print('\nOK using DWD')
-                    ordinary_kriging_dwd_ppt.krige()
+#                     ordinary_kriging_dwd_ppt.krige()
 
     #                     print('\nOK using Netatmo')
-                    ordinary_kriging_netatmo_ppt.krige()
+#                     ordinary_kriging_netatmo_ppt.krige()
 #                         except Exception as msg:
 #                             print('Error while Kriging', msg)
 
                     interpolated_vals_dwd_netatmo = ordinary_kriging_dwd_netatmo_ppt.zk.copy()
-                    interpolated_vals_dwd_only = ordinary_kriging_dwd_ppt.zk.copy()
-                    interpolated_vals_netatmo_only = ordinary_kriging_netatmo_ppt.zk.copy()
+#                     interpolated_vals_dwd_only = ordinary_kriging_dwd_ppt.zk.copy()
+#                     interpolated_vals_netatmo_only = ordinary_kriging_netatmo_ppt.zk.copy()
 
                     # put negative values to 0
                     interpolated_vals_dwd_netatmo[
                         interpolated_vals_dwd_netatmo < 0] = 0
 
-                    interpolated_vals_dwd_only[
-                        interpolated_vals_dwd_only < 0] = 0
-
-                    interpolated_vals_netatmo_only[
-                        interpolated_vals_netatmo_only < 0] = 0
+#                     interpolated_vals_dwd_only[
+#                         interpolated_vals_dwd_only < 0] = 0
+#
+#                     interpolated_vals_netatmo_only[
+#                         interpolated_vals_netatmo_only < 0] = 0
 
                     # difference netatmo-dwd - dwd
                     diff_map_plus = interpolated_vals_dwd_only - interpolated_vals_dwd_netatmo
 
-                    diff_map_plus2 = interpolated_vals_dwd_only - interpolated_vals_netatmo_only
+#                     diff_map_plus2 = interpolated_vals_dwd_only - interpolated_vals_netatmo_only
                     print('Plotting')
                     plt.ioff()
-                    bound = [0., 1,
-                             2, 5, 8,
-                             10, 15, 20,
-                             25, 30]  # , 35, 40, 45]
 
-                    cmap = plt.get_cmap('jet')
-                    norm = mcolors.BoundaryNorm(bound, cmap.N)
-                    # interpolated_vals_dwd_netatmo
-                    plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_dwd_netatmo,
-                                         str_title=' DWD-Netatmo',
-                                         out_plot_path=out_plots_path,
-                                         temp_agg=temp_agg,
-                                         event_date=event_date)
-
-                    # interpolated_vals_dwd_only
-                    plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_dwd_only,
-                                         str_title=' DWD',
-                                         out_plot_path=out_plots_path,
-                                         temp_agg=temp_agg,
-                                         event_date=event_date)
-
-                    # interpolated_vals_netatmo
-                    plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_netatmo_only,
-                                         str_title=' Netatmo',
-                                         out_plot_path=out_plots_path,
-                                         temp_agg=temp_agg,
-                                         event_date=event_date)
-                    bound = [-30, -15., -10,
-                             -5, -2, 0, 2,
-                             5, 10, 15,
-                             30]
-
-                    cmap = plt.get_cmap('jet')
-                    norm = mcolors.BoundaryNorm(bound, cmap.N)
-
-                    plot_interp_ppt_evnt(vals_to_plot=diff_map_plus,
-                                         str_title=' DWD minus DWD-Netatmo',
-                                         out_plot_path=out_plots_path,
-                                         temp_agg=temp_agg,
-                                         event_date=event_date)
-
-                    plot_interp_ppt_evnt(vals_to_plot=diff_map_plus2,
-                                         str_title=' DWD minus Netatmo',
-                                         out_plot_path=out_plots_path,
-                                         temp_agg=temp_agg,
-                                         event_date=event_date)
+                    plot_all_interplations_subplots(
+                        vals_to_plot_dwd_netatmo=interpolated_vals_dwd_netatmo,
+                        vals_to_plot_dwd=interpolated_vals_dwd_only,
+                        vals_to_plot_netatmo=interpolated_vals_netatmo_only,
+                        vals_to_plot_dwd_min_dwd_netatmo=diff_map_plus,
+                        vals_to_plot_dwd_min_netatmo=diff_map_plus2,
+                        out_plot_path=out_plots_path,
+                        temp_agg=temp_agg,
+                        event_date=event_date)
+#                     plt.ioff()
+#                     bound = [0., 1,
+#                              2, 5, 8,
+#                              10, 15, 20,
+#                              25, 30]  # , 35, 40, 45]
+#
+#                     cmap = plt.get_cmap('jet')
+#                     norm = mcolors.BoundaryNorm(bound, cmap.N)
+#                     # interpolated_vals_dwd_netatmo
+#                     plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_dwd_netatmo,
+#                                          str_title=' DWD-Netatmo',
+#                                          out_plot_path=out_plots_path,
+#                                          temp_agg=temp_agg,
+#                                          event_date=event_date)
+#
+#                     # interpolated_vals_dwd_only
+#                     plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_dwd_only,
+#                                          str_title=' DWD',
+#                                          out_plot_path=out_plots_path,
+#                                          temp_agg=temp_agg,
+#                                          event_date=event_date)
+#
+#                     # interpolated_vals_netatmo
+#                     plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_netatmo_only,
+#                                          str_title=' Netatmo',
+#                                          out_plot_path=out_plots_path,
+#                                          temp_agg=temp_agg,
+#                                          event_date=event_date)
+#                     bound = [-30, -15., -10,
+#                              -5, -2, 0, 2,
+#                              5, 10, 15,
+#                              30]
+#
+#                     cmap = plt.get_cmap('jet')
+#                     norm = mcolors.BoundaryNorm(bound, cmap.N)
+#
+#                     plot_interp_ppt_evnt(vals_to_plot=diff_map_plus,
+#                                          str_title=' DWD minus DWD-Netatmo',
+#                                          out_plot_path=out_plots_path,
+#                                          temp_agg=temp_agg,
+#                                          event_date=event_date)
+#
+#                     plot_interp_ppt_evnt(vals_to_plot=diff_map_plus2,
+#                                          str_title=' DWD minus Netatmo',
+#                                          out_plot_path=out_plots_path,
+#                                          temp_agg=temp_agg,
+#                                          event_date=event_date)
 
 stop = timeit.default_timer()  # Ending time
 print('\n\a\a\a Done with everything on %s \a\a\a' %
       (time.asctime()))
+
+#
+#                 #==========================================================
+#                 # USE FIRST NETATMO FILTER
+#                 #==========================================================
+#                 if (use_netatmo_gd_stns and
+#                         not use_temporal_filter_after_kriging):
+#
+#                     print('NETATMO 1st FILTERED')
+#                     netatmo_stns_event_ = []
+#                     netatmo_ppt_vals_fr_dwd_interp = []
+# #                     netatmo_ppt_vals_fr_dwd_interp_unc = []
+#
+#                     x_netatmo_ppt_vals_fr_dwd_interp = []
+#                     y_netatmo_ppt_vals_fr_dwd_interp = []
+#                     # netatmo stations to correct
+#
+#                     for netatmo_stn_id in netatmo_df.index:
+#
+#                         netatmo_edf_event_ = netatmo_in_vals_df.loc[
+#                             event_date,
+#                             netatmo_stn_id]
+#
+#                         netatmo_ppt_event_ = netatmo_in_ppt_vals_df.loc[
+#                             event_date,
+#                             netatmo_stn_id]
+#
+#                         x_netatmo_interpolate = np.array(
+#                             [netatmo_in_coords_df.loc[netatmo_stn_id, 'X']])
+#                         y_netatmo_interpolate = np.array(
+#                             [netatmo_in_coords_df.loc[netatmo_stn_id, 'Y']])
+#
+#                         if netatmo_edf_event_ > 0.7:  # 0.99:
+#                             print('Correcting Netatmo station',
+#                                   netatmo_stn_id)
+#                             try:
+#                                 #==========================================
+#                                 # # Correct Netatmo Quantiles
+#                                 #==========================================
+#
+#                                 netatmo_stn_edf_df = netatmo_in_vals_df.loc[
+#                                     :, netatmo_stn_id].dropna()
+#
+#                                 netatmo_start_date = netatmo_stn_edf_df.index[0]
+#                                 netatmo_end_date = netatmo_stn_edf_df.index[-1]
+#
+#                                 print('\nOriginal Netatmo Ppt: ',
+#                                       netatmo_ppt_event_,
+#                                       '\nOriginal Netatmo Edf: ',
+#                                       netatmo_edf_event_)
+#
+#                                 # select dwd stations with only same period as
+#                                 # netatmo stn
+#                                 ppt_dwd_stn_vals = dwd_in_ppt_vals_df.loc[
+#                                     netatmo_start_date:netatmo_end_date,
+#                                     :].dropna(how='all')
+#
+#                                 dwd_xcoords_new = []
+#                                 dwd_ycoords_new = []
+#                                 ppt_vals_dwd_new_for_obsv_ppt = []
+#
+#                                 for dwd_stn_id_new in ppt_dwd_stn_vals.columns:
+#
+#                                     ppt_vals_stn_new = ppt_dwd_stn_vals.loc[
+#                                         :, dwd_stn_id_new].dropna()
+#
+#                                     if ppt_vals_stn_new.size > 0:
+#
+#                                         ppt_stn_new, edf_stn_new = build_edf_fr_vals(
+#                                             ppt_vals_stn_new)
+#
+#                                         if netatmo_edf_event_ == 1.0:
+#                                             # correct edf event, 1 is bcz
+#                                             # rounding error
+#                                             ppt_ix_edf = find_nearest(
+#                                                 ppt_stn_new,
+#                                                 _ppt_event_)
+#
+#                                             netatmo_edf_event_ = edf_stn_new[
+#                                                 np.where(
+#                                                     ppt_stn_new == ppt_ix_edf)][0]
+#
+# #                                                 netatmo_edf_event_unc = netatmo_edf_event_ + (
+# #                                                     (1 - netatmo_edf_event_) * 0.1)
+#                                             print('\nChanged Original Netatmo Edf: ',
+#                                                   netatmo_edf_event_)
+#
+#                                         nearst_edf_new = find_nearest(
+#                                             edf_stn_new,
+#                                             netatmo_edf_event_)
+#
+#                                         ppt_idx = np.where(
+#                                             edf_stn_new == nearst_edf_new)
+#
+#                                         try:
+#                                             if ppt_idx[0].size > 1:
+#                                                 ppt_for_edf = np.mean(
+#                                                     ppt_stn_new[ppt_idx])
+#                                             else:
+#                                                 ppt_for_edf = ppt_stn_new[ppt_idx]
+#                                         except Exception as msg:
+#                                             print(msg)
+#
+#                                         if ppt_for_edf[0] >= 0:
+#
+#                                             ppt_vals_dwd_new_for_obsv_ppt.append(
+#                                                 ppt_for_edf[0])
+#
+#                                             stn_xcoords_new = dwd_in_coords_df.loc[
+#                                                 dwd_stn_id_new, 'X']
+#                                             stn_ycoords_new = dwd_in_coords_df.loc[
+#                                                 dwd_stn_id_new, 'Y']
+#
+#                                             dwd_xcoords_new.append(
+#                                                 stn_xcoords_new)
+#                                             dwd_ycoords_new.append(
+#                                                 stn_xcoords_new)
+#
+#                                 # get ppt from dwd recent for netatmo stns
+#                                 ppt_vals_dwd_new_for_obsv_ppt = np.array(
+#                                     ppt_vals_dwd_new_for_obsv_ppt)
+#                                 # for kriging with uncertainty
+#
+#                                 dwd_xcoords_new = np.array(dwd_xcoords_new)
+#                                 dwd_ycoords_new = np.array(dwd_ycoords_new)
+#
+#                                 try:
+#                                     print(
+#                                         '\n+++ KRIGING CORRECTING QT +++\n')
+#
+#                                     ordinary_kriging_dwd_netatmo_crt = OrdinaryKriging(
+#                                         xi=dwd_xcoords_new,
+#                                         yi=dwd_ycoords_new,
+#                                         zi=ppt_vals_dwd_new_for_obsv_ppt,
+#                                         xk=x_netatmo_interpolate,
+#                                         yk=y_netatmo_interpolate,
+#                                         model=vgs_model_dwd_ppt)
+#
+#                                     try:
+#                                         ordinary_kriging_dwd_netatmo_crt.krige()
+#                                     except Exception as msg:
+#                                         print('Error while Kriging', msg)
+#
+#                                     interpolated_netatmo_prct = ordinary_kriging_dwd_netatmo_crt.zk.copy()
+#
+#                                     if interpolated_netatmo_prct < 0:
+#                                         interpolated_netatmo_prct = np.nan
+#
+#                                     print('**Interpolated PPT by DWD recent: \n',
+#                                           interpolated_netatmo_prct)
+#
+#                                     if interpolated_netatmo_prct >= 0.:
+#                                         netatmo_ppt_vals_fr_dwd_interp.append(
+#                                             interpolated_netatmo_prct[0])
+#
+#                                         x_netatmo_ppt_vals_fr_dwd_interp.append(
+#                                             x_netatmo_interpolate[0])
+#
+#                                         y_netatmo_ppt_vals_fr_dwd_interp.append(
+#                                             y_netatmo_interpolate[0])
+#
+#                                         netatmo_stns_event_.append(
+#                                             netatmo_stn_id)
+#                                 except Exception as msg:
+#                                     print(
+#                                         msg, 'Error when getting ppt from dwd interp')
+#                                     continue
+#
+#                             except Exception as msg:
+#                                 print(msg, 'Error when KRIGING')
+#                                 continue
+#
+#                         else:
+#                             print('QT to small no need to correct it\n')
+#                             # check if nan, if so don't add it
+#                             if netatmo_ppt_event_ >= 0:
+#                                 netatmo_ppt_vals_fr_dwd_interp.append(
+#                                     netatmo_ppt_event_)
+#
+# #                                     netatmo_ppt_vals_fr_dwd_interp_unc.append(
+# #                                         netatmo_ppt_event_)
+#                                 x_netatmo_ppt_vals_fr_dwd_interp.append(
+#                                     x_netatmo_interpolate[0])
+#
+#                                 y_netatmo_ppt_vals_fr_dwd_interp.append(
+#                                     y_netatmo_interpolate[0])
+#
+#                                 netatmo_stns_event_.append(netatmo_stn_id)
+#
+#                     #======================================================
+#                     # Transform everything to arrays and combine
+#                     # dwd-netatmo
+#
+#                     netatmo_xcoords = np.array(
+#                         x_netatmo_ppt_vals_fr_dwd_interp).ravel()
+#                     netatmo_ycoords = np.array(
+#                         y_netatmo_ppt_vals_fr_dwd_interp).ravel()
+#
+#                     ppt_netatmo_vals = np.round(np.array(
+#                         netatmo_ppt_vals_fr_dwd_interp).ravel(), 2)
+#
+#                     netatmo_dwd_x_coords = np.concatenate([netatmo_xcoords,
+#                                                            dwd_xcoords])
+#                     netatmo_dwd_y_coords = np.concatenate([netatmo_ycoords,
+#                                                            dwd_ycoords])
+#                     netatmo_dwd_ppt_vals = np.round(np.hstack(
+#                         (ppt_netatmo_vals,
+#                          ppt_dwd_vals)), 2).ravel()
+#
+#                     #======================================================
+#                     # # Krigging PPT
+#                     #======================================================
+#                     # using Netatmo-DWD data
+#                     ordinary_kriging_dwd_netatmo_ppt = OrdinaryKriging(
+#                         xi=netatmo_dwd_x_coords,
+#                         yi=netatmo_dwd_y_coords,
+#                         zi=netatmo_dwd_ppt_vals,
+#                         xk=x_coords_grd,
+#                         yk=y_coords_grd,
+#                         model=vgs_model_dwd_ppt)
+#                     # using DWD data
+#                     ordinary_kriging_dwd_ppt = OrdinaryKriging(
+#                         xi=dwd_xcoords,
+#                         yi=dwd_ycoords,
+#                         zi=ppt_dwd_vals,
+#                         xk=x_coords_grd,
+#                         yk=y_coords_grd,
+#                         model=vgs_model_dwd_ppt)
+#                     # using Netatmo data
+#                     ordinary_kriging_netatmo_ppt = OrdinaryKriging(
+#                         xi=netatmo_xcoords,
+#                         yi=netatmo_ycoords,
+#                         zi=ppt_netatmo_vals,
+#                         xk=x_coords_grd,
+#                         yk=y_coords_grd,
+#                         model=vgs_model_dwd_ppt)
+#
+#     #                     try:
+#                     print('\nOK using DWD-Netatmo')
+#                     ordinary_kriging_dwd_netatmo_ppt.krige()
+#
+#                     print('\nOK using DWD')
+#                     ordinary_kriging_dwd_ppt.krige()
+#
+#                     print('\nOK using Netatmo')
+#                     ordinary_kriging_netatmo_ppt.krige()
+#     #                     except Exception as msg:
+#     #                         print('Error while Kriging', msg)
+#
+#                     interpolated_vals_dwd_netatmo = ordinary_kriging_dwd_netatmo_ppt.zk.copy()
+#                     interpolated_vals_dwd_only = ordinary_kriging_dwd_ppt.zk.copy()
+#                     interpolated_vals_netatmo_only = ordinary_kriging_netatmo_ppt.zk.copy()
+#
+#                     # put negative values to 0
+#                     interpolated_vals_dwd_netatmo[
+#                         interpolated_vals_dwd_netatmo < 0] = 0
+#
+#                     interpolated_vals_dwd_only[
+#                         interpolated_vals_dwd_only < 0] = 0
+#
+#                     interpolated_vals_netatmo_only[
+#                         interpolated_vals_netatmo_only < 0] = 0
+#
+#                     plt.ioff()
+#                     # interpolated_vals_dwd_netatmo
+#                     plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_dwd_netatmo,
+#                                          str_title=' DWD-Netatmo',
+#                                          out_plot_path=out_plots_path,
+#                                          temp_agg=temp_agg,
+#                                          event_date=event_date)
+#
+#                     # interpolated_vals_dwd_only
+#                     plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_dwd_only,
+#                                          str_title=' DWD',
+#                                          out_plot_path=out_plots_path,
+#                                          temp_agg=temp_agg,
+#                                          event_date=event_date)
+#
+#                     # interpolated_vals_netatmo
+#                     plot_interp_ppt_evnt(vals_to_plot=interpolated_vals_netatmo_only,
+#                                          str_title=' Netatmo',
+#                                          out_plot_path=out_plots_path,
+#                                          temp_agg=temp_agg,
+#                                          event_date=event_date)
