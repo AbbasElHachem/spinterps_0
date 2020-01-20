@@ -947,7 +947,7 @@ for temp_agg in resample_frequencies:
                             y_netatmo_interpolate = np.array(
                                 [netatmo_in_coords_df.loc[netatmo_stn_id, 'Y']])
 
-                            if netatmo_edf_event_ > 0.7:  # 0.99:
+                            if netatmo_edf_event_ > 0.5:  # 0.99:
                                 # print('Correcting Netatmo station')
                                 # netatmo_stn_id)
 

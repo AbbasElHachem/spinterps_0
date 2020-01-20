@@ -76,7 +76,7 @@ qunatile_kriging = True
 
 # run it to filter Netatmo
 use_netatmo_gd_stns = True  # general filter, Indicator kriging
-use_temporal_filter_after_kriging = False  # on day filter
+use_temporal_filter_after_kriging = True  # on day filter
 
 use_first_neghbr_as_gd_stns = False  # False
 use_first_and_second_nghbr_as_gd_stns = True  # True
@@ -98,7 +98,7 @@ if use_netatmo_gd_stns:
 #==============================================================================
 #
 #==============================================================================
-resample_frequencies = ['720min']
+resample_frequencies = ['60min']
 # '720min', '1440min']  # '60min', '360min'
 # '120min', '180min',
 title_ = r'Qt_ok_ok_un_2'
@@ -962,49 +962,50 @@ for temp_agg in resample_frequencies:
                                         np.array((netatmo_x_stn,
                                                   netatmo_y_stn)),
                                         radius)
-                                    if len(idxs_neighbours) > 0:
-
-                                        for i, ix_nbr in enumerate(idxs_neighbours):
-
-                                            try:
-                                                edf_neighbor = netatmo_wet_gd.iloc[ix_nbr]
-                                            except Exception as msg:
-                                                print(msg)
-                                                edf_neighbor = 1.1
-                                            if np.abs(edf_stn - edf_neighbor) <= diff_thr:
-                                                print(
-                                                    'bad wet netatmo station is good')
-                                                # add to good wet netatmos
-                                                netatmo_wet_gd[stn_] = edf_stn
-                                                ids_netatmo_stns_gd = np.append(
-                                                    ids_netatmo_stns_gd,
-                                                    stn_)
-                                                x_coords_gd_netatmo_wet = np.append(
-                                                    x_coords_gd_netatmo_wet,
-                                                    netatmo_x_stn)
-                                                y_coords_gd_netatmo_wet = np.append(
-                                                    y_coords_gd_netatmo_wet,
-                                                    netatmo_y_stn)
-
-                                                # remove from original bad wet
-                                                x_coords_bad_netatmo_wet = np.array(list(
-                                                    filter(lambda x: x != netatmo_x_stn,
-                                                           x_coords_bad_netatmo_wet)))
-
-                                                y_coords_bad_netatmo_wet = np.array(list(
-                                                    filter(lambda x: x != netatmo_y_stn,
-                                                           y_coords_bad_netatmo_wet)))
-
-                                                netatmo_wet_bad.loc[stn_] = np.nan
-
-                                                ids_netatmo_stns_bad = list(
-                                                    filter(lambda x: x != stn_,
-                                                           ids_netatmo_stns_bad))
-
-                                            else:
-                                                print('bad wet is bad wet')
-                                    else:
-                                        print('\nStn has no near neighbors')
+                                    # TODO: FIX ME
+#                                     if len(idxs_neighbours) > 0:
+#
+#                                         for i, ix_nbr in enumerate(idxs_neighbours):
+#
+#                                             try:
+#                                                 edf_neighbor = netatmo_wet_gd.iloc[ix_nbr]
+#                                             except Exception as msg:
+#                                                 print(msg)
+#                                                 edf_neighbor = 1.1
+#                                             if np.abs(edf_stn - edf_neighbor) <= diff_thr:
+#                                                 print(
+#                                                     'bad wet netatmo station is good')
+#                                                 # add to good wet netatmos
+#                                                 netatmo_wet_gd[stn_] = edf_stn
+#                                                 ids_netatmo_stns_gd = np.append(
+#                                                     ids_netatmo_stns_gd,
+#                                                     stn_)
+#                                                 x_coords_gd_netatmo_wet = np.append(
+#                                                     x_coords_gd_netatmo_wet,
+#                                                     netatmo_x_stn)
+#                                                 y_coords_gd_netatmo_wet = np.append(
+#                                                     y_coords_gd_netatmo_wet,
+#                                                     netatmo_y_stn)
+#
+#                                                 # remove from original bad wet
+#                                                 x_coords_bad_netatmo_wet = np.array(list(
+#                                                     filter(lambda x: x != netatmo_x_stn,
+#                                                            x_coords_bad_netatmo_wet)))
+#
+#                                                 y_coords_bad_netatmo_wet = np.array(list(
+#                                                     filter(lambda x: x != netatmo_y_stn,
+#                                                            y_coords_bad_netatmo_wet)))
+#
+#                                                 netatmo_wet_bad.loc[stn_] = np.nan
+#
+#                                                 ids_netatmo_stns_bad = list(
+#                                                     filter(lambda x: x != stn_,
+#                                                            ids_netatmo_stns_bad))
+#
+#                                             else:
+#                                                 print('bad wet is bad wet')
+#                                     else:
+#                                         print('\nStn has no near neighbors')
 
                             df_stns_netatmo_gd_event.loc[
                                 event_date,

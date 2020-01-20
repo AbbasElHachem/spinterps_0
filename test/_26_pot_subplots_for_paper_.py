@@ -38,8 +38,8 @@ from pathlib import Path
 VG = variograms.vgs.Variogram
 
 
-plt.rcParams.update({'font.size': 14})
-plt.rcParams.update({'axes.labelsize': 14})
+plt.rcParams.update({'font.size': 12})
+plt.rcParams.update({'axes.labelsize': 12})
 
 
 # =============================================================================
@@ -138,13 +138,23 @@ idx_time_fmt = '%Y-%m-%d %H:%M:%S'
 radius = 10000
 diff_thr = 0.1
 
-hourly_events = [  # '2016-06-25 00:00:00',
-    '2018-06-11 16:00:00',
-    '2018-06-11 17:00:00',
-    '2018-06-11 18:00:00',
-    '2018-09-23 17:00:00',
-    '2018-09-23 18:00:00',
-    '2018-09-23 19:00:00']
+hourly_events = ['2018-06-11 16:00:00',  # '2016-06-25 00:00:00',
+                 '2018-09-06 18:00:00']
+#     '2016-06-24 22:00:00']  # 22
+#'2018-05-13 22:00:00'  # 16
+#'2018-07-05 05:00:00'
+#'2018-08-02 01:00:00'
+#'2018-08-23 15:00:00'
+#'2018-09-06 18:00:00'
+#'2019-07-27 20:00:00']
+#'2018-06-12 18:00:00'
+#     '2016-06-25 00:00:00',
+#                  '2018-06-11 16:00:00']
+#'2018-06-11 17:00:00',
+#'2018-06-11 18:00:00',
+#'2018-09-23 17:00:00',
+#'2018-09-23 18:00:00']
+#'2018-09-23 19:00:00']
 
 daily_events = [  # '2018-12-23 00:00:00',
     #'2019-05-22 00:00:00',
@@ -241,36 +251,37 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
 
     if temp_agg == '60min':
         min_val, max_val = 0, 30
-        clbr_label = 'mm/h'
+        clbr_label = 'mm/h'  # 'Hourly precipitation [m]'
     if temp_agg == '1440min':
         min_val, max_val = 0, 45
         clbr_label = 'mm/d'
 
     plt.ioff()
 
-    bound_ppt = [0., 1, 2, 4, 8,
-                 10, 15, 20, 25, 30, 40, 45]
+    bound_ppt = [0., 1, 2, 4, 8, 10, 15, 20, 25, 30, 40, 45]
 
-    cmap_ppt = plt.get_cmap('jet_r')
-    cmap_ppt.set_over('indigo')
+    interval_ppt = np.linspace(0.05, 0.95)
+    colors_ppt = plt.get_cmap('jet_r')(interval_ppt)
+    cmap_ppt = LinearSegmentedColormap.from_list('name', colors_ppt)
+    #cmap_ppt = plt.get_cmap('jet_r')
+    cmap_ppt.set_over('navy')
     norm_ppt = mcolors.BoundaryNorm(bound_ppt, cmap_ppt.N)
 
-    bound_diff = [-15, -10, -5, -2, 0, 2,
-                  5, 10, 15]
-
+    bound_diff = [-15, -10, -5, -2, 0, 2, 5, 10, 15]
+    _fontsize = 12
     # Remove the middle 10% of the RdBu_r colormap
     interval = np.hstack([np.linspace(0, 0.3), np.linspace(0.7, 1)])
     colors = plt.get_cmap('PiYG')(interval)
     cmap_diff = LinearSegmentedColormap.from_list('name', colors)
 
-    cmap_diff.set_over('darkslategrey')
+    cmap_diff.set_over('darkslategrey')  # darkslategrey
     cmap_diff.set_under('crimson')
 
     #cmap_diff = plt.get_cmap('PiYG')
     norm_diff = mcolors.BoundaryNorm(bound_diff, cmap_diff.N)
 
-    fig = plt.figure(figsize=(20, 10), constrained_layout=False, dpi=600)
-    gs = gridspec.GridSpec(2, 8)
+    fig = plt.figure(figsize=(12, 8), constrained_layout=False, dpi=400)
+    gs = gridspec.GridSpec(2, 7, width_ratios=[1, 1, 1, 1, 1, 1, 1])
 
 #     gs.update(left=0.25, right=1, wspace=0.01)
     # dwd-netatmo
@@ -286,90 +297,93 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
 #     ax1.scatter(dwd_xcoords, dwd_ycoords, c='darkgreen',
 #                 marker='x', s=10, alpha=0.25)
 
-    ax1.legend(title='a)', loc='upper left')._legend_box.align = 'left'
+    ax1.legend(title='a)', loc='upper left',
+               frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
     # dwd
     ax2 = fig.add_subplot(gs[:1, 2:4])
     ax2.scatter(x_coords_grd, y_coords_grd,
                 c=vals_to_plot_dwd,
-                marker=',', s=40, cmap=cmap_ppt,
+                marker=',', s=30, cmap=cmap_ppt,
                 vmin=min_val,
                 norm=norm_ppt,
                 vmax=max_val)
 #     ax2.scatter(dwd_xcoords, dwd_ycoords, c='darkgreen',
 #                 marker='x', s=10, alpha=0.25)
-    ax2.legend(title='b)', loc='upper left')._legend_box.align = 'left'
+    ax2.legend(title='b)', loc='upper left',
+               frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
 
     # netatmo
     ax3 = fig.add_subplot(gs[:1, 4:6])
     im3 = ax3.scatter(x_coords_grd, y_coords_grd,
                       c=vals_to_plot_netatmo,
-                      marker=',', s=40, cmap=cmap_ppt,
+                      marker=',', s=30, cmap=cmap_ppt,
                       vmin=min_val,
                       norm=norm_ppt,
                       vmax=max_val)
 #     ax3.scatter(netatmo_xcoords0, netatmo_ycoords0, c='m',
 #                 marker='1', s=10, alpha=0.25)
-    ax3.legend(title='c)', loc='upper left')._legend_box.align = 'left'
+    ax3.legend(title='c)', loc='upper left',
+               frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
 
     # colorbar
-#     ax4 = fig.add_subplot(gs[:1, 6:7])
-    divider0 = make_axes_locatable(ax3)
-    cax0 = divider0.append_axes("right", size="5%", pad=0.15)
+#     cax0 = fig.add_subplot(gs[:1, 6:7])
+    cax0 = fig.add_subplot(gs[:1, 6:7])
 
-    cb0 = fig.colorbar(im3, ax=ax3, cax=cax0, norm=norm_ppt,
+    divider0 = make_axes_locatable(cax0)
+    cax20 = divider0.append_axes("left", size="8%", pad=0.00001)
+#     divider0 = make_axes_locatable(ax3)
+#     cax0 = divider0.append_axes("right", size="5%", pad=0.15)
+
+    cb0 = fig.colorbar(im3, ax=ax3, cax=cax20, norm=norm_ppt,
                        ticks=bound_ppt, label=clbr_label,
                        extend='max')
 
     cb0.set_ticks(bound_ppt)
+    cb0.ax.tick_params(labelsize=_fontsize)
     # second row
     # dwd-dwd_netatmo
     ax5 = fig.add_subplot(gs[1:, 1:3])
     ax5.scatter(x_coords_grd, y_coords_grd,
                 c=vals_to_plot_dwd_min_dwd_netatmo,
-                marker=',', s=40, cmap=cmap_diff,
+                marker=',', s=30, cmap=cmap_diff,
                 vmin=bound_diff[0],
                 norm=norm_diff,
                 vmax=bound_diff[-1])
-    ax5.legend(title='d)', loc='upper left')._legend_box.align = 'left'
+    ax5.legend(title='d)', loc='upper left',
+               frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
 
     # dwd-netatmo
     ax6 = fig.add_subplot(gs[1:, 3:5])
     im6 = ax6.scatter(x_coords_grd, y_coords_grd,
                       c=vals_to_plot_dwd_min_netatmo,
-                      marker=',', s=40, cmap=cmap_diff,
+                      marker=',', s=30, cmap=cmap_diff,
                       vmin=bound_diff[0],
                       norm=norm_diff,
                       vmax=bound_diff[-1])
-    ax6.legend(title='e)', loc='upper left')._legend_box.align = 'left'
+    ax6.legend(title='e)', loc='upper left',
+               frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
 
-#     ax7 = fig.add_subplot(gs[1:, 5:6])
+    cax = fig.add_subplot(gs[1:, 5:6])
 
-    divider = make_axes_locatable(ax6)
-    cax = divider.append_axes("right", size="5%", pad=0.15)
+    divider = make_axes_locatable(cax)
+    cax2 = divider.append_axes("left", size="8%", pad=0.00001)
 
-    cb1 = fig.colorbar(im6, ax=ax6, cax=cax, norm=norm_diff,
+    cb1 = fig.colorbar(im6, ax=ax6, cax=cax2, norm=norm_diff,
                        ticks=bound_diff, label=clbr_label,
                        extend='both')
-    cb1.set_ticks([-15,  -10, -5, -2, 0, 2, 5, 10, 15])
+    cb1.set_ticks(bound_diff)
+    cb1.ax.tick_params(labelsize=_fontsize)
     plt.setp(plt.gcf().get_axes(), xticks=[], yticks=[])
-#     plt.tick_params(axis='both', which='both', bottom='False', top='False',
-#                     labelbottom='False', right='False',
-#                     left='False', labelleft='False')
-#     plt.axis('equal')
 
-#     plt.margins(0, 0)
-#     plt.gca().xaxis.set_major_locator(plt.NullLocator())
-#     plt.gca().yaxis.set_major_locator(plt.NullLocator())
-
-#     ax1.box(False)
 #     fig.patch.set_visible(False)
     ax1.axis('off'), ax2.axis('off'), ax3.axis('off')
-    ax5.axis('off'), ax6.axis('off')
+    ax5.axis('off'), ax6.axis('off'), cax.axis('off')
+    cax0.axis('off')
 #     plt.tight_layout()
     # plt.show()
     plt.savefig((
         out_plot_path / (
-                '%s_%s_event_test' %
+                '%s_%s_event_test_3' %
                 (temp_agg,
                  str(event_date).replace(
                      '-', '_').replace(':',
