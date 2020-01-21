@@ -98,7 +98,7 @@ path_to_dwd_ratios = in_filter_path / 'ppt_ratios_'
 #==============================================================================
 #
 #==============================================================================
-resample_frequencies = ['1440min']
+resample_frequencies = ['60min']
 # '120min', '180min', '60min',  '360min',
 #                         '720min',
 title_ = r'Ppt_ok_ok_un_2'
@@ -258,7 +258,7 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
 
     plt.ioff()
 
-    bound_ppt = [0., 1, 2, 4, 8, 10, 15, 20, 25, 30, 40, 45]
+    bound_ppt = [0., 1, 2, 4, 8, 10, 15, 20, 25, 30]  # , 40, 45]
 
     interval_ppt = np.linspace(0.05, 0.95)
     colors_ppt = plt.get_cmap('jet_r')(interval_ppt)
@@ -540,7 +540,7 @@ for temp_agg in resample_frequencies:
     for event_date in dwd_in_extremes_df.index:
 
         # hourly_events daily_events  # == '2018-12-23 00:00:00':
-        if str(event_date) in daily_events:
+        if str(event_date) in hourly_events:
             print(event_date)
             netatmo_in_vals_df = pd.read_csv(path_to_netatmo_edf,
                                              sep=';',
