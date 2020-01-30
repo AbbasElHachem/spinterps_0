@@ -129,6 +129,10 @@ if use_temporal_filter_b4_kriging:
 strt_date = '2015-01-01 00:00:00'
 end_date = '2019-09-01 00:00:00'
 
+daily_evts = pd.DatetimeIndex(['2018-05-14', '2019-07-28'])
+
+hourly_evts = pd.DatetimeIndex(['2016-06-25 00:00:00', '2018-06-11 16:00:00',
+                                '2018-09-06 18:00:00'])
 # min_valid_stns = 20
 
 drop_stns = []
@@ -142,8 +146,10 @@ ngp = 5
 
 idx_time_fmt = '%Y-%m-%d %H:%M:%S'
 
+m_size = 20
 radius = 10000
-diff_thr = 0.2
+diff_thr = 0.1
+edf_thr = 0.7
 #==============================================================================
 #
 #==============================================================================
@@ -447,10 +453,12 @@ for temp_agg in resample_frequencies:
     df_stns_netatmo_gd_event = pd.DataFrame(
         index=dwd_in_extremes_df.index,
         columns=stn_comb_order_only)
+    # hourly_evts
+#     dwd_in_extremes_df = dwd_in_extremes_df.loc[daily_evts, :]  # daily_evts
     #==========================================================================
     # # Go thourgh events ,interpolate all DWD for this event
     #==========================================================================
-    for iev, event_date in enumerate(dwd_in_extremes_df.index[110:]):
+    for iev, event_date in enumerate(dwd_in_extremes_df.index):
 
         _stn_id_event_ = str(int(dwd_in_extremes_df.loc[event_date, 2]))
         if len(_stn_id_event_) < 5:
@@ -462,10 +470,6 @@ for temp_agg in resample_frequencies:
 #         print('**Calculating for Date ',
 #               event_date, '\n Rainfall: ',  _ppt_event_,
 #               'Quantile: ', _edf_event_, ' **\n')
-
-        # find minimal and maximal ratio for filtering netatmo
-        min_ratio = dwd_ratios_df.loc[event_date, :].min()
-        max_ratio = dwd_ratios_df.loc[event_date, :].max()
 
         # start cross validating DWD stations for this event
         for idx_lst_comb in df_dwd_stns_comb.index:
@@ -496,6 +500,30 @@ for temp_agg in resample_frequencies:
                     stn for stn in dwd_in_vals_df.columns
                     if stn not in stn_comb]
 
+                # GET ALL DWD NEARBY STATIONS
+
+                # nearby_dwd_stns =
+                x_coords_dwd_except_interp_loc = dwd_in_coords_df.loc[
+                    all_dwd_stns_except_interp_loc, 'X'].values
+                y_coords_dwd_except_interp_loc = dwd_in_coords_df.loc[
+                    all_dwd_stns_except_interp_loc, 'Y'].values
+                # make dwd coords a tuple
+                xy_coords_except_interp_loc = np.array(
+                    [(x, y) for x, y in zip(x_coords_dwd_except_interp_loc,
+                                            y_coords_dwd_except_interp_loc)])
+                # create a tree from coordinates
+                dwd_points_tree = spatial.KDTree(
+                    xy_coords_except_interp_loc)
+
+                # This finds the index of all points within
+                # distance 1 of [1.5,2.5].
+                idxs_dwd_neighbours = dwd_points_tree.query_ball_point(
+                    np.array((x_dwd_interpolate[0],
+                              y_dwd_interpolate[0])), 3e4)
+                # get nearby dwd stns
+                dwd_stns_id_nearby = dwd_in_coords_df.iloc[
+                    idxs_dwd_neighbours, :].index.to_list()
+
                 # GET ALL NETATMO NEARBY STATIONS
                 # find distance to all dwd stations, sort them, select minimum
                 distances_dwd_to_stns = in_df_distance_netatmo_dwd.loc[
@@ -506,20 +534,23 @@ for temp_agg in resample_frequencies:
 
                 # select only nearby netatmo stations below 50km
                 sorted_distances_ppt_dwd = sorted_distances_ppt_dwd[
-                    sorted_distances_ppt_dwd.values <= 5e4]
+                    sorted_distances_ppt_dwd.values <= 3e4]
                 netatmo_stns_near = sorted_distances_ppt_dwd.index
 
+#                 plt.ioff()
+#                 plt.scatter(dwd_stns_id_nearby.X, dwd_stns_id_nearby.Y, c='r')
+#                 plt.scatter(x_dwd_interpolate, y_dwd_interpolate, c='b')
                 # ppt data at other DWD stations
                 ppt_dwd_vals_sr = dwd_in_ppt_vals_df.loc[
                     event_date,
-                    all_dwd_stns_except_interp_loc]
+                    dwd_stns_id_nearby]
                 ppt_dwd_vals_nona = ppt_dwd_vals_sr[
                     ppt_dwd_vals_sr.values >= 0]
 
                 # edf dwd vals
                 edf_dwd_vals = dwd_in_vals_df.loc[
                     event_date,
-                    all_dwd_stns_except_interp_loc].dropna().values
+                    dwd_stns_id_nearby].dropna().values
 
                 # coords of all other stns
                 x_dwd_all = dwd_in_coords_df.loc[
@@ -591,17 +622,6 @@ for temp_agg in resample_frequencies:
 
                     netatmo_stns_event_ = netatmo_df.index.to_list()
 
-#                     xy_netatmo = list(set([(x, y) for x, y in zip(
-#                         netatmo_xcoords, netatmo_ycoords)]))
-
-                    # list to hold result of all netatmo station for this
-                    # event
-                    netatmo_ppt_vals_fr_dwd_interp = []
-
-                    x_netatmo_ppt_vals_fr_dwd_interp = []
-                    y_netatmo_ppt_vals_fr_dwd_interp = []
-                    netatmo_stns_event_fr_dwd_interp = []
-
                     if netatmo_df.size > 0:
 
                         #==================================================
@@ -663,8 +683,11 @@ for temp_agg in resample_frequencies:
                             except Exception as msg:
                                 print(msg, 'error while second filter')
 
+#                             if len(idx_bad_stns[0]) > 2:
+#                                 print('Dsd')
+#                                 pass
                             netatmo_dry_gd = edf_gd_vals_df[
-                                edf_gd_vals_df.values < 0.95]
+                                edf_gd_vals_df.values < edf_thr]
                             # gd
 
                             cmn_wet_dry_stns = netatmo_in_coords_df.index.intersection(
@@ -675,25 +698,30 @@ for temp_agg in resample_frequencies:
                                 cmn_wet_dry_stns, 'Y'].values.ravel()
 
                             netatmo_wet_gd = edf_gd_vals_df[
-                                edf_gd_vals_df.values >= 0.95]
+                                edf_gd_vals_df.values >= edf_thr]
                             cmn_wet_gd_stns = netatmo_in_coords_df.index.intersection(
                                 netatmo_wet_gd.index)
+
                             x_coords_gd_netatmo_wet = netatmo_in_coords_df.loc[
                                 cmn_wet_gd_stns, 'X'].values.ravel()
                             y_coords_gd_netatmo_wet = netatmo_in_coords_df.loc[
                                 cmn_wet_gd_stns, 'Y'].values.ravel()
+
+                            assert (netatmo_wet_gd.size ==
+                                    x_coords_gd_netatmo_wet.size ==
+                                    y_coords_gd_netatmo_wet.size)
                             #====================================
                             #
                             #====================================
                             edf_bad_vals_df = netatmo_df.loc[ids_netatmo_stns_bad]
 
                             netatmo_dry_bad = edf_bad_vals_df[
-                                edf_bad_vals_df.values < 0.95]
+                                edf_bad_vals_df.values < edf_thr]
                             cmn_dry_bad_stns = netatmo_in_coords_df.index.intersection(
                                 netatmo_dry_bad.index)
                             # netatmo bad
                             netatmo_wet_bad = edf_bad_vals_df[
-                                edf_bad_vals_df.values >= 0.95]
+                                edf_bad_vals_df.values >= edf_thr]
                             cmn_wet_bad_stns = netatmo_in_coords_df.index.intersection(
                                 netatmo_wet_bad.index)
                             # dry bad
@@ -708,21 +736,38 @@ for temp_agg in resample_frequencies:
                                 cmn_wet_bad_stns, 'Y'].values.ravel()
 
                             # DWD data
-                            dwd_dry = edf_dwd_vals[edf_dwd_vals < 0.95]
-                            dwd_wet = edf_dwd_vals[edf_dwd_vals >= 0.95]
+                            dwd_dry = edf_dwd_vals[edf_dwd_vals < edf_thr]
+                            dwd_wet = edf_dwd_vals[edf_dwd_vals >= edf_thr]
 
                             x_coords_dwd_wet = x_dwd_all[np.where(
-                                edf_dwd_vals >= 0.95)]
+                                edf_dwd_vals >= edf_thr)]
                             y_coords_dwd_wet = y_dwd_all[np.where(
-                                edf_dwd_vals >= 0.95)]
+                                edf_dwd_vals >= edf_thr)]
+
+                            assert (dwd_wet.size ==
+                                    x_coords_dwd_wet.size ==
+                                    y_coords_dwd_wet.size)
 
                             x_coords_dwd_dry = x_dwd_all[np.where(
-                                edf_dwd_vals < 0.95)]
+                                edf_dwd_vals < edf_thr)]
                             y_coords_dwd_dry = y_dwd_all[np.where(
-                                edf_dwd_vals < 0.95)]
+                                edf_dwd_vals < edf_thr)]
 
                             # find if wet bad is really wet bad
                             # find neighboring netatmo stations wet good
+
+                            # combine dwd and netatmo wet gd
+
+                            x_gd_dwd_netatmo = np.concatenate([
+                                x_coords_gd_netatmo_wet,
+                                x_coords_dwd_wet])
+                            y_gd_dwd_netatmo = np.concatenate([
+                                y_coords_gd_netatmo_wet,
+                                y_coords_dwd_wet])
+
+                            dwd_netatmo_wet_gd = np.concatenate([
+                                netatmo_wet_gd,
+                                dwd_wet])
 
                             if netatmo_wet_gd.size > 0:
 
@@ -737,38 +782,22 @@ for temp_agg in resample_frequencies:
                                     stn_coords = np.array([(netatmo_x_stn,
                                                             netatmo_y_stn)])
 
-                                    # combine dwd and netatmo wet gd
-
-                                    x_gd_dwd_netatmo = np.concatenate([
-                                        x_coords_gd_netatmo_wet,
-                                        x_coords_dwd_wet])
-                                    y_gd_dwd_netatmo = np.concatenate([
-                                        y_coords_gd_netatmo_wet,
-                                        y_coords_dwd_wet])
-
-                                    dwd_netatmo_wet_gd = np.concatenate([
-                                        netatmo_wet_gd,
-                                        dwd_wet])
                                     # coords of neighbors
                                     neighbors_coords = np.array(
                                         [(x, y) for x, y
                                          in zip(x_gd_dwd_netatmo,
                                                 y_gd_dwd_netatmo)])
 
-                                    # get distance to neighboring wet stations
-                                    sep_dist = distance.cdist(stn_coords,
-                                                              neighbors_coords,
-                                                              'euclidean')
                                     # create a tree from coordinates
-                                    points_tree = spatial.cKDTree(
+                                    points_tree = spatial.KDTree(
                                         neighbors_coords)
 
                                     # This finds the index of all points within
-                                    # distance 1 of [1.5,2.5].
+                                    # radius
                                     idxs_neighbours = points_tree.query_ball_point(
-                                        np.array((netatmo_x_stn,
-                                                  netatmo_y_stn)),
-                                        radius)
+                                        np.array(
+                                            (netatmo_x_stn, netatmo_y_stn)),
+                                        1e4)
                                     if len(idxs_neighbours) > 0:
 
                                         for i, ix_nbr in enumerate(idxs_neighbours):
@@ -824,57 +853,69 @@ for temp_agg in resample_frequencies:
 
                                 plt.ioff()
         #                         texts = []
-                                fig = plt.figure(figsize=(24, 24), dpi=150)
+                                fig = plt.figure(figsize=(24, 12), dpi=300)
                                 ax = fig.add_subplot(111)
-                                m_size = 60
+
                                 ax.scatter(x_dwd_interpolate,
                                            y_dwd_interpolate, c='k',
-                                           marker='*', s=m_size + 25,
+                                           marker='2', s=m_size + 25,
                                            label='Interp Stn DWD %s' %
                                            stn_dwd_id)
 
                                 ax.scatter(x_coords_gd_netatmo_dry,
                                            y_coords_gd_netatmo_dry, c='g',
-                                           marker='o', s=m_size,
-                                           label='Netatmo %d stations with dry good values' %
+                                           marker='d', s=m_size,
+                                           label='%d Netatmo with dry good values' %
                                            x_coords_gd_netatmo_dry.shape[0])
 
                                 ax.scatter(x_coords_gd_netatmo_wet,
                                            y_coords_gd_netatmo_wet, c='b',
-                                           marker='o', s=m_size,
-                                           label='Netatmo %d stations with wet good values' %
+                                           marker='d', s=m_size,
+                                           label='%d Netatmo with wet good values' %
                                            x_coords_gd_netatmo_wet.shape[0])
 
                                 ax.scatter(x_coords_bad_netatmo_dry,
                                            y_coords_bad_netatmo_dry, c='orange',
-                                           marker='D', s=m_size,
-                                           label='Netatmo %d stations with dry bad values' %
+                                           marker='d', s=m_size,
+                                           label='%d Netatmo with dry bad values' %
                                            x_coords_bad_netatmo_dry.shape[0])
 
                                 ax.scatter(x_coords_bad_netatmo_wet,
                                            y_coords_bad_netatmo_wet, c='r',
-                                           marker='D', s=m_size,
-                                           label='Netatmo %d stations with wet bad values' %
+                                           marker='d', s=m_size,
+                                           label='%d Netatmo with wet bad values' %
                                            x_coords_bad_netatmo_wet.shape[0])
 
                                 ax.scatter(x_coords_dwd_dry,
                                            y_coords_dwd_dry, c='g',
                                            marker='x', s=m_size,
-                                           label='DWD %d stations with dry values' %
+                                           label='%d DWD with dry values' %
                                            x_coords_dwd_dry.shape[0])
 
                                 ax.scatter(x_coords_dwd_wet,
                                            y_coords_dwd_wet, c='b',
                                            marker='x', s=m_size,
-                                           label='DWD %d stations with wet values' %
+                                           label='%d DWD with wet values' %
                                            x_coords_dwd_wet.shape[0])
+                                ax.grid(alpha=.25)
+#                                 ax.grid(True)
+                                ax.set_xticklabels([])
+                                ax.set_yticklabels([])
+                                # Shrink current axis by 20%
+#                                 ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05),
+#                                           ncol=2, fancybox=True, shadow=True)
 
-                                plt.legend(loc='upper right')
+                                ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05),
+                                          fancybox=True, shadow=True, ncol=4)
+#                                 plt.legend(loc='upper right')
 
-                                plt.grid(alpha=.25)
-                                plt.xlabel('Longitude')
-                                plt.ylabel('Latitude')
+
+#                                 plt.xlabel('Longitude')
+#                                 plt.ylabel('Latitude')
                                 plt.axis('equal')
+
+#                                 plt.show()
+
                                 plt.savefig((out_plots_path / (
                                     'interp_stn_%s_%s_%s_event_%s_.png' %
                                     (stn_dwd_id, temp_agg,
@@ -914,6 +955,8 @@ for temp_agg in resample_frequencies:
                                 edf_netatmo_vals_gd.size /
                                 edf_netatmo_vals.size)
 
+                break
+            break
     df_stns_netatmo_gd_event.dropna(how='all', inplace=True)
 
     df_stns_netatmo_gd_event.to_csv(out_plots_path / (
