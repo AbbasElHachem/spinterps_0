@@ -30,18 +30,15 @@ import matplotlib.gridspec as gridspec
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.colors import LinearSegmentedColormap
 from spinterps import (OrdinaryKriging)
-from spinterps import variograms
-
+from scipy import spatial
 
 from pathlib import Path
-
-VG = variograms.vgs.Variogram
 
 
 plt.rcParams.update({'font.size': 12})
 plt.rcParams.update({'axes.labelsize': 12})
 
-
+use_reduced_sample_dwd = True
 # =============================================================================
 
 main_dir = Path(r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes')
@@ -62,17 +59,13 @@ path_to_netatmo_coords = path_to_data / r'netatmo_bw_1hour_coords_utm32.csv'
 # path for data filter
 in_filter_path = main_dir / r'oridinary_kriging_compare_DWD_Netatmo'
 
-
-# distance mtx netatmo dwd
-distance_matrix_netatmo_dwd_df_file = path_to_data / \
-    r'distance_mtx_in_m_NetAtmo_DWD.csv'
-
 # path_to_dwd_stns_comb
 path_to_dwd_stns_comb = in_filter_path / r'dwd_combination_to_use.csv'
 
 # path for interpolation grid
 path_grid_interpolate = in_filter_path / \
     r"coords_interpolate_midle.csv"  # _small
+
 
 #==============================================================================
 # # NETATMO FIRST FILTER
@@ -95,13 +88,21 @@ path_to_netatmo_gd_stns = (main_dir / r'plots_NetAtmo_ppt_DWD_ppt_correlation_' 
 # for second filter
 path_to_dwd_ratios = in_filter_path / 'ppt_ratios_'
 
+
+if use_reduced_sample_dwd:
+    #     path_to_dwd_coords = (path_to_data /
+    #                           r'reduced_smaple_dwd_stns_utm32.csv')
+
+    path_to_netatmo_gd_stns = (main_dir / r'plots_NetAtmo_ppt_DWD_ppt_correlation_' /
+                               (r'keep_stns_all_neighbor_99_per_60min_s0_%s_2.csv'
+                                % _acc_))
 #==============================================================================
 #
 #==============================================================================
 resample_frequencies = ['60min']
 # '120min', '180min', '60min',  '360min',
 #                         '720min',
-title_ = r'Ppt_ok_ok_un_2'
+title_ = r'Ppt_reduced_dwd'
 
 
 if not use_netatmo_gd_stns:
@@ -137,10 +138,15 @@ idx_time_fmt = '%Y-%m-%d %H:%M:%S'
 
 radius = 10000
 diff_thr = 0.1
+edf_thr = 0.7  # 0.9
 
 hourly_events = ['2018-06-11 16:00:00',  # '2016-06-25 00:00:00',
-                 '2018-09-06 18:00:00']
-#     '2016-06-24 22:00:00']  # 22
+                 '2018-09-06 18:00:00',
+                 '2018-05-13 22:00:00',  # 16
+                 '2018-07-05 05:00:00',
+                 '2018-08-02 01:00:00',
+                 '2018-08-23 15:00:00',
+                 '2016-06-24 22:00:00']  # 22
 #'2018-05-13 22:00:00'  # 16
 #'2018-07-05 05:00:00'
 #'2018-08-02 01:00:00'
@@ -156,10 +162,10 @@ hourly_events = ['2018-06-11 16:00:00',  # '2016-06-25 00:00:00',
 #'2018-09-23 18:00:00']
 #'2018-09-23 19:00:00']
 
-daily_events = [  # '2018-12-23 00:00:00',
-    #'2019-05-22 00:00:00',
-    '2018-05-14 00:00:00',
-    '2019-07-28 00:00:00']
+daily_events = ['2018-12-23 00:00:00',
+                '2019-05-22 00:00:00',
+                '2018-05-14 00:00:00',
+                '2019-07-28 00:00:00']
 #==============================================================================
 #
 #==============================================================================
@@ -252,13 +258,15 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
     if temp_agg == '60min':
         min_val, max_val = 0, 30
         clbr_label = 'mm/h'  # 'Hourly precipitation [m]'
+        bound_ppt = [0., 1, 2, 4, 8, 10, 15, 20, 25, 30]  # , 40, 45]
     if temp_agg == '1440min':
         min_val, max_val = 0, 45
         clbr_label = 'mm/d'
+        bound_ppt = [0., 1, 2, 4, 8, 10, 15, 20, 25, 30, 40, 45]
 
     plt.ioff()
 
-    bound_ppt = [0., 1, 2, 4, 8, 10, 15, 20, 25, 30]  # , 40, 45]
+#     bound_ppt = [0., 1, 2, 4, 8, 10, 15, 20, 25, 30]  # , 40, 45]
 
     interval_ppt = np.linspace(0.05, 0.95)
     colors_ppt = plt.get_cmap('jet_r')(interval_ppt)
@@ -399,9 +407,7 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
 #==============================================================================
 #
 #==============================================================================
-# read distance matrix dwd-netamot ppt
-in_df_distance_netatmo_dwd = pd.read_csv(
-    distance_matrix_netatmo_dwd_df_file, sep=';', index_col=0)
+
 
 # read df combinations to use
 df_dwd_stns_comb = pd.read_csv(
@@ -579,15 +585,15 @@ for temp_agg in resample_frequencies:
                     '0' + _stn_id_event_
 
             _ppt_event_ = dwd_in_extremes_df.loc[event_date, 1]
-            _edf_event_ = dwd_in_vals_df.loc[event_date, _stn_id_event_]
+#             _edf_event_ = dwd_in_vals_df.loc[event_date, _stn_id_event_]
 
             # find minimal and maximal ratio for filtering netatmo
-            min_ratio = dwd_ratios_df.loc[event_date, :].min()
-            max_ratio = dwd_ratios_df.loc[event_date, :].max()
-
-            print('**Calculating for Date ',
-                  event_date, '\n Rainfall: ',  _ppt_event_,
-                  'Quantile: ', _edf_event_, ' **\n')
+#             min_ratio = dwd_ratios_df.loc[event_date, :].min()
+#             max_ratio = dwd_ratios_df.loc[event_date, :].max()
+#
+#             print('**Calculating for Date ',
+#                   event_date, '\n Rainfall: ',  _ppt_event_,
+#                   'Quantile: ', _edf_event_, ' **\n')
 
             # CREATE DFS HOLD RESULT KRIGING PER NETATMO STATION
             df_interpolated = pd.DataFrame()
@@ -597,6 +603,11 @@ for temp_agg in resample_frequencies:
             #==============================================================
             # # DWD PPT
             #==============================================================
+
+            # edf dwd vals
+            edf_dwd_vals = dwd_in_vals_df.loc[
+                event_date, :].dropna().values
+
             ppt_dwd_vals = []
             dwd_xcoords = []
             dwd_ycoords = []
@@ -752,20 +763,246 @@ for temp_agg in resample_frequencies:
 
                 netatmo_df = netatmo_in_ppt_vals_df.loc[
                     event_date, :].dropna(how='all')
-
+                netatmo_edf = netatmo_in_vals_df.loc[
+                    event_date, :].dropna(how='all')
                 print('NETATMO 1st FILTERED and 2nd Filter')
+
+                netatmo_xcoords = netatmo_in_coords_df.loc[
+                    netatmo_df.index, 'X'].values.ravel()
+                netatmo_ycoords = netatmo_in_coords_df.loc[
+                    netatmo_df.index, 'Y'].values.ravel()
+
+                # netatmo stations to correct
+
+                # apply on event filter
+                ordinary_kriging_filter_netamto = OrdinaryKriging(
+                    xi=dwd_xcoords,
+                    yi=dwd_ycoords,
+                    zi=edf_dwd_vals,
+                    xk=netatmo_xcoords,
+                    yk=netatmo_ycoords,
+                    model=vgs_model_dwd_ppt)
+
+                try:
+                    ordinary_kriging_filter_netamto.krige()
+                except Exception as msg:
+                    print('Error while Error Kriging', msg)
+
+                # interpolated vals
+                interpolated_vals = ordinary_kriging_filter_netamto.zk
+
+                # calcualte standard deviation of estimated values
+                std_est_vals = np.sqrt(
+                    ordinary_kriging_filter_netamto.est_vars)
+                # calculate difference observed and estimated
+                # values
+                diff_obsv_interp = np.abs(
+                    netatmo_edf - interpolated_vals)
+
+                #==================================================
+                # # use additional temporal filter
+                #==================================================
+                idx_good_stns = np.where(
+                    diff_obsv_interp <= 3 * std_est_vals)
+                idx_bad_stns = np.where(
+                    diff_obsv_interp > 3 * std_est_vals)
+
+                if len(idx_bad_stns[0]) or len(idx_good_stns[0]) > 0:
+                    print('Number of Stations with bad index \n',
+                          len(idx_bad_stns[0]))
+                    print('Number of Stations with good index \n',
+                          len(idx_good_stns[0]))
+
+#                                 print('**Removing bad stations and kriging**')
+
+                    # use additional filter
+                    try:
+                        ids_netatmo_stns_gd = np.take(netatmo_df.index,
+                                                      idx_good_stns).ravel()
+                        ids_netatmo_stns_bad = np.take(netatmo_df.index,
+                                                       idx_bad_stns).ravel()
+
+                    except Exception as msg:
+                        print(msg)
+
+                try:
+                    edf_gd_vals_df = netatmo_df.loc[ids_netatmo_stns_gd]
+                except Exception as msg:
+                    print(msg, 'error while second filter')
+
+                netatmo_dry_gd = edf_gd_vals_df[
+                    edf_gd_vals_df.values < edf_thr]
+                # gd
+
+                cmn_wet_dry_stns = netatmo_in_coords_df.index.intersection(
+                    netatmo_dry_gd.index)
+                x_coords_gd_netatmo_dry = netatmo_in_coords_df.loc[
+                    cmn_wet_dry_stns, 'X'].values.ravel()
+                y_coords_gd_netatmo_dry = netatmo_in_coords_df.loc[
+                    cmn_wet_dry_stns, 'Y'].values.ravel()
+
+                netatmo_wet_gd = edf_gd_vals_df[
+                    edf_gd_vals_df.values >= edf_thr]
+                cmn_wet_gd_stns = netatmo_in_coords_df.index.intersection(
+                    netatmo_wet_gd.index)
+
+                x_coords_gd_netatmo_wet = netatmo_in_coords_df.loc[
+                    cmn_wet_gd_stns, 'X'].values.ravel()
+                y_coords_gd_netatmo_wet = netatmo_in_coords_df.loc[
+                    cmn_wet_gd_stns, 'Y'].values.ravel()
+
+                assert (netatmo_wet_gd.size ==
+                        x_coords_gd_netatmo_wet.size ==
+                        y_coords_gd_netatmo_wet.size)
+                #====================================
+                #
+                #====================================
+                edf_bad_vals_df = netatmo_df.loc[ids_netatmo_stns_bad]
+
+                netatmo_dry_bad = edf_bad_vals_df[
+                    edf_bad_vals_df.values < edf_thr]
+                cmn_dry_bad_stns = netatmo_in_coords_df.index.intersection(
+                    netatmo_dry_bad.index)
+                # netatmo bad
+                netatmo_wet_bad = edf_bad_vals_df[
+                    edf_bad_vals_df.values >= edf_thr]
+                cmn_wet_bad_stns = netatmo_in_coords_df.index.intersection(
+                    netatmo_wet_bad.index)
+                # dry bad
+                x_coords_bad_netatmo_dry = netatmo_in_coords_df.loc[
+                    cmn_dry_bad_stns, 'X'].values.ravel()
+                y_coords_bad_netatmo_dry = netatmo_in_coords_df.loc[
+                    cmn_dry_bad_stns, 'Y'].values.ravel()
+                # wet bad
+                x_coords_bad_netatmo_wet = netatmo_in_coords_df.loc[
+                    cmn_wet_bad_stns, 'X'].values.ravel()
+                y_coords_bad_netatmo_wet = netatmo_in_coords_df.loc[
+                    cmn_wet_bad_stns, 'Y'].values.ravel()
+
+                # DWD data
+                dwd_dry = edf_dwd_vals[edf_dwd_vals < edf_thr]
+                dwd_wet = edf_dwd_vals[edf_dwd_vals >= edf_thr]
+
+                x_coords_dwd_wet = dwd_xcoords[np.where(
+                    edf_dwd_vals >= edf_thr)]
+                y_coords_dwd_wet = dwd_ycoords[np.where(
+                    edf_dwd_vals >= edf_thr)]
+
+                assert (dwd_wet.size ==
+                        x_coords_dwd_wet.size ==
+                        y_coords_dwd_wet.size)
+
+                x_coords_dwd_dry = dwd_xcoords[np.where(
+                    edf_dwd_vals < edf_thr)]
+                y_coords_dwd_dry = dwd_ycoords[np.where(
+                    edf_dwd_vals < edf_thr)]
+
+                # find if wet bad is really wet bad
+                # find neighboring netatmo stations wet good
+
+                # combine dwd and netatmo wet gd
+
+                x_gd_dwd_netatmo = np.concatenate([
+                    x_coords_gd_netatmo_wet,
+                    x_coords_dwd_wet])
+                y_gd_dwd_netatmo = np.concatenate([
+                    y_coords_gd_netatmo_wet,
+                    y_coords_dwd_wet])
+
+                dwd_netatmo_wet_gd = np.concatenate([
+                    netatmo_wet_gd,
+                    dwd_wet])
+
+                if netatmo_wet_gd.size > 0:
+
+                    for stn_, edf_stn, netatmo_x_stn, netatmo_y_stn in zip(
+                        netatmo_wet_bad.index,
+                        netatmo_wet_bad.values,
+                            x_coords_bad_netatmo_wet,
+                            y_coords_bad_netatmo_wet):
+                        #                         print('Trying to correct %s bad wet '
+                        #                               % stn_)
+                        # coords of stns self
+                        stn_coords = np.array([(netatmo_x_stn,
+                                                netatmo_y_stn)])
+
+                        # coords of neighbors
+                        neighbors_coords = np.array(
+                            [(x, y) for x, y
+                             in zip(x_gd_dwd_netatmo,
+                                    y_gd_dwd_netatmo)])
+
+                        # create a tree from coordinates
+                        points_tree = spatial.KDTree(
+                            neighbors_coords)
+
+                        # This finds the index of all points within
+                        # radius
+                        idxs_neighbours = points_tree.query_ball_point(
+                            np.array(
+                                (netatmo_x_stn, netatmo_y_stn)),
+                            1e4)
+                        if len(idxs_neighbours) > 0:
+
+                            for i, ix_nbr in enumerate(idxs_neighbours):
+
+                                try:
+                                    edf_neighbor = dwd_netatmo_wet_gd[ix_nbr]
+                                except Exception as msg:
+                                    print(msg)
+                                    edf_neighbor = 1.1
+                                if np.abs(edf_stn - edf_neighbor) <= diff_thr:
+                                    #                                     print(
+                                    #                                         'bad wet netatmo station is good')
+                                    # add to good wet netatmos
+                                    try:
+                                        netatmo_wet_gd[stn_] = edf_stn
+                                        ids_netatmo_stns_gd = np.append(
+                                            ids_netatmo_stns_gd,
+                                            stn_)
+                                        x_coords_gd_netatmo_wet = np.append(
+                                            x_coords_gd_netatmo_wet,
+                                            netatmo_x_stn)
+                                        y_coords_gd_netatmo_wet = np.append(
+                                            y_coords_gd_netatmo_wet,
+                                            netatmo_y_stn)
+
+                                        # remove from original bad
+                                        # wet
+                                        x_coords_bad_netatmo_wet = np.array(list(
+                                            filter(lambda x: x != netatmo_x_stn,
+                                                   x_coords_bad_netatmo_wet)))
+
+                                        y_coords_bad_netatmo_wet = np.array(list(
+                                            filter(lambda x: x != netatmo_y_stn,
+                                                   y_coords_bad_netatmo_wet)))
+
+                                        netatmo_wet_bad.loc[stn_] = np.nan
+
+                                        ids_netatmo_stns_bad = list(
+                                            filter(lambda x: x != stn_,
+                                                   ids_netatmo_stns_bad))
+                                    except Exception as msg:
+                                        print(msg)
+                                        pass
+
+                                else:
+                                    pass
+#                                     print('bad wet is bad wet')
+                        else:
+                            pass
+#                             print('\nStn has no near neighbors')
+
                 netatmo_stns_event_ = []
                 netatmo_ppt_vals_fr_dwd_interp = []
                 x_netatmo_ppt_vals_fr_dwd_interp = []
                 y_netatmo_ppt_vals_fr_dwd_interp = []
 
-                # netatmo stations to correct
+                print('correcting Netatmo Quantiles')
+                for netatmo_stn_id in ids_netatmo_stns_gd:  # netatmo_df.index:
 
-                for netatmo_stn_id in netatmo_df.index:
-
-                    netatmo_edf_event_ = netatmo_in_vals_df.loc[
-                        event_date,
-                        netatmo_stn_id]
+                    netatmo_edf_event_ = netatmo_in_vals_df.loc[event_date,
+                                                                netatmo_stn_id]
 
                     netatmo_ppt_event_ = netatmo_in_ppt_vals_df.loc[
                         event_date,
@@ -777,7 +1014,6 @@ for temp_agg in resample_frequencies:
                         [netatmo_in_coords_df.loc[netatmo_stn_id, 'Y']])
 
                     if netatmo_edf_event_ > 0.5:  # 0.99:
-
                         try:
                             #==========================================
                             # # Correct Netatmo Quantiles
@@ -920,83 +1156,83 @@ for temp_agg in resample_frequencies:
                 #==================================================
                 # Applying second filter
                 #==================================================
-                stns_filtered = False
-                idxs_stns_remove = []
-                print('Applying second filter')
-
-                for ix_stn, netatmo_stn_to_test in enumerate(
-                        netatmo_stns_event_):
-                    # print(ix_stn)
-                    # netatmo stns for this event
-
-                    x_netatmo_stn = np.array([netatmo_in_coords_df.loc[
-                        netatmo_stn_to_test, 'X']])
-                    y_netatmo_stn = np.array([netatmo_in_coords_df.loc[
-                        netatmo_stn_to_test, 'Y']])
-
-#                             obs_netatmo_ppt_stn = netatmo_in_ppt_vals_df.loc[
-#                                 event_date, netatmo_stn_to_test]
-                    try:
-                        obs_netatmo_ppt_stn = netatmo_ppt_vals_fr_dwd_interp[
-                            ix_stn]
-                    except Exception as msg:
-                        print(msg)
-
-                    ordinary_kriging_dwd_ppt_at_netatmo = OrdinaryKriging(
-                        xi=dwd_xcoords,
-                        yi=dwd_ycoords,
-                        zi=ppt_dwd_vals,
-                        xk=x_netatmo_stn,
-                        yk=y_netatmo_stn,
-                        model=vgs_model_dwd_ppt)
-
-                    ordinary_kriging_dwd_ppt_at_netatmo.krige()
-                    int_netatmo_ppt = ordinary_kriging_dwd_ppt_at_netatmo.zk.copy()[
-                        0]
-
-                    ratio_netatmo = np.abs(
-                        obs_netatmo_ppt_stn / int_netatmo_ppt)
-
-                    if min_ratio <= ratio_netatmo <= max_ratio:
-                        pass
-#                                 print('\n*/keeping stn, ',
-#                                       netatmo_stn_to_test)
-#                                 print('Int:', int_netatmo_ppt,
-#                                       'Obs:', obs_netatmo_ppt_stn)
-                    else:
-                        #print('\n*+-Removing stn for this event*+-')
-                        # print('Int:', int_netatmo_ppt,
-                        #      'Obs:', obs_netatmo_ppt_stn)
-                        idx_stn_remove = np.where(np.logical_and(
-                            (x_netatmo_ppt_vals_fr_dwd_interp ==
-                             x_netatmo_stn), (
-                                y_netatmo_ppt_vals_fr_dwd_interp ==
-                                 y_netatmo_stn)))[0][0]
-                        idxs_stns_remove.append(idx_stn_remove)
-                        stns_filtered = True
+#                 stns_filtered = False
+#                 idxs_stns_remove = []
+#                 print('Applying second filter')
+#
+#                 for ix_stn, netatmo_stn_to_test in enumerate(
+#                         netatmo_stns_event_):
+#                     # print(ix_stn)
+#                     # netatmo stns for this event
+#
+#                     x_netatmo_stn = np.array([netatmo_in_coords_df.loc[
+#                         netatmo_stn_to_test, 'X']])
+#                     y_netatmo_stn = np.array([netatmo_in_coords_df.loc[
+#                         netatmo_stn_to_test, 'Y']])
+#
+# #                             obs_netatmo_ppt_stn = netatmo_in_ppt_vals_df.loc[
+# #                                 event_date, netatmo_stn_to_test]
+#                     try:
+#                         obs_netatmo_ppt_stn = netatmo_ppt_vals_fr_dwd_interp[
+#                             ix_stn]
+#                     except Exception as msg:
+#                         print(msg)
+#
+#                     ordinary_kriging_dwd_ppt_at_netatmo = OrdinaryKriging(
+#                         xi=dwd_xcoords,
+#                         yi=dwd_ycoords,
+#                         zi=ppt_dwd_vals,
+#                         xk=x_netatmo_stn,
+#                         yk=y_netatmo_stn,
+#                         model=vgs_model_dwd_ppt)
+#
+#                     ordinary_kriging_dwd_ppt_at_netatmo.krige()
+#                     int_netatmo_ppt = ordinary_kriging_dwd_ppt_at_netatmo.zk.copy()[
+#                         0]
+#
+#                     ratio_netatmo = np.abs(
+#                         obs_netatmo_ppt_stn / int_netatmo_ppt)
+#
+#                     if min_ratio <= ratio_netatmo <= max_ratio:
+#                         pass
+# #                                 print('\n*/keeping stn, ',
+# #                                       netatmo_stn_to_test)
+# #                                 print('Int:', int_netatmo_ppt,
+# #                                       'Obs:', obs_netatmo_ppt_stn)
+#                     else:
+#                         #print('\n*+-Removing stn for this event*+-')
+#                         # print('Int:', int_netatmo_ppt,
+#                         #      'Obs:', obs_netatmo_ppt_stn)
+#                         idx_stn_remove = np.where(np.logical_and(
+#                             (x_netatmo_ppt_vals_fr_dwd_interp ==
+#                              x_netatmo_stn), (
+#                                 y_netatmo_ppt_vals_fr_dwd_interp ==
+#                                  y_netatmo_stn)))[0][0]
+#                         idxs_stns_remove.append(idx_stn_remove)
+#                         stns_filtered = True
 
 #                         if len(netatmo_ppt_vals_fr_dwd_interp) == 0:
 #                             print('nond')
 #                             raise Exception
-                netatmo_ppt_vals_fr_dwd_interp_gd = [
-                    ppt for ix, ppt in enumerate(
-                        netatmo_ppt_vals_fr_dwd_interp)
-                    if ix not in idxs_stns_remove]
-
-                x_netatmo_ppt_vals_fr_dwd_interp_gd = [
-                    x for ix, x in enumerate(
-                        x_netatmo_ppt_vals_fr_dwd_interp)
-                    if ix not in idxs_stns_remove]
-
-                y_netatmo_ppt_vals_fr_dwd_interp_gd = [
-                    y for ix, y in enumerate(
-                        y_netatmo_ppt_vals_fr_dwd_interp)
-                    if ix not in idxs_stns_remove]
-
-                netatmo_stns_event_gd = [
-                    stn for ix, stn in enumerate(
-                        netatmo_stns_event_)
-                    if ix not in idxs_stns_remove]
+#                 netatmo_ppt_vals_fr_dwd_interp_gd = [
+#                     ppt for ix, ppt in enumerate(
+#                         netatmo_ppt_vals_fr_dwd_interp)
+#                     if ix not in idxs_stns_remove]
+#
+#                 x_netatmo_ppt_vals_fr_dwd_interp_gd = [
+#                     x for ix, x in enumerate(
+#                         x_netatmo_ppt_vals_fr_dwd_interp)
+#                     if ix not in idxs_stns_remove]
+#
+#                 y_netatmo_ppt_vals_fr_dwd_interp_gd = [
+#                     y for ix, y in enumerate(
+#                         y_netatmo_ppt_vals_fr_dwd_interp)
+#                     if ix not in idxs_stns_remove]
+#
+#                 netatmo_stns_event_gd = [
+#                     stn for ix, stn in enumerate(
+#                         netatmo_stns_event_)
+#                     if ix not in idxs_stns_remove]
 
             #======================================================
             # Transform everything to arrays and combine
@@ -1021,7 +1257,7 @@ for temp_agg in resample_frequencies:
             #======================================================
             # # Krigging PPT
             #======================================================
-            print('Krigging PPT')
+            print('Krigging PPT after 1st and 2nd filter')
             # using Netatmo-DWD data
             ordinary_kriging_dwd_netatmo_ppt = OrdinaryKriging(
                 xi=netatmo_dwd_x_coords,
