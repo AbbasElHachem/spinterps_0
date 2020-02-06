@@ -118,10 +118,10 @@ path_to_dwd_ratios = in_filter_path / 'ppt_ratios_'
 #==============================================================================
 #
 #==============================================================================
-resample_frequencies = ['60min']
+resample_frequencies = ['1440min']
 # '120min', '180min', '60min',  '360min',
 #                         '720min',
-title_ = r'Ppt_ok_ok_un_reduced'
+title_ = r'Ppt_ok_ok_un_new3'
 
 
 if not use_netatmo_gd_stns:
@@ -130,7 +130,7 @@ if not use_netatmo_gd_stns:
 if use_netatmo_gd_stns:
     title_ = title_ + '_first_flt_'
 
-if use_temporal_filter_after_kriging:
+if use_temporal_filter_after_kriging or use_temporal_filter_b4_kriging:
 
     title_ = title_ + '_temp_flt_'
 
@@ -494,6 +494,18 @@ for temp_agg in resample_frequencies:
 #         min_ratio = dwd_ratios_df.loc[event_date, :].min()
 #         max_ratio = dwd_ratios_df.loc[event_date, :].max()
 
+#     stw = []
+#     for stn in df_dwd_stns_comb.values.ravel():
+#         try:
+#             stn = str(stn.replace("'", ''))
+#             print(stn)
+#             if stn  not in  dwd_in_coords_df.index.values:
+#                 stw.append(stn)
+#
+#         except Exception as msg:
+#             print(msg)
+#             pass
+#         break
         # start cross validating DWD stations for this event
         for idx_lst_comb in df_dwd_stns_comb.index:
 
@@ -501,6 +513,11 @@ for temp_agg in resample_frequencies:
                         for stn in df_dwd_stns_comb.iloc[
                         idx_lst_comb, :].dropna().values]
 
+            stn_comb_reduced = [stn for stn in stn_comb
+                                if stn not in all_dwd_stns]
+
+            if use_reduced_sample_dwd:
+                stn_comb = stn_comb_reduced
 #             print('Interpolating for following DWD stations: \n',
 #                   pprint.pformat(stn_comb))
 
