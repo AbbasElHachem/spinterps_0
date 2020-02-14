@@ -42,7 +42,7 @@ plt.rcParams.update({'font.size': 18})
 plt.rcParams.update({'axes.labelsize': 18})
 
 # new only using 32 DWD
-use_reduced_sample_dwd = True
+use_reduced_sample_dwd = False
 # =============================================================================
 
 # =============================================================================
@@ -118,10 +118,10 @@ path_to_dwd_ratios = in_filter_path / 'ppt_ratios_'
 #==============================================================================
 #
 #==============================================================================
-resample_frequencies = ['1440min']
+resample_frequencies = ['60min']
 # '120min', '180min', '60min',  '360min',
 #                         '720min',
-title_ = r'Ppt_ok_ok_un_new3'
+title_ = r'Ppt_ok_ok_un_new4'
 
 
 if not use_netatmo_gd_stns:
@@ -140,6 +140,9 @@ if use_temporal_filter_after_kriging or use_temporal_filter_b4_kriging:
 strt_date = '2015-01-01 00:00:00'
 end_date = '2019-09-01 00:00:00'
 
+# select all stations within this distance of interpolation location
+neigbhrs_radius_dwd = 3e4
+neigbhrs_radius_netatmo = 3e4
 # min_valid_stns = 20
 
 drop_stns = []
@@ -293,7 +296,10 @@ for temp_agg in resample_frequencies:
                            (r'ppt_all_netatmo_%s_.csv' % temp_agg))
 
     path_to_dwd_vgs = (path_to_vgs /
-                       (r'vg_strs_dwd_%s_maximum_100_event.csv' % temp_agg))
+                       (r'vg_strs_dwd_%s_maximum_100_event_ppt.csv' % temp_agg))
+    # _ppt
+#     path_to_dwd_vgs = (path_to_vgs /
+#                        (r'vg_strs_dwd_daily_ppt_.csv'))
 
     path_dwd_extremes_df = path_to_data / \
         (r'dwd_%s_maximum_100_event.csv' % temp_agg)
@@ -467,6 +473,10 @@ for temp_agg in resample_frequencies:
         index=dwd_in_extremes_df.index,
         columns=stn_comb_order_only)
 
+    df_interpolated_dwd_netatmos_comb_un_05perc = pd.DataFrame(
+        index=dwd_in_extremes_df.index,
+        columns=stn_comb_order_only)
+
     df_interpolated_dwd_only = pd.DataFrame(
         index=dwd_in_extremes_df.index,
         columns=stn_comb_order_only)
@@ -478,7 +488,8 @@ for temp_agg in resample_frequencies:
     # # Go thourgh events ,interpolate all DWD for this event
     #==========================================================================
     for iev, event_date in enumerate(dwd_in_extremes_df.index):
-        #         break
+        #         if str(event_date) == '2019-01-14 00:00:00':
+        #             break
         _stn_id_event_ = str(int(dwd_in_extremes_df.loc[event_date, 2]))
         if len(_stn_id_event_) < 5:
             _stn_id_event_ = (5 - len(_stn_id_event_)) * \
@@ -509,6 +520,8 @@ for temp_agg in resample_frequencies:
         # start cross validating DWD stations for this event
         for idx_lst_comb in df_dwd_stns_comb.index:
 
+            #             if idx_lst_comb == 8:
+            #                 break
             stn_comb = [stn.replace("'", "")
                         for stn in df_dwd_stns_comb.iloc[
                         idx_lst_comb, :].dropna().values]
@@ -526,10 +539,11 @@ for temp_agg in resample_frequencies:
             # ==========================================================
 
             for stn_nbr, stn_dwd_id in enumerate(stn_comb):
-
+                #                 if stn_dwd_id == '05275':
+                #                     raise Exception
                 #                 print('interpolating for DWD Station', stn_dwd_id,
                 #                       ' ', i, '/', len(stn_comb))
-                #                 obs_ppt_stn_dwd = dwd_in_ppt_vals_df.loc[event_date, stn_dwd_id]
+                obs_ppt_stn_dwd = dwd_in_ppt_vals_df.loc[event_date, stn_dwd_id]
                 x_dwd_interpolate = np.array(
                     [dwd_in_coords_df.loc[stn_dwd_id, 'X']])
                 y_dwd_interpolate = np.array(
@@ -540,6 +554,53 @@ for temp_agg in resample_frequencies:
                     stn for stn in dwd_in_vals_df.columns
                     if stn not in stn_comb]
 
+                # coords of all other stns
+                x_dwd_all = dwd_in_coords_df.loc[
+                    dwd_in_coords_df.index.intersection(
+                        all_dwd_stns_except_interp_loc),
+                    'X'].values
+                y_dwd_all = dwd_in_coords_df.loc[
+                    dwd_in_coords_df.index.intersection(
+                        all_dwd_stns_except_interp_loc),
+                    'Y'].values
+
+                stn_dwd_all = dwd_in_coords_df.loc[
+                    dwd_in_coords_df.index.intersection(
+                        all_dwd_stns_except_interp_loc), :].index
+                # GET nearest DWD stations
+
+                # coords of neighbors
+                dwd_neighbors_coords = np.array(
+                    [(x, y) for x, y
+                     in zip(x_dwd_all,
+                            y_dwd_all)])
+
+                # create a tree from coordinates
+                points_tree = spatial.KDTree(dwd_neighbors_coords)
+
+                # This finds the index of all points within
+                # radius
+                dwd_idxs_neighbours = points_tree.query_ball_point(
+                    np.array((x_dwd_interpolate[0],
+                              y_dwd_interpolate[0])),
+                    neigbhrs_radius_dwd)
+
+                stn_dwd_all_ngbrs = stn_dwd_all[dwd_idxs_neighbours]
+
+                # ppt data at other DWD stations
+                ppt_dwd_vals_sr = dwd_in_ppt_vals_df.loc[
+                    event_date,
+                    stn_dwd_all_ngbrs]
+                ppt_dwd_vals_nona = ppt_dwd_vals_sr[
+                    ppt_dwd_vals_sr.values >= 0]
+
+                # edf dwd vals
+                edf_dwd_vals = dwd_in_vals_df.loc[
+                    event_date,
+                    stn_dwd_all_ngbrs].dropna().values
+
+                x_dwd_all_ngbrs = dwd_in_coords_df.loc[ppt_dwd_vals_nona.index, 'X'].values
+                y_dwd_all_ngbrs = dwd_in_coords_df.loc[ppt_dwd_vals_nona.index, 'Y'].values
                 # GET ALL NETATMO NEARBY STATIONS
                 # find distance to all dwd stations, sort them, select minimum
                 distances_dwd_to_stns = in_df_distance_netatmo_dwd.loc[
@@ -550,31 +611,13 @@ for temp_agg in resample_frequencies:
 
                 # select only nearby netatmo stations below 50km
                 sorted_distances_ppt_dwd = sorted_distances_ppt_dwd[
-                    sorted_distances_ppt_dwd.values <= 3e4]
+                    sorted_distances_ppt_dwd.values <= neigbhrs_radius_netatmo]
                 netatmo_stns_near = sorted_distances_ppt_dwd.index
-
-                # ppt data at other DWD stations
-                ppt_dwd_vals_sr = dwd_in_ppt_vals_df.loc[
-                    event_date,
-                    all_dwd_stns_except_interp_loc]
-                ppt_dwd_vals_nona = ppt_dwd_vals_sr[
-                    ppt_dwd_vals_sr.values >= 0]
-
-                # edf dwd vals
-                edf_dwd_vals = dwd_in_vals_df.loc[
-                    event_date,
-                    all_dwd_stns_except_interp_loc].dropna().values
-
-                # coords of all other stns
-                x_dwd_all = dwd_in_coords_df.loc[
-                    ppt_dwd_vals_nona.index, 'X'].values
-                y_dwd_all = dwd_in_coords_df.loc[
-                    ppt_dwd_vals_nona.index, 'Y'].values
 
                 # netatmo ppt values and stns fot this event
                 netatmo_ppt_stns_for_event = netatmo_in_ppt_vals_df.loc[
                     event_date, netatmo_stns_near].dropna(how='all')  # netatmo_stns_near
-                #
+
                 # print(fit_vg_tst.describe())
                 # fit_vg_tst.plot()
                 # get vg model for this day
@@ -586,9 +629,9 @@ for temp_agg in resample_frequencies:
                     vgs_model_dwd_ppt = ''
 
                 if ('Nug' in vgs_model_dwd_ppt or len(
-                    vgs_model_dwd_ppt) == 0) and (
-                    'Exp' not in vgs_model_dwd_ppt and
-                        'Sph' not in vgs_model_dwd_ppt):
+                        vgs_model_dwd_ppt) == 0):  # and (
+                    #                     'Exp' not in vgs_model_dwd_ppt and
+                    #                         'Sph' not in vgs_model_dwd_ppt):
 
                     try:
                         for i in range(2, len(df_vgs_extremes.loc[event_date, :])):
@@ -654,12 +697,12 @@ for temp_agg in resample_frequencies:
 
                         if use_temporal_filter_b4_kriging:
 
-                            #                             print('using DWD stations to find Netatmo values')
-                            #                             print('apllying on event filter for percentiles')
+                            # print('using DWD stations to find Netatmo values')
+                            # print('apllying on event filter for percentiles')
 
                             ordinary_kriging_filter_netamto = OrdinaryKriging(
-                                xi=x_dwd_all,
-                                yi=y_dwd_all,
+                                xi=x_dwd_all_ngbrs,
+                                yi=y_dwd_all_ngbrs,
                                 zi=edf_dwd_vals,
                                 xk=netatmo_xcoords,
                                 yk=netatmo_ycoords,
@@ -765,18 +808,18 @@ for temp_agg in resample_frequencies:
                             dwd_dry = edf_dwd_vals[edf_dwd_vals < edf_thr]
                             dwd_wet = edf_dwd_vals[edf_dwd_vals >= edf_thr]
 
-                            x_coords_dwd_wet = x_dwd_all[np.where(
+                            x_coords_dwd_wet = x_dwd_all_ngbrs[np.where(
                                 edf_dwd_vals >= edf_thr)]
-                            y_coords_dwd_wet = y_dwd_all[np.where(
+                            y_coords_dwd_wet = y_dwd_all_ngbrs[np.where(
                                 edf_dwd_vals >= edf_thr)]
 
                             assert (dwd_wet.size ==
                                     x_coords_dwd_wet.size ==
                                     y_coords_dwd_wet.size)
 
-                            x_coords_dwd_dry = x_dwd_all[np.where(
+                            x_coords_dwd_dry = x_dwd_all_ngbrs[np.where(
                                 edf_dwd_vals < edf_thr)]
-                            y_coords_dwd_dry = y_dwd_all[np.where(
+                            y_coords_dwd_dry = y_dwd_all_ngbrs[np.where(
                                 edf_dwd_vals < edf_thr)]
 
                             # find if wet bad is really wet bad
@@ -1155,6 +1198,7 @@ for temp_agg in resample_frequencies:
                                     netatmo_stns_event_fr_dwd_interp.append(
                                         netatmo_stn_id)
 
+
 #                         #==================================================
 #                         # Applying rainfall on event filter
 #                         #==================================================
@@ -1249,7 +1293,7 @@ for temp_agg in resample_frequencies:
                         netatmo_ppt_vals_fr_dwd_interp_gd = netatmo_ppt_vals_fr_dwd_interp
                         x_netatmo_ppt_vals_fr_dwd_interp_gd = x_netatmo_ppt_vals_fr_dwd_interp
                         y_netatmo_ppt_vals_fr_dwd_interp_gd = y_netatmo_ppt_vals_fr_dwd_interp
-
+#                         break
 #                         print('Krigging PPT at DWD Stns-->Cross Validation\n')
 
                         #======================================================
@@ -1267,13 +1311,19 @@ for temp_agg in resample_frequencies:
                             netatmo_ppt_vals_fr_dwd_interp_gd).ravel(), 2)
 
                         netatmo_dwd_x_coords = np.concatenate([netatmo_xcoords,
-                                                               x_dwd_all])
+                                                               x_dwd_all_ngbrs])
                         netatmo_dwd_y_coords = np.concatenate([netatmo_ycoords,
-                                                               y_dwd_all])
+                                                               y_dwd_all_ngbrs])
                         netatmo_dwd_ppt_vals = np.round(np.hstack(
                             (ppt_netatmo_vals,
                              ppt_dwd_vals_nona.values)), 2).ravel()
 
+                        xy = np.array([(x, y) for x, y in zip(
+                            netatmo_dwd_x_coords, netatmo_dwd_y_coords)])
+
+                        dist = distance.cdist([(x_dwd_interpolate[0],
+                                                y_dwd_interpolate[0])], xy,
+                                              'euclidean')
                         # add unertainty term on netatmo ppt
                         ppt_unc_term_20perc = np.array([
                             0.2 * p for p in ppt_netatmo_vals])
@@ -1283,6 +1333,9 @@ for temp_agg in resample_frequencies:
                             0.05 * p for p in ppt_netatmo_vals])
                         ppt_unc_term_2perc = np.array([
                             0.02 * p for p in ppt_netatmo_vals])
+                        ppt_unc_term_05perc = np.array([
+                            0.005 * p for p in ppt_netatmo_vals])
+
                         # combine both uncertainty terms
                         # uncertainty for dwd is 0
                         uncert_dwd = np.zeros(
@@ -1304,6 +1357,10 @@ for temp_agg in resample_frequencies:
                         ppt_dwd_netatmo_vals_uncert_2perc = np.concatenate([
                             ppt_unc_term_2perc,
                             uncert_dwd])
+
+                        ppt_dwd_netatmo_vals_uncert_05perc = np.concatenate([
+                            ppt_unc_term_05perc,
+                            uncert_dwd])
                         # Start kriging ppt at DWD
                         #======================================================
 
@@ -1316,8 +1373,8 @@ for temp_agg in resample_frequencies:
                             model=vgs_model_dwd_ppt)
 
                         ordinary_kriging_dwd_ppt = OrdinaryKriging(
-                            xi=x_dwd_all,
-                            yi=y_dwd_all,
+                            xi=x_dwd_all_ngbrs,
+                            yi=y_dwd_all_ngbrs,
                             zi=ppt_dwd_vals_nona.values,
                             xk=x_dwd_interpolate,
                             yk=y_dwd_interpolate,
@@ -1359,6 +1416,14 @@ for temp_agg in resample_frequencies:
                             xk=x_dwd_interpolate,
                             yk=y_dwd_interpolate,
                             model=vgs_model_dwd_ppt)
+                        ordinary_kriging_dwd_netatmo_ppt_unc_05perc = OrdinaryKrigingWithUncertainty(
+                            xi=netatmo_dwd_x_coords,
+                            yi=netatmo_dwd_y_coords,
+                            zi=netatmo_dwd_ppt_vals,
+                            uncert=ppt_dwd_netatmo_vals_uncert_05perc,
+                            xk=x_dwd_interpolate,
+                            yk=y_dwd_interpolate,
+                            model=vgs_model_dwd_ppt)
 
                         try:
                             ordinary_kriging_dwd_netatmo_ppt.krige()
@@ -1367,24 +1432,87 @@ for temp_agg in resample_frequencies:
                             ordinary_kriging_dwd_netatmo_ppt_unc_10perc.krige()
                             ordinary_kriging_dwd_netatmo_ppt_unc_5perc.krige()
                             ordinary_kriging_dwd_netatmo_ppt_unc_2perc.krige()
+                            ordinary_kriging_dwd_netatmo_ppt_unc_05perc.krige()
                         except Exception as msg:
                             print('Error while Kriging', msg)
+
+#                         plt.ioff()
+#                         plt.figure(figsize=(12, 8), dpi=200)
+#                         plt.scatter(x_dwd_all_ngbrs, y_dwd_all_ngbrs, c='b',
+#                                     marker='x', label='DWD')
+#                         plt.scatter(x_dwd_interpolate,
+#                                     y_dwd_interpolate, c='r',
+#                                     marker='d')
+#                         plt.scatter(netatmo_xcoords,
+#                                     netatmo_ycoords, c='g',
+#                                     marker='.',
+#                                     label='Netatmo')
+#                         plt.savefig(
+#                             r'X:\exchange\ElHachem\kriging_with_unc\configuration_weights_%s_%s.png'
+#                             % (str(event_date).split(' ')[0], stn_dwd_id))
+#                         plt.close()
+
+#                         left_side = ordinary_kriging_dwd_netatmo_ppt.in_vars
+#
+#                         right_side = ordinary_kriging_dwd_netatmo_ppt.out_vars
+#
+#                         ok_weights = ordinary_kriging_dwd_netatmo_ppt.lambdas.copy()[
+#                             0]
+#                         ok_weights05 = ordinary_kriging_dwd_netatmo_ppt_unc_05perc.lambdas.copy()[
+#                             0]
+#                         ok_weights2 = ordinary_kriging_dwd_netatmo_ppt_unc_2perc.lambdas.copy()[
+#                             0]
+#                         ok_weights5 = ordinary_kriging_dwd_netatmo_ppt_unc_5perc.lambdas.copy()[
+#                             0]
+#                         ok_weights10 = ordinary_kriging_dwd_netatmo_ppt_unc_10perc.lambdas.copy()[
+#                             0]
+#                         ok_weights20 = ordinary_kriging_dwd_netatmo_ppt_unc_20perc.lambdas.copy()[
+#                             0]
+#
+#                         df_weights = pd.DataFrame()
+#                         #df_weights['netatmo_dwd_x_coords'] = netatmo_dwd_x_coords
+#                         #df_weights['netatmo_dwd_y_coords'] = netatmo_dwd_y_coords
+#                         df_weights['distance_to_loc'] = dist[0]
+#                         df_weights['ok_weights'] = ok_weights
+#                         #df_weights['ok_weights'] = ok_weights
+#                         df_weights['ok_un_05perc_weights'] = ok_weights05
+#                         df_weights['ok_un_05perc_sigma'] = ppt_dwd_netatmo_vals_uncert_05perc
+#
+#                         df_weights['ok_un_2perc_weights'] = ok_weights2
+#                         df_weights['ok_un_2perc_sigma'] = ppt_dwd_netatmo_vals_uncert_2perc
+#
+#                         df_weights['ok_un_5perc_weights'] = ok_weights5
+#                         df_weights['ok_un_5perc_sigma'] = ppt_dwd_netatmo_vals_uncert_5perc
+#
+#                         df_weights['ok_un_10perc_weights'] = ok_weights10
+#                         df_weights['ok_un_10perc_sigma'] = ppt_dwd_netatmo_vals_uncert_10perc
+#
+#                         df_weights['ok_un_20perc_weights'] = ok_weights20
+#                         df_weights['ok_un_20perc_sigma'] = ppt_dwd_netatmo_vals_uncert_20perc
+#
+#                         df_weights.to_csv(
+#                             r"X:\exchange\ElHachem\kriging_with_unc\vg_edf_weights_and_sigma_ok_ok_unc_ex_%s_%s_2.csv"
+#                             % (str(event_date).split(' ')[0], stn_dwd_id))
 
                         interpolated_netatmo_dwd_ppt = ordinary_kriging_dwd_netatmo_ppt.zk.copy()[
                             0]
                         interpolated_dwd_ppt = ordinary_kriging_dwd_ppt.zk.copy()[
                             0]
-                        interpolated_netatmo_dwd_ppt_unc_20perc = ordinary_kriging_dwd_netatmo_ppt_unc_20perc.zk.copy()[
-                            0]
+                        interpolated_netatmo_dwd_ppt_unc_20perc = (
+                            ordinary_kriging_dwd_netatmo_ppt_unc_20perc.zk.copy()[
+                                0])
 
-                        interpolated_netatmo_dwd_ppt_unc_10perc = ordinary_kriging_dwd_netatmo_ppt_unc_10perc.zk.copy()[
-                            0]
+                        interpolated_netatmo_dwd_ppt_unc_10perc = (
+                            ordinary_kriging_dwd_netatmo_ppt_unc_10perc.zk.copy()[
+                                0])
 
                         interpolated_netatmo_dwd_ppt_unc_5perc = ordinary_kriging_dwd_netatmo_ppt_unc_5perc.zk.copy()[
                             0]
                         interpolated_netatmo_dwd_ppt_unc_2perc = ordinary_kriging_dwd_netatmo_ppt_unc_2perc.zk.copy()[
                             0]
-
+                        interpolated_netatmo_dwd_ppt_unc_05perc = ordinary_kriging_dwd_netatmo_ppt_unc_05perc.zk.copy()[
+                            0]
+#
                         if interpolated_netatmo_dwd_ppt < 0:
                             interpolated_netatmo_dwd_ppt = np.nan
 
@@ -1402,6 +1530,9 @@ for temp_agg in resample_frequencies:
 
                         if interpolated_netatmo_dwd_ppt_unc_2perc < 0:
                             interpolated_netatmo_dwd_ppt_unc_2perc = np.nan
+
+                        if interpolated_netatmo_dwd_ppt_unc_05perc < 0:
+                            interpolated_netatmo_dwd_ppt_unc_05perc = np.nan
 
     #                         print('**Interpolated PPT by DWD_Netatmo: ',
     #                               interpolated_netatmo_dwd_ppt)
@@ -1434,6 +1565,10 @@ for temp_agg in resample_frequencies:
                             event_date,
                             stn_dwd_id] = interpolated_netatmo_dwd_ppt_unc_2perc
 
+                        df_interpolated_dwd_netatmos_comb_un_05perc.loc[
+                            event_date,
+                            stn_dwd_id] = interpolated_netatmo_dwd_ppt_unc_05perc
+
                         df_interpolated_dwd_only.loc[
                             event_date,
                             stn_dwd_id] = interpolated_dwd_ppt
@@ -1455,6 +1590,7 @@ for temp_agg in resample_frequencies:
     df_interpolated_dwd_netatmos_comb_un_10perc.dropna(how='all', inplace=True)
     df_interpolated_dwd_netatmos_comb_un_5perc.dropna(how='all', inplace=True)
     df_interpolated_dwd_netatmos_comb_un_2perc.dropna(how='all', inplace=True)
+    df_interpolated_dwd_netatmos_comb_un_05perc.dropna(how='all', inplace=True)
     df_interpolated_dwd_only.dropna(how='all', inplace=True)
 #
     df_stns_netatmo_gd_event.dropna(how='all', inplace=True)
@@ -1481,6 +1617,11 @@ for temp_agg in resample_frequencies:
 
     df_interpolated_dwd_netatmos_comb_un_2perc.to_csv(out_plots_path / (
         'interpolated_ppt_dwd_%s_data_%s_using_dwd_netamo_grp_%d_%s_unc2perc.csv'
+        % (temp_agg, title_, idx_lst_comb, _acc_)),
+        sep=';', float_format='%0.2f')
+
+    df_interpolated_dwd_netatmos_comb_un_05perc.to_csv(out_plots_path / (
+        'interpolated_ppt_dwd_%s_data_%s_using_dwd_netamo_grp_%d_%s_unc05perc.csv'
         % (temp_agg, title_, idx_lst_comb, _acc_)),
         sep=';', float_format='%0.2f')
 

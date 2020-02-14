@@ -100,7 +100,7 @@ def get_ppt_paths():
 
     in_vals_df_loc = os.path.join(
         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-        r'edf_ppt_all_dwd_1440min_.csv')
+        r'ppt_all_dwd_720min_.csv')
 
     # Cold - Warm season distributions DWD
 #     in_vals_df_loc = os.path.join(
@@ -109,7 +109,7 @@ def get_ppt_paths():
 
     # COORDS
     in_stn_coords_df_loc = os.path.join(
-        r"F:\download_DWD_data_recent\station_coordinates_names_hourly_only_in_BW_utm32.csv")
+        r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW\station_coordinates_names_hourly_only_in_BW_utm32.csv")
 
 #     in_stn_coords_df_loc = os.path.join(
 #         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW\netatmo_bw_1hour_coords_utm32.csv")
@@ -139,7 +139,7 @@ def get_ppt_paths():
     path_to_dwd_ppt_extreme = (
         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
         r"\NetAtmo_BW"
-        r"\dwd_1440min_maximum_100_event.csv")
+        r"\dwd_720min_maximum_100_event.csv")
     out_dir = r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo'
 
     return (in_vals_df_loc, in_stn_coords_df_loc,
@@ -300,7 +300,7 @@ if __name__ == '__main__':
 
         # save all console activity to out_log_file
         out_log_file = os.path.join(
-            r'F:\DWD_temperature_kriging\\%s_log_%s.log' % (
+            r'C:\Users\hachem\Desktop\fd\\%s_log_%s.log' % (
                 # r'P:\Synchronize\python_script_logs\\%s_log_%s.log' % (
                 os.path.basename(__file__),
                 datetime.now().strftime('%Y%m%d%H%M%S')))
