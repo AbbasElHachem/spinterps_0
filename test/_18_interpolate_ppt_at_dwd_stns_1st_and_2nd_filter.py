@@ -26,8 +26,10 @@ import pprint
 import pandas as pd
 import matplotlib.pyplot as plt
 
-
-from spinterps import (OrdinaryKriging, OrdinaryKrigingWithUncertainty)
+# OrdinaryKrigingWithUncertainty
+from spinterps import (OrdinaryKriging,
+                       # OrdinaryKrigingWithUncertainty,
+                       OrdinaryKrigingWithScaledVg)
 from spinterps import variograms
 from scipy.spatial import distance
 from scipy import spatial
@@ -83,10 +85,6 @@ path_to_dwd_stns_comb = in_filter_path / r'dwd_combination_to_use.csv'
 # # NETATMO FIRST FILTER
 #==============================================================================
 
-use_dwd_stns_for_kriging = True
-
-qunatile_kriging = True
-
 # run it to filter Netatmo
 use_netatmo_gd_stns = True  # general filter, Indicator kriging
 use_temporal_filter_after_kriging = False  # on day filter for ppt
@@ -108,7 +106,7 @@ if use_first_and_second_nghbr_as_gd_stns:
 
 if use_netatmo_gd_stns:
     path_to_netatmo_gd_stns = (main_dir / r'plots_NetAtmo_ppt_DWD_ppt_correlation_' /
-                               (r'keep_stns_all_neighbor_99_per_60min_s0_%s_2.csv'
+                               (r'keep_stns_all_neighbor_99_per_60min_s0_%s.csv'
                                 % _acc_))
 
 # for second filter
@@ -121,7 +119,7 @@ path_to_dwd_ratios = in_filter_path / 'ppt_ratios_'
 resample_frequencies = ['60min']
 # '120min', '180min', '60min',  '360min',
 #                         '720min',
-title_ = r'Ppt_ok_ok_un_new4'
+title_ = r'Ppt_ok_ok_un_new6'
 
 
 if not use_netatmo_gd_stns:
@@ -141,7 +139,7 @@ strt_date = '2015-01-01 00:00:00'
 end_date = '2019-09-01 00:00:00'
 
 # select all stations within this distance of interpolation location
-neigbhrs_radius_dwd = 3e4
+neigbhrs_radius_dwd = 5e4
 neigbhrs_radius_netatmo = 3e4
 # min_valid_stns = 20
 
@@ -296,7 +294,7 @@ for temp_agg in resample_frequencies:
                            (r'ppt_all_netatmo_%s_.csv' % temp_agg))
 
     path_to_dwd_vgs = (path_to_vgs /
-                       (r'vg_strs_dwd_%s_maximum_100_event_ppt.csv' % temp_agg))
+                       (r'vg_strs_dwd_%s_maximum_100_event.csv' % temp_agg))
     # _ppt
 #     path_to_dwd_vgs = (path_to_vgs /
 #                        (r'vg_strs_dwd_daily_ppt_.csv'))
@@ -618,15 +616,14 @@ for temp_agg in resample_frequencies:
                 netatmo_ppt_stns_for_event = netatmo_in_ppt_vals_df.loc[
                     event_date, netatmo_stns_near].dropna(how='all')  # netatmo_stns_near
 
-                # print(fit_vg_tst.describe())
-                # fit_vg_tst.plot()
                 # get vg model for this day
                 vgs_model_dwd_ppt = df_vgs_extremes.loc[event_date, 1]
 
+                # evts_with_gd_ngts = [vg for vg in df_vgs_extremes.loc[:, :].values
+                #                     if 'Nug' not in vg]
+                # len(evts_with_gd_ngts)
                 if not isinstance(vgs_model_dwd_ppt, str):
                     vgs_model_dwd_ppt = df_vgs_extremes.loc[event_date, 2]
-                if not isinstance(vgs_model_dwd_ppt, str):
-                    vgs_model_dwd_ppt = ''
 
                 if ('Nug' in vgs_model_dwd_ppt or len(
                         vgs_model_dwd_ppt) == 0):  # and (
@@ -634,15 +631,16 @@ for temp_agg in resample_frequencies:
                     #                         'Sph' not in vgs_model_dwd_ppt):
 
                     try:
-                        for i in range(2, len(df_vgs_extremes.loc[event_date, :])):
-                            vgs_model_dwd_ppt = df_vgs_extremes.loc[event_date, i]
+                        for i in range(2, len(df_vgs_extremes.loc[event_date, :]) + 1):
                             if type(vgs_model_dwd_ppt) == np.float:
+                                vgs_model_dwd_ppt = df_vgs_extremes.loc[event_date, i]
+                            print(vgs_model_dwd_ppt)
+                            if ('Exp' not in vgs_model_dwd_ppt
+                                    or 'Sph' not in vgs_model_dwd_ppt) and (
+                                        'Nug' in vgs_model_dwd_ppt):
+                                vgs_model_dwd_ppt = df_vgs_extremes.loc[event_date, i]
                                 continue
-                            if ('Nug' in vgs_model_dwd_ppt
-                                    or len(vgs_model_dwd_ppt) == 0) and (
-                                        'Exp' not in vgs_model_dwd_ppt or
-                                    'Sph' not in vgs_model_dwd_ppt):
-                                continue
+
                             else:
                                 break
 
@@ -650,13 +648,21 @@ for temp_agg in resample_frequencies:
                         print(msg)
                         print(
                             'Only Nugget variogram for this day')
+                if not isinstance(vgs_model_dwd_ppt, str):
+                    vgs_model_dwd_ppt = ''
 
-                if (isinstance(vgs_model_dwd_ppt, str)) and (
-                    'Nug' in vgs_model_dwd_ppt
-                    or len(vgs_model_dwd_ppt) > 0) and (
-                    'Exp' in vgs_model_dwd_ppt or
+                if ('Exp' in vgs_model_dwd_ppt or
                         'Sph' in vgs_model_dwd_ppt):
+                    print(vgs_model_dwd_ppt)
 
+                    vg_sill = float(vgs_model_dwd_ppt.split(" ")[0])
+                    dwd_vals_var = np.var(ppt_dwd_vals_nona.values)
+                    vg_scaling_ratio = dwd_vals_var / vg_sill
+
+                    if vg_scaling_ratio == 0:
+                        vg_scaling_ratio = 1
+                # TODO: check use only if dwd VG Q
+                # vg_scaling_ratio = 1
                     # print('\n+++ KRIGING PPT at DWD +++\n')
 
                     # netatmo stns for this event
@@ -711,7 +717,7 @@ for temp_agg in resample_frequencies:
                             try:
                                 ordinary_kriging_filter_netamto.krige()
                             except Exception as msg:
-                                print('Error while Error Kriging', msg)
+                                print('Error while Kriging Temp Filter', msg)
 
                             # interpolated vals
                             interpolated_vals = ordinary_kriging_filter_netamto.zk
@@ -748,7 +754,7 @@ for temp_agg in resample_frequencies:
                                                                    idx_bad_stns).ravel()
 
                                 except Exception as msg:
-                                    print(msg)
+                                    print(msg, 'Error 2nd filter Idx')
 
                             try:
                                 edf_gd_vals_df = netatmo_df.loc[ids_netatmo_stns_gd]
@@ -1148,7 +1154,8 @@ for temp_agg in resample_frequencies:
                                         try:
                                             ordinary_kriging_dwd_netatmo_crt.krige()
                                         except Exception as msg:
-                                            print('Error while Kriging', msg)
+                                            print('Error while Kriging QT',
+                                                  msg)
 
                                         interpolated_netatmo_prct = ordinary_kriging_dwd_netatmo_crt.zk.copy()
 
@@ -1178,7 +1185,7 @@ for temp_agg in resample_frequencies:
                                         continue
 
                                 except Exception as msg:
-                                    print(msg, 'Error when KRIGING')
+                                    print(msg, 'Error when KRIGING Correct QT')
                                     continue
 
                             else:
@@ -1290,6 +1297,7 @@ for temp_agg in resample_frequencies:
 #                         pass
     #
 #      if not stns_filtered:
+                        print('CROSS VALIDATING')
                         netatmo_ppt_vals_fr_dwd_interp_gd = netatmo_ppt_vals_fr_dwd_interp
                         x_netatmo_ppt_vals_fr_dwd_interp_gd = x_netatmo_ppt_vals_fr_dwd_interp
                         y_netatmo_ppt_vals_fr_dwd_interp_gd = y_netatmo_ppt_vals_fr_dwd_interp
@@ -1381,46 +1389,59 @@ for temp_agg in resample_frequencies:
                             model=vgs_model_dwd_ppt)
 
                         # kriging with uncertainty
-                        ordinary_kriging_dwd_netatmo_ppt_unc_20perc = OrdinaryKrigingWithUncertainty(
+#                         ordinary_kriging_dwd_netatmo_ppt_unc_20perc = OrdinaryKrigingWithUncertainty(
+#                             xi=netatmo_dwd_x_coords,
+#                             yi=netatmo_dwd_y_coords,
+#                             zi=netatmo_dwd_ppt_vals,
+#                             uncert=ppt_dwd_netatmo_vals_uncert_20perc,
+#                             xk=x_dwd_interpolate,
+#                             yk=y_dwd_interpolate,
+#                             model=vgs_model_dwd_ppt)
+                        # kriging with uncertainty
+                        ordinary_kriging_dwd_netatmo_ppt_unc_20perc = OrdinaryKrigingWithScaledVg(
                             xi=netatmo_dwd_x_coords,
                             yi=netatmo_dwd_y_coords,
                             zi=netatmo_dwd_ppt_vals,
                             uncert=ppt_dwd_netatmo_vals_uncert_20perc,
+                            sc_ft=np.array(vg_scaling_ratio),
                             xk=x_dwd_interpolate,
                             yk=y_dwd_interpolate,
                             model=vgs_model_dwd_ppt)
-
-                        ordinary_kriging_dwd_netatmo_ppt_unc_10perc = OrdinaryKrigingWithUncertainty(
+                        ordinary_kriging_dwd_netatmo_ppt_unc_10perc = OrdinaryKrigingWithScaledVg(
                             xi=netatmo_dwd_x_coords,
                             yi=netatmo_dwd_y_coords,
                             zi=netatmo_dwd_ppt_vals,
                             uncert=ppt_dwd_netatmo_vals_uncert_10perc,
+                            sc_ft=np.array(vg_scaling_ratio),
                             xk=x_dwd_interpolate,
                             yk=y_dwd_interpolate,
                             model=vgs_model_dwd_ppt)
 
-                        ordinary_kriging_dwd_netatmo_ppt_unc_5perc = OrdinaryKrigingWithUncertainty(
+                        ordinary_kriging_dwd_netatmo_ppt_unc_5perc = OrdinaryKrigingWithScaledVg(
                             xi=netatmo_dwd_x_coords,
                             yi=netatmo_dwd_y_coords,
                             zi=netatmo_dwd_ppt_vals,
                             uncert=ppt_dwd_netatmo_vals_uncert_5perc,
+                            sc_ft=np.array(vg_scaling_ratio),
                             xk=x_dwd_interpolate,
                             yk=y_dwd_interpolate,
                             model=vgs_model_dwd_ppt)
 
-                        ordinary_kriging_dwd_netatmo_ppt_unc_2perc = OrdinaryKrigingWithUncertainty(
+                        ordinary_kriging_dwd_netatmo_ppt_unc_2perc = OrdinaryKrigingWithScaledVg(
                             xi=netatmo_dwd_x_coords,
                             yi=netatmo_dwd_y_coords,
                             zi=netatmo_dwd_ppt_vals,
                             uncert=ppt_dwd_netatmo_vals_uncert_2perc,
+                            sc_ft=np.array(vg_scaling_ratio),
                             xk=x_dwd_interpolate,
                             yk=y_dwd_interpolate,
                             model=vgs_model_dwd_ppt)
-                        ordinary_kriging_dwd_netatmo_ppt_unc_05perc = OrdinaryKrigingWithUncertainty(
+                        ordinary_kriging_dwd_netatmo_ppt_unc_05perc = OrdinaryKrigingWithScaledVg(
                             xi=netatmo_dwd_x_coords,
                             yi=netatmo_dwd_y_coords,
                             zi=netatmo_dwd_ppt_vals,
                             uncert=ppt_dwd_netatmo_vals_uncert_05perc,
+                            sc_ft=np.array(vg_scaling_ratio),
                             xk=x_dwd_interpolate,
                             yk=y_dwd_interpolate,
                             model=vgs_model_dwd_ppt)
@@ -1429,12 +1450,13 @@ for temp_agg in resample_frequencies:
                             ordinary_kriging_dwd_netatmo_ppt.krige()
                             ordinary_kriging_dwd_ppt.krige()
                             ordinary_kriging_dwd_netatmo_ppt_unc_20perc.krige()
+
                             ordinary_kriging_dwd_netatmo_ppt_unc_10perc.krige()
                             ordinary_kriging_dwd_netatmo_ppt_unc_5perc.krige()
                             ordinary_kriging_dwd_netatmo_ppt_unc_2perc.krige()
                             ordinary_kriging_dwd_netatmo_ppt_unc_05perc.krige()
                         except Exception as msg:
-                            print('Error while Kriging', msg)
+                            print('Error while Cross Validation PPT', msg)
 
 #                         plt.ioff()
 #                         plt.figure(figsize=(12, 8), dpi=200)
@@ -1581,6 +1603,10 @@ for temp_agg in resample_frequencies:
 
                         print('Done with stn', ' ',
                               stn_nbr, '/', len(stn_comb))
+
+                else:
+                    print('No VG for this event', vgs_model_dwd_ppt)
+
             print('Done with this group of stns')
 
         print('Done with this event', iev, '/', dwd_in_extremes_df.shape[0])

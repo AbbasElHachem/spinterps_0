@@ -146,7 +146,7 @@ ngp = 5
 
 idx_time_fmt = '%Y-%m-%d %H:%M:%S'
 
-m_size = 20
+m_size = 100
 radius = 10000
 diff_thr = 0.1
 edf_thr = 0.7
@@ -315,6 +315,12 @@ for temp_agg in resample_frequencies:
     dwd_in_ppt_vals_df = dwd_in_ppt_vals_df.loc[strt_date:end_date, :]
     dwd_in_ppt_vals_df.dropna(how='all', axis=0, inplace=True)
 
+    try:
+        dwd_in_ppt_vals_df.drop(
+            ['00384', '13672', '05155'], axis=1, inplace=True)
+    except KeyError as key_error:
+        print(key_error)
+        pass
     # DWD old edf
 
     dwd_in_vals_edf_old = pd.read_csv(
@@ -379,6 +385,20 @@ for temp_agg in resample_frequencies:
         netatmo_in_vals_df = netatmo_in_vals_df.loc[:, cmn_gd_stns]
         netatmo_in_ppt_vals_df = netatmo_in_ppt_vals_df.loc[:, cmn_gd_stns]
 
+#         netatmo_in_coords_df.loc[netatmo_in_ppt_vals_df.columns,:].to_csv(r"C:\Users\hachem\Desktop\Netatmo_Dwd_data\netatmo_coords_utm32.csv", sep=';')
+#         dwd_in_coords_df.loc[dwd_in_ppt_vals_df.columns,:].to_csv(r"C:\Users\hachem\Desktop\Netatmo_Dwd_data\dwd_coords_utm32.csv", sep=';')
+        netatmo_in_ppt_vals_df.to_csv(
+            r"C:\Users\hachem\Desktop\Netatmo_Dwd_data\netatmo_ppt_data_60min.csv", sep=';')
+
+#         in_df_distance_netatmo_dwd_cp = in_df_distance_netatmo_dwd.copy()
+#         in_df_distance_netatmo_dwd_cp = in_df_distance_netatmo_dwd_cp.loc[
+#         :, dwd_in_ppt_vals_df.columns]
+#         in_df_distance_netatmo_dwd_cp2 = pd.DataFrame(
+#             index=netatmo_in_ppt_vals_df.columns,
+#             columns=in_df_distance_netatmo_dwd_cp.columns)
+#         for col in netatmo_in_ppt_vals_df.columns:
+#             in_df_distance_netatmo_dwd_cp2.loc[col,:] = in_df_distance_netatmo_dwd_cp.loc[col,:]
+#         in_df_distance_netatmo_dwd_cp2.to_csv(r"C:\Users\hachem\Desktop\Netatmo_Dwd_data\in_df_distance_netatmo_dwd.csv", sep=';')
     # DWD Extremes
     #=========================================================================
     dwd_in_extremes_df = pd.read_csv(path_dwd_extremes_df,
@@ -454,7 +474,7 @@ for temp_agg in resample_frequencies:
         index=dwd_in_extremes_df.index,
         columns=stn_comb_order_only)
     # hourly_evts
-#     dwd_in_extremes_df = dwd_in_extremes_df.loc[daily_evts, :]  # daily_evts
+    dwd_in_extremes_df = dwd_in_extremes_df.loc[hourly_evts, :]  # daily_evts
     #==========================================================================
     # # Go thourgh events ,interpolate all DWD for this event
     #==========================================================================
@@ -504,9 +524,11 @@ for temp_agg in resample_frequencies:
 
                 # nearby_dwd_stns =
                 x_coords_dwd_except_interp_loc = dwd_in_coords_df.loc[
-                    all_dwd_stns_except_interp_loc, 'X'].values
+                    dwd_in_coords_df.index.intersection(
+                        all_dwd_stns_except_interp_loc), 'X'].values
                 y_coords_dwd_except_interp_loc = dwd_in_coords_df.loc[
-                    all_dwd_stns_except_interp_loc, 'Y'].values
+                    dwd_in_coords_df.index.intersection(
+                        all_dwd_stns_except_interp_loc), 'Y'].values
                 # make dwd coords a tuple
                 xy_coords_except_interp_loc = np.array(
                     [(x, y) for x, y in zip(x_coords_dwd_except_interp_loc,
@@ -519,7 +541,7 @@ for temp_agg in resample_frequencies:
                 # distance 1 of [1.5,2.5].
                 idxs_dwd_neighbours = dwd_points_tree.query_ball_point(
                     np.array((x_dwd_interpolate[0],
-                              y_dwd_interpolate[0])), 3e4)
+                              y_dwd_interpolate[0])), 100e4)
                 # get nearby dwd stns
                 dwd_stns_id_nearby = dwd_in_coords_df.iloc[
                     idxs_dwd_neighbours, :].index.to_list()
@@ -534,7 +556,7 @@ for temp_agg in resample_frequencies:
 
                 # select only nearby netatmo stations below 50km
                 sorted_distances_ppt_dwd = sorted_distances_ppt_dwd[
-                    sorted_distances_ppt_dwd.values <= 3e4]
+                    sorted_distances_ppt_dwd.values <= 100e4]
                 netatmo_stns_near = sorted_distances_ppt_dwd.index
 
 #                 plt.ioff()
@@ -573,7 +595,7 @@ for temp_agg in resample_frequencies:
                     vgs_model_dwd_ppt = ''
 
                 if ('Nug' in vgs_model_dwd_ppt or len(
-                    vgs_model_dwd_ppt) == 0) and (
+                    vgs_model_dwd_ppt) == 0) or (
                     'Exp' not in vgs_model_dwd_ppt and
                         'Sph' not in vgs_model_dwd_ppt):
 
@@ -853,36 +875,36 @@ for temp_agg in resample_frequencies:
 
                                 plt.ioff()
         #                         texts = []
-                                fig = plt.figure(figsize=(24, 12), dpi=300)
+                                fig = plt.figure(figsize=(15, 15), dpi=300)
                                 ax = fig.add_subplot(111)
 
                                 ax.scatter(x_dwd_interpolate,
-                                           y_dwd_interpolate, c='k',
-                                           marker='2', s=m_size + 25,
-                                           label='Interp Stn DWD %s' %
-                                           stn_dwd_id)
+                                           y_dwd_interpolate, c='b',
+                                           marker='x', s=m_size + 25)
+#                                            label='Interp Stn DWD %s' %
+#                                            stn_dwd_id)
 
                                 ax.scatter(x_coords_gd_netatmo_dry,
                                            y_coords_gd_netatmo_dry, c='g',
-                                           marker='d', s=m_size,
+                                           marker='.', s=m_size,
                                            label='%d Netatmo with dry good values' %
                                            x_coords_gd_netatmo_dry.shape[0])
 
                                 ax.scatter(x_coords_gd_netatmo_wet,
                                            y_coords_gd_netatmo_wet, c='b',
-                                           marker='d', s=m_size,
+                                           marker='.', s=m_size,
                                            label='%d Netatmo with wet good values' %
                                            x_coords_gd_netatmo_wet.shape[0])
 
                                 ax.scatter(x_coords_bad_netatmo_dry,
                                            y_coords_bad_netatmo_dry, c='orange',
-                                           marker='d', s=m_size,
+                                           marker='.', s=m_size + 300,
                                            label='%d Netatmo with dry bad values' %
                                            x_coords_bad_netatmo_dry.shape[0])
 
                                 ax.scatter(x_coords_bad_netatmo_wet,
                                            y_coords_bad_netatmo_wet, c='r',
-                                           marker='d', s=m_size,
+                                           marker='.', s=m_size + 300,
                                            label='%d Netatmo with wet bad values' %
                                            x_coords_bad_netatmo_wet.shape[0])
 
@@ -905,17 +927,23 @@ for temp_agg in resample_frequencies:
 #                                 ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05),
 #                                           ncol=2, fancybox=True, shadow=True)
 
-                                ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05),
-                                          fancybox=True, shadow=True, ncol=4)
+#                                 ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05),
+#                                           fancybox=True, shadow=True, ncol=4)
+                                ax.legend(loc='upper left')
 #                                 plt.legend(loc='upper right')
 
 
 #                                 plt.xlabel('Longitude')
 #                                 plt.ylabel('Latitude')
                                 plt.axis('equal')
-
+                                plt.tight_layout()
 #                                 plt.show()
-
+                                plt.gca().set_axis_off()
+                                plt.subplots_adjust(top=1, bottom=0, right=1, left=0,
+                                                    hspace=0, wspace=0)
+                                plt.margins(0, 0)
+                                plt.gca().xaxis.set_major_locator(plt.NullLocator())
+                                plt.gca().yaxis.set_major_locator(plt.NullLocator())
                                 plt.savefig((out_plots_path / (
                                     'interp_stn_%s_%s_%s_event_%s_.png' %
                                     (stn_dwd_id, temp_agg,
@@ -924,7 +952,7 @@ for temp_agg in resample_frequencies:
                                                            '_').replace(' ', '_'),
                                      _acc_))),
                                     frameon=True, papertype='a4',
-                                    bbox_inches='tight', pad_inches=.2)
+                                    bbox_inches='tight', pad_inches=.02)
                                 plt.close(fig)
 
                             #==================================================
@@ -957,12 +985,12 @@ for temp_agg in resample_frequencies:
 
                 break
             break
-    df_stns_netatmo_gd_event.dropna(how='all', inplace=True)
+#     df_stns_netatmo_gd_event.dropna(how='all', inplace=True)
 
-    df_stns_netatmo_gd_event.to_csv(out_plots_path / (
-        'ratio_netatmo_gd_bad_%s_data_%s_grp_%d_%s.csv'
-        % (temp_agg, title_, idx_lst_comb, _acc_)),
-        sep=';', float_format='%0.2f')
+#     df_stns_netatmo_gd_event.to_csv(out_plots_path / (
+#         'ratio_netatmo_gd_bad_%s_data_%s_grp_%d_%s.csv'
+#         % (temp_agg, title_, idx_lst_comb, _acc_)),
+#         sep=';', float_format='%0.2f')
 
 stop = timeit.default_timer()  # Ending time
 print('\n\a\a\a Done with everything on %s \a\a\a' %
