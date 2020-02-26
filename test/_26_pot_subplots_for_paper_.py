@@ -38,7 +38,7 @@ from pathlib import Path
 plt.rcParams.update({'font.size': 12})
 plt.rcParams.update({'axes.labelsize': 12})
 
-use_reduced_sample_dwd = True
+use_reduced_sample_dwd = False
 # =============================================================================
 
 main_dir = Path(r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes')
@@ -66,7 +66,7 @@ path_to_dwd_stns_comb = in_filter_path / r'dwd_combination_to_use.csv'
 path_grid_interpolate = in_filter_path / \
     r"coords_interpolate_midle.csv"  # _small
 
-
+path_grid_interpolate = r"X:\staff\elhachem\Shapefiles\Echaz\interpolation_grid_500m_gkz3_echaz.csv"
 #==============================================================================
 # # NETATMO FIRST FILTER
 #==============================================================================
@@ -171,14 +171,25 @@ daily_events = ['2018-12-23 00:00:00',
 #==============================================================================
 # Interpoalte Coords
 
+# grid_interp_df = pd.read_csv(path_grid_interpolate,
+#                              index_col=0,
+#                              sep=';',
+#                              encoding='utf-8')
+# x_coords_grd = grid_interp_df.loc[:, 'X'].values.ravel()
+# y_coords_grd = grid_interp_df.loc[:, 'Y'].values.ravel()
+
 grid_interp_df = pd.read_csv(path_grid_interpolate,
-                             index_col=0,
+                             index_col=4,
                              sep=';',
                              encoding='utf-8')
 
-x_coords_grd = grid_interp_df.loc[:, 'X'].values.ravel()
-y_coords_grd = grid_interp_df.loc[:, 'Y'].values.ravel()
+x_coords_grd1 = grid_interp_df.loc[:, 'X'].values.ravel()
+# x_coords_grd2 = grid_interp_df.loc[:, 'right'].values.ravel()
+# y_coords_grd1 = grid_interp_df.loc[:, 'bottom'].values.ravel()
+y_coords_grd2 = grid_interp_df.loc[:, 'Y'].values.ravel()
 
+x_coords_grd = x_coords_grd1  # np.hstack((x_coords_grd1, x_coords_grd2))
+y_coords_grd = y_coords_grd2  # np.hstack((y_coords_grd1, y_coords_grd2))
 
 # Netatmo Coords
 netatmo_in_coords_df = pd.read_csv(path_to_netatmo_coords,
@@ -391,7 +402,7 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
     # plt.show()
     plt.savefig((
         out_plot_path / (
-                '%s_%s_event_test_3' %
+                '%s_%s_event_test_4' %
                 (temp_agg,
                  str(event_date).replace(
                      '-', '_').replace(':',
@@ -533,6 +544,9 @@ for temp_agg in resample_frequencies:
                                   skiprows=[0],
                                   header=None).dropna(how='all')
 
+    dwd_in_extremes_df = dwd_in_extremes_df.loc[
+        dwd_in_extremes_df.index.intersection(
+            df_vgs_extremes.index), :]
     print('\n%d Extreme Event to interpolate\n' % dwd_in_extremes_df.shape[0])
     # shuffle and select 10 DWD stations randomly
     # =========================================================================
@@ -546,8 +560,11 @@ for temp_agg in resample_frequencies:
     for event_date in dwd_in_extremes_df.index:
 
         # hourly_events daily_events  # == '2018-12-23 00:00:00':
-        if str(event_date) in hourly_events:
+        if str(event_date) in dwd_in_extremes_df.index:
             print(event_date)
+#             if str(event_date) == '2019-07-28 16:00:00':
+#                 raise Exception
+#                 pass
             netatmo_in_vals_df = pd.read_csv(path_to_netatmo_edf,
                                              sep=';',
                                              index_col=0,
@@ -637,24 +654,25 @@ for temp_agg in resample_frequencies:
             if not isinstance(vgs_model_dwd_ppt, str):
                 vgs_model_dwd_ppt = df_vgs_extremes.loc[event_date, 2]
 
-            if not isinstance(vgs_model_dwd_ppt, str):
-                vgs_model_dwd_ppt = ''
-
             if ('Nug' in vgs_model_dwd_ppt or len(
-                vgs_model_dwd_ppt) == 0) and (
-                'Exp' not in vgs_model_dwd_ppt and
-                    'Sph' not in vgs_model_dwd_ppt):
+                    vgs_model_dwd_ppt) == 0):  # and (
+                #                     'Exp' not in vgs_model_dwd_ppt and
+                #                         'Sph' not in vgs_model_dwd_ppt):
 
                 try:
-                    for i in range(2, len(df_vgs_extremes.loc[event_date, :])):
-                        vgs_model_dwd_ppt = df_vgs_extremes.loc[event_date, i]
+                    for i in range(2, len(df_vgs_extremes.loc[event_date, :]) + 1):
                         if type(vgs_model_dwd_ppt) == np.float:
+                            vgs_model_dwd_ppt = df_vgs_extremes.loc[event_date, i]
+                        print(vgs_model_dwd_ppt)
+
+                        if not isinstance(vgs_model_dwd_ppt, str):
+                            vgs_model_dwd_ppt = ''
+                        if ('Exp' not in vgs_model_dwd_ppt
+                                or 'Sph' not in vgs_model_dwd_ppt) and (
+                                    'Nug' in vgs_model_dwd_ppt):
+                            vgs_model_dwd_ppt = df_vgs_extremes.loc[event_date, i]
                             continue
-                        if ('Nug' in vgs_model_dwd_ppt
-                                or len(vgs_model_dwd_ppt) == 0) and (
-                                    'Exp' not in vgs_model_dwd_ppt or
-                                'Sph' not in vgs_model_dwd_ppt):
-                            continue
+
                         else:
                             break
 
@@ -662,13 +680,13 @@ for temp_agg in resample_frequencies:
                     print(msg)
                     print(
                         'Only Nugget variogram for this day')
-            print(vgs_model_dwd_ppt)
 
-            if (isinstance(vgs_model_dwd_ppt, str)) and (
-                    len(vgs_model_dwd_ppt) > 0) and (
-                    'Exp' in vgs_model_dwd_ppt or
-                        'Sph' in vgs_model_dwd_ppt):
+            if not isinstance(vgs_model_dwd_ppt, str):
+                vgs_model_dwd_ppt = ''
 
+            if ('Exp' in vgs_model_dwd_ppt or
+                    'Sph' in vgs_model_dwd_ppt):
+                print(vgs_model_dwd_ppt)
                 print('\n+++ KRIGING PPT at DWD +++\n')
 
                 # netatmo stns for this event
@@ -1234,63 +1252,63 @@ for temp_agg in resample_frequencies:
 #                         netatmo_stns_event_)
 #                     if ix not in idxs_stns_remove]
 
-            #======================================================
-            # Transform everything to arrays and combine
-            # dwd-netatmo
+                #======================================================
+                # Transform everything to arrays and combine
+                # dwd-netatmo
 
-            netatmo_xcoords = np.array(
-                x_netatmo_ppt_vals_fr_dwd_interp).ravel()
-            netatmo_ycoords = np.array(
-                y_netatmo_ppt_vals_fr_dwd_interp).ravel()
+                netatmo_xcoords = np.array(
+                    x_netatmo_ppt_vals_fr_dwd_interp).ravel()
+                netatmo_ycoords = np.array(
+                    y_netatmo_ppt_vals_fr_dwd_interp).ravel()
 
-            ppt_netatmo_vals = np.round(np.array(
-                netatmo_ppt_vals_fr_dwd_interp).ravel(), 2)
+                ppt_netatmo_vals = np.round(np.array(
+                    netatmo_ppt_vals_fr_dwd_interp).ravel(), 2)
 
-            netatmo_dwd_x_coords = np.concatenate([netatmo_xcoords,
-                                                   dwd_xcoords])
-            netatmo_dwd_y_coords = np.concatenate([netatmo_ycoords,
-                                                   dwd_ycoords])
-            netatmo_dwd_ppt_vals = np.round(np.hstack(
-                (ppt_netatmo_vals,
-                 ppt_dwd_vals)), 2).ravel()
+                netatmo_dwd_x_coords = np.concatenate([netatmo_xcoords,
+                                                       dwd_xcoords])
+                netatmo_dwd_y_coords = np.concatenate([netatmo_ycoords,
+                                                       dwd_ycoords])
+                netatmo_dwd_ppt_vals = np.round(np.hstack(
+                    (ppt_netatmo_vals,
+                     ppt_dwd_vals)), 2).ravel()
 
-            #======================================================
-            # # Krigging PPT
-            #======================================================
-            print('Krigging PPT after 1st and 2nd filter')
-            # using Netatmo-DWD data
-            ordinary_kriging_dwd_netatmo_ppt = OrdinaryKriging(
-                xi=netatmo_dwd_x_coords,
-                yi=netatmo_dwd_y_coords,
-                zi=netatmo_dwd_ppt_vals,
-                xk=x_coords_grd,
-                yk=y_coords_grd,
-                model=vgs_model_dwd_ppt)
+                #======================================================
+                # # Krigging PPT
+                #======================================================
+                print('Krigging PPT after 1st and 2nd filter')
+                # using Netatmo-DWD data
+                ordinary_kriging_dwd_netatmo_ppt = OrdinaryKriging(
+                    xi=netatmo_dwd_x_coords,
+                    yi=netatmo_dwd_y_coords,
+                    zi=netatmo_dwd_ppt_vals,
+                    xk=x_coords_grd,
+                    yk=y_coords_grd,
+                    model=vgs_model_dwd_ppt)
 
-            ordinary_kriging_dwd_netatmo_ppt.krige()
+                ordinary_kriging_dwd_netatmo_ppt.krige()
 
-            interpolated_vals_dwd_netatmo = ordinary_kriging_dwd_netatmo_ppt.zk.copy()
+                interpolated_vals_dwd_netatmo = ordinary_kriging_dwd_netatmo_ppt.zk.copy()
 
-            # put negative values to 0
-            interpolated_vals_dwd_netatmo[
-                interpolated_vals_dwd_netatmo < 0] = 0
+                # put negative values to 0
+                interpolated_vals_dwd_netatmo[
+                    interpolated_vals_dwd_netatmo < 0] = 0
 
-            # difference netatmo-dwd - dwd
-            diff_map_plus = interpolated_vals_dwd_only - interpolated_vals_dwd_netatmo
+                # difference netatmo-dwd - dwd
+                diff_map_plus = interpolated_vals_dwd_only - interpolated_vals_dwd_netatmo
 
-#                     diff_map_plus2 = interpolated_vals_dwd_only - interpolated_vals_netatmo_only
-            print('Plotting')
-            plt.ioff()
+    #                     diff_map_plus2 = interpolated_vals_dwd_only - interpolated_vals_netatmo_only
+                print('Plotting')
+                plt.ioff()
 
-            plot_all_interplations_subplots(
-                vals_to_plot_dwd_netatmo=interpolated_vals_dwd_netatmo,
-                vals_to_plot_dwd=interpolated_vals_dwd_only,
-                vals_to_plot_netatmo=interpolated_vals_netatmo_only,
-                vals_to_plot_dwd_min_dwd_netatmo=diff_map_plus,
-                vals_to_plot_dwd_min_netatmo=diff_map_plus2,
-                out_plot_path=out_plots_path,
-                temp_agg=temp_agg,
-                event_date=event_date)
+                plot_all_interplations_subplots(
+                    vals_to_plot_dwd_netatmo=interpolated_vals_dwd_netatmo,
+                    vals_to_plot_dwd=interpolated_vals_dwd_only,
+                    vals_to_plot_netatmo=interpolated_vals_netatmo_only,
+                    vals_to_plot_dwd_min_dwd_netatmo=diff_map_plus,
+                    vals_to_plot_dwd_min_netatmo=diff_map_plus2,
+                    out_plot_path=out_plots_path,
+                    temp_agg=temp_agg,
+                    event_date=event_date)
 
 
 stop = timeit.default_timer()  # Ending time
