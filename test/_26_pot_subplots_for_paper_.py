@@ -66,18 +66,18 @@ path_to_dwd_stns_comb = in_filter_path / r'dwd_combination_to_use.csv'
 # path_grid_interpolate = in_filter_path / \
 #     r"coords_interpolate_small.csv"  # _small  # _midle
 
-# path_grid_interpolate = r"X:\staff\elhachem\Shapefiles\Neckar\grid_for_interpolation_gk3.csv"
+path_grid_interpolate = r"X:\staff\elhachem\Shapefiles\Neckar\grid_for_interpolation_gk3.csv"
 
-path_grid_interpolate = r"X:\staff\elhachem\Shapefiles\Echaz\interpolation_grid_500m_gkz3_echaz.csv"
+# path_grid_interpolate = r"X:\staff\elhachem\Shapefiles\Echaz\interpolation_grid_500m_gkz3_echaz.csv"
 #==============================================================================
 # # NETATMO FIRST FILTER
 #==============================================================================
 
 # run it to filter Netatmo
-use_netatmo_gd_stns = False  # general filter, Indicator kriging
+use_netatmo_gd_stns = True  # general filter, Indicator kriging
 use_temporal_filter_after_kriging = False  # on day filter
 
-use_first_neghbr_as_gd_stns = False  # False
+use_first_neghbr_as_gd_stns = True  # False
 use_first_and_second_nghbr_as_gd_stns = False  # True
 
 
@@ -104,7 +104,7 @@ if use_reduced_sample_dwd:
 resample_frequencies = ['60min']
 # '120min', '180min', '60min',  '360min',
 #                         '720min',
-title_ = r'ppt_grids_echaz'
+title_ = r'ppt_grids_echaz_extr'
 
 
 if not use_netatmo_gd_stns:
@@ -461,8 +461,11 @@ for temp_agg in resample_frequencies:
     path_to_netatmo_ppt = (path_to_data /
                            (r'ppt_all_netatmo_%s_.csv' % temp_agg))
 
-    path_to_dwd_vgs = (path_to_vgs /
-                       (r'vg_strs_dwd_%s_maximum_100_event.csv' % temp_agg))
+#     path_to_dwd_vgs = (path_to_vgs /
+#                        (r'vg_strs_dwd_%s_maximum_100_event.csv' % temp_agg))
+
+    path_to_dwd_vgs = (
+        r"X:\exchange\ElHachem\Events_HBV\Echaz\df_vgs_events2.csv")
 
     path_dwd_extremes_df = path_to_data / \
         (r'dwd_%s_maximum_100_event.csv' % temp_agg)
@@ -555,7 +558,7 @@ for temp_agg in resample_frequencies:
 
     # DWD Extremes
     #=========================================================================
-    dwd_in_extremes_df = pd.read_csv(path_dwd_extremes_df,
+    dwd_in_extremes_df = pd.read_csv(path_to_dwd_vgs,  # path_dwd_extremes_df
                                      index_col=0,
                                      sep=';',
                                      parse_dates=True,
@@ -638,7 +641,7 @@ for temp_agg in resample_frequencies:
     all_dwd_stns = dwd_in_vals_df.columns.tolist()
     # TODO: FOS
     for event_date in dwd_in_extremes_df.index:
-        #         if str(event_date) == '2018-08-02 18:00:00':
+        #         if str(event_date) == '2019-07-28 13:00:00':
         #             pass
         #             break
         #         # hourly_events daily_events  # == '2018-12-23 00:00:00':
@@ -651,12 +654,13 @@ for temp_agg in resample_frequencies:
 #                 raise Exception
 #                 pass
 
-            _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
-            if len(_stn_id_event_) < 5:
-                _stn_id_event_ = (5 - len(_stn_id_event_)) * \
-                    '0' + _stn_id_event_
+#             _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
+#             if len(_stn_id_event_) < 5:
+#                 _stn_id_event_ = (5 - len(_stn_id_event_)) * \
+#                     '0' + _stn_id_event_
 
-            _ppt_event_ = dwd_in_extremes_df.loc[event_date, 1]
+            _ppt_event_ = 30
+            # dwd_in_extremes_df.loc[event_date, 1]
 #             _edf_event_ = dwd_in_vals_df.loc[event_date, _stn_id_event_]
 
             # find minimal and maximal ratio for filtering netatmo
@@ -1435,19 +1439,19 @@ df_grid_netatmo.dropna(how='all', inplace=True)
 df_grid_dwd_netatmo_unc.dropna(how='all', inplace=True)
 
 df_grid_dwd_netatmo_unc.to_csv(os.path.join(
-    out_plots_path, 'df_grid_dwd_netatmo_unc.csv'),
+    out_plots_path, 'df_grid_dwd_netatmo_unc2.csv'),
     sep=';', float_format='%.2f')
 
 df_grid_dwd_netatmo.to_csv(os.path.join(
-    out_plots_path, 'df_grid_dwd_netatmo.csv'),
+    out_plots_path, 'df_grid_dwd_netatmo2.csv'),
     sep=';', float_format='%.2f')
 
 df_grid_dwd.to_csv(os.path.join(
-    out_plots_path, 'df_grid_dwd.csv'),
+    out_plots_path, 'df_grid_dwd2.csv'),
     sep=';', float_format='%.2f')
 
 df_grid_netatmo.to_csv(os.path.join(
-    out_plots_path, 'df_grid_netatmo.csv'),
+    out_plots_path, 'df_grid_netatmo2.csv'),
     sep=';', float_format='%.2f')
 
 stop = timeit.default_timer()  # Ending time

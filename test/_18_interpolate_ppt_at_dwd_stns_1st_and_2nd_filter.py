@@ -139,7 +139,7 @@ strt_date = '2015-01-01 00:00:00'
 end_date = '2019-09-01 00:00:00'
 
 # select all stations within this distance of interpolation location
-neigbhrs_radius_dwd = 5e4
+neigbhrs_radius_dwd = 3e4
 neigbhrs_radius_netatmo = 3e4
 # min_valid_stns = 20
 
@@ -416,8 +416,7 @@ for temp_agg in resample_frequencies:
     dwd_in_extremes_df = dwd_in_extremes_df.loc[
         dwd_in_extremes_df.index.intersection(
             netatmo_in_vals_df.index).intersection(
-            df_vgs_extremes.index).intersection(
-            dwd_ratios_df.index), :]
+            df_vgs_extremes.index), :]
 
     cmn_netatmo_stns = in_df_distance_netatmo_dwd.index.intersection(
         netatmo_in_vals_df.columns)
@@ -437,6 +436,7 @@ for temp_agg in resample_frequencies:
     print('\n%d Extreme Event to interpolate\n' % dwd_in_extremes_df.shape[0])
     # shuffle and select 10 DWD stations randomly
     # =========================================================================
+    dwd_in_vals_df.drop(['00384', '13672', '05155'], inplace=True, axis=1)
     all_dwd_stns = dwd_in_vals_df.columns.tolist()
 #     shuffle(all_dwd_stns)
 #     shuffled_dwd_stns_10stn = np.array(list(chunks(all_dwd_stns, 10)))
@@ -486,8 +486,10 @@ for temp_agg in resample_frequencies:
     # # Go thourgh events ,interpolate all DWD for this event
     #==========================================================================
     for iev, event_date in enumerate(dwd_in_extremes_df.index):
-        #         if str(event_date) == '2019-01-14 00:00:00':
-        #             break
+        #         if str(event_date) == '2018-05-31 17:00:00':
+        break
+#             pass
+
         _stn_id_event_ = str(int(dwd_in_extremes_df.loc[event_date, 2]))
         if len(_stn_id_event_) < 5:
             _stn_id_event_ = (5 - len(_stn_id_event_)) * \
@@ -498,7 +500,138 @@ for temp_agg in resample_frequencies:
 #         print('**Calculating for Date ',
 #               event_date, '\n Rainfall: ',  _ppt_event_,
 #               'Quantile: ', _edf_event_, ' **\n')
+    #==========================================================================
+    #
+    #==========================================================================
+#         obs_ppt_stn_dwd = dwd_in_ppt_vals_df.loc[event_date, stn_dwd_id]
+        """
+        event_date = pd.DatetimeIndex(['2018-06-07 19:00:00'])
+        x_dwd_interpolate = np.array(
+            [dwd_in_coords_df.loc[_stn_id_event_, 'X']])
+        y_dwd_interpolate = np.array(
+            [dwd_in_coords_df.loc[_stn_id_event_, 'Y']])
 
+        # drop stns
+        all_dwd_stns_except_interp_loc = [
+            stn for stn in dwd_in_vals_df.columns
+            if stn != _stn_id_event_]
+        # len(all_dwd_stns_except_interp_loc)
+        # coords of all other stns
+        x_dwd_all = dwd_in_coords_df.loc[
+            dwd_in_coords_df.index.intersection(
+                all_dwd_stns_except_interp_loc),
+            'X'].values
+        y_dwd_all = dwd_in_coords_df.loc[
+            dwd_in_coords_df.index.intersection(
+                all_dwd_stns_except_interp_loc),
+            'Y'].values
+
+        stn_dwd_all = dwd_in_coords_df.loc[
+            dwd_in_coords_df.index.intersection(
+                all_dwd_stns_except_interp_loc), :].index
+        # GET nearest DWD stations
+
+        # coords of neighbors
+        dwd_neighbors_coords = np.array(
+            [(x, y) for x, y
+             in zip(x_dwd_all,
+                    y_dwd_all)])
+
+        # create a tree from coordinates
+        points_tree = spatial.KDTree(dwd_neighbors_coords)
+
+        # This finds the index of all points within
+        # radius
+        dwd_idxs_neighbours = points_tree.query_ball_point(
+            np.array((x_dwd_interpolate[0],
+                      y_dwd_interpolate[0])),
+            neigbhrs_radius_dwd)
+
+        stn_dwd_all_ngbrs = stn_dwd_all[dwd_idxs_neighbours]
+
+        # ppt data at other DWD stations
+        ppt_dwd_vals_sr = dwd_in_ppt_vals_df.loc[
+            event_date,
+            stn_dwd_all_ngbrs].T.dropna()
+
+        ppt_dwd_vals_nona = ppt_dwd_vals_sr[
+            ppt_dwd_vals_sr.values >= 0]
+
+        # edf dwd vals
+        edf_dwd_vals = dwd_in_vals_df.loc[
+            event_date,
+            stn_dwd_all_ngbrs].T.dropna(how='all').values.ravel()
+
+        x_dwd_all_ngbrs = dwd_in_coords_df.loc[ppt_dwd_vals_nona.index, 'X'].values
+        y_dwd_all_ngbrs = dwd_in_coords_df.loc[ppt_dwd_vals_nona.index, 'Y'].values
+
+        df_data_for_event = pd.DataFrame()
+        df_data_for_event['DWD stations'] = ppt_dwd_vals_sr.index
+        df_data_for_event['DWD X'] = x_dwd_all_ngbrs.T
+        df_data_for_event['DWD Y'] = y_dwd_all_ngbrs.T
+        df_data_for_event['DWD ppt'] = ppt_dwd_vals_sr.values
+        df_data_for_event['DWD qt'] = edf_dwd_vals.T
+        df_data_for_event.to_csv(
+            r'X:\exchange\ElHachem\2020_03_03_comp_interp_to_radolan\special_events\2018_06_07_19\dwd_df_2018_06_07_19.csv', sep=';')
+
+        # GET ALL NETATMO NEARBY STATIONS
+        # find distance to all dwd stations, sort them, select minimum
+        distances_dwd_to_stns = in_df_distance_netatmo_dwd.loc[
+            :, _stn_id_event_]
+
+        sorted_distances_ppt_dwd = distances_dwd_to_stns.sort_values(
+            ascending=True)
+
+        # select only nearby netatmo stations below 50km
+        sorted_distances_ppt_dwd = sorted_distances_ppt_dwd[
+            sorted_distances_ppt_dwd.values <= neigbhrs_radius_netatmo]
+        netatmo_stns_near = sorted_distances_ppt_dwd.index
+
+        # netatmo ppt values and stns fot this event
+        netatmo_ppt_stns_for_event = netatmo_in_ppt_vals_df.loc[
+            event_date, netatmo_stns_near].T.dropna(how='all')  # netatmo_stns_near
+
+        netatmo_df = netatmo_in_vals_df.loc[
+            event_date,
+            sorted_distances_ppt_dwd.index].T.dropna(
+            how='all')
+        # sorted_distances_ppt_dwd.index
+        # netatmo coords
+
+        netatmo_xcoords = np.array(
+            [netatmo_in_coords_df.loc[
+                netatmo_df.index, 'X']]).ravel()
+        netatmo_ycoords = np.array(
+            [netatmo_in_coords_df.loc[
+                netatmo_df.index, 'Y']]).ravel()
+        edf_netatmo_vals = np.array(netatmo_df.values).ravel()
+
+        netatmo_stns_event_ = netatmo_df.index.to_list()
+
+        df_data_for_event = pd.DataFrame()
+        df_data_for_event['Netatmo stations'] = netatmo_df.index
+        df_data_for_event['Netatmo X'] = netatmo_xcoords.T
+        df_data_for_event['Netatmo Y'] = netatmo_ycoords.T
+        df_data_for_event['Netatmo ppt'] = netatmo_ppt_stns_for_event.values
+        df_data_for_event['Netatmo qt'] = edf_netatmo_vals.T
+        df_data_for_event.to_csv(
+            r'X:\exchange\ElHachem\2020_03_03_comp_interp_to_radolan\special_events\2018_06_07_19\netatmo_df_2018_06_07_19.csv', sep=';')
+
+        plt.ioff()
+        plt.scatter(x_dwd_interpolate, y_dwd_interpolate,
+                    c='r', marker='X', label=_stn_id_event_)
+        plt.scatter(x_dwd_all_ngbrs, y_dwd_all_ngbrs,
+                    c='b', marker='1', label='DWD')
+
+        plt.scatter(netatmo_xcoords, netatmo_ycoords,
+                    c='g', marker='o', label='Netatmo')
+        plt.legend(loc=0)
+        plt.show()
+        pass
+        """
+     #=========================================================================
+     #
+     #=========================================================================
         # find minimal and maximal ratio for filtering netatmo
 #         min_ratio = dwd_ratios_df.loc[event_date, :].min()
 #         max_ratio = dwd_ratios_df.loc[event_date, :].max()
@@ -517,7 +650,7 @@ for temp_agg in resample_frequencies:
 #         break
         # start cross validating DWD stations for this event
         for idx_lst_comb in df_dwd_stns_comb.index:
-
+            #             break
             #             if idx_lst_comb == 8:
             #                 break
             stn_comb = [stn.replace("'", "")
