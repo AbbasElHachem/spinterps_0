@@ -28,7 +28,6 @@ import glob
 import osr
 import pandas as pd
 import wradlib as wrl
-import shapefile as shp
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.gridspec as gridspec
@@ -74,21 +73,16 @@ path_to_dwd_stns_comb = in_filter_path / r'dwd_combination_to_use.csv'
 
 # path for interpolation grid
 path_grid_interpolate = in_filter_path / \
-    r"coords_interpolate_small.csv"  # _small  # _midle
+    r"coords_interpolate_midle.csv"  # _small  # _midle
 
 # path_grid_interpolate = r"X:\staff\elhachem\Shapefiles\Neckar\grid_for_interpolation_gk3.csv"
 
 # path_grid_interpolate = r"X:\staff\elhachem\Shapefiles\Echaz\interpolation_grid_500m_gkz3_echaz.csv"
 
+ishape = fiona.open(
+    r"X:\hiwi\ElHachem\Peru_Project\ancahs_dem\DEU_adm\DEU_adm1.shp")
+first = ishape.next()
 
-ishape = sf = shp.Reader(
-)
-
-# open shapefile
-shp_objects_all = list(fiona.open(
-    r"X:\hiwi\ElHachem\Peru_Project\ancahs_dem\DEU_adm\DEU_adm1.shp"))
-shp_objects_all = [shp for shp in shp_objects_all
-                   if shp['properties']['NAME_1'] == 'Baden-Württemberg']
 # mas for BW data
 mask = np.load(r'C:\Users\hachem\Desktop\radar\masked_array_bw',
                allow_pickle=True)
@@ -127,7 +121,7 @@ if use_reduced_sample_dwd:
 resample_frequencies = ['60min']
 # '120min', '180min', '60min',  '360min',
 #                         '720min',
-title_ = r'ppt_radolan'
+title_ = r'plots_paper'
 
 
 if not use_netatmo_gd_stns:
@@ -160,7 +154,7 @@ radius = 10000
 diff_thr = 0.1
 edf_thr = 0.7  # 0.9
 
-hourly_events = ['2018-06-11 16:00:00']  # '2016-06-25 00:00:00',
+hourly_events = ['2019-07-27 20:00:00']  # '2016-06-25 00:00:00',
 #'2018-08-01 22:00:00']  # 22
 
 # '2018-06-11 16:00:00',  # '2016-06-25 00:00:00',
@@ -285,224 +279,194 @@ def convert_coords_fr_wgs84_to_utm32_(epgs_initial_str, epsg_final_str,
 #==============================================================================
 
 
-def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
-                                    vals_to_plot_dwd,
-                                    vals_to_plot_netatmo,
-                                    vals_to_plot_dwd_min_dwd_netatmo,
-                                    vals_to_plot_dwd_min_radolan,
-                                    vals_to_plot_dwd_min_netatmo,
-                                    out_plot_path,
-                                    temp_agg,
-                                    event_date,
-                                    radar_data,
-                                    radar_lon,
-                                    radar_lat,
-                                    save_acc=''):
-    '''plot interpolated events, grid wise '''
-
-    if temp_agg == '60min':
-        min_val, max_val = 0, 30
-        clbr_label = 'mm/h'  # 'Hourly precipitation [m]'
-        bound_ppt = [0., 1, 2, 4, 8, 10, 15, 20, 25, 30]  # , 40, 45]
-    if temp_agg == '1440min':
-        min_val, max_val = 0, 45
-        clbr_label = 'mm/d'
-        bound_ppt = [0., 1, 2, 4, 8, 10, 15, 20, 25, 30, 40, 45]
-
-    plt.ioff()
-
-#     bound_ppt = [0., 1, 2, 4, 8, 10, 15, 20, 25, 30]  # , 40, 45]
-
-    interval_ppt = np.linspace(0.05, 0.95)
-    colors_ppt = plt.get_cmap('jet_r')(interval_ppt)
-    cmap_ppt = LinearSegmentedColormap.from_list('name', colors_ppt)
-    #cmap_ppt = plt.get_cmap('jet_r')
-    cmap_ppt.set_over('navy')
-    norm_ppt = mcolors.BoundaryNorm(bound_ppt, cmap_ppt.N)
-
-    bound_diff = [-15, -10, -5, -2, -1, 0, 1, 2, 5, 10, 15]
-    _fontsize = 8
-    color_fontsize = 12
-    # Remove the middle 10% of the RdBu_r colormap
-    interval = np.hstack([np.linspace(0.0, 0.35), np.linspace(0.7, 1)])
-    colors = plt.get_cmap('PiYG')(interval)  #
-    cmap_diff = LinearSegmentedColormap.from_list('diff', colors)
-
-    # Concatenating colormaps
-    cmap_diff = LinearSegmentedColormap.from_list(
-        'custom',
-        [(0,    'darkmagenta'),
-         (0.1,    'mediumorchid'),
-         (0.2, 'hotpink'),
-         (0.3, 'pink'),
-         (0.4, 'lavender'),  # mintcream lavender
-         (0.5, 'lavender'),
-         (0.6, 'lavender'),
-         (0.7, 'yellowgreen'),
-         (0.8, 'lawngreen'),
-         (0.9, 'green'),
-         (1,    'darkgreen')], N=150)
-    cmap_diff.set_over('darkslategrey')  # darkslategrey
-    cmap_diff.set_under('crimson')
-
-    #cmap_diff = plt.get_cmap('PiYG')
-    norm_diff = mcolors.BoundaryNorm(bound_diff, cmap_diff.N)
-
-    fig = plt.figure(figsize=(20, 12), constrained_layout=False, dpi=600)
-    gs = gridspec.GridSpec(2, 9, width_ratios=[1, 1, 1, 1, 1, 1, 1, 1, 1])
-
-#     gs.update(left=0.25, right=1, wspace=0.01)
-    # dwd-netatmo
-#     xs, ys = [], []
-#     for shape in shp_objects_all[0]['geometry']['coordinates']:
-#         x = [minor_shape[0] for i in shape for minor_shape in i]
-#         y = [minor_shape[1] for i in shape for minor_shape in i]
-#         xs.append(x)
-#         ys.append(y)
-#     shp_lons =np.array([xi for x in xs for xi in x])
-#     shp_lats =np.array([yi for y in ys for yi in y])
+# def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
+#                                     vals_to_plot_dwd,
+#                                     vals_to_plot_netatmo,
+#                                     vals_to_plot_dwd_min_dwd_netatmo,
+#                                     vals_to_plot_dwd_min_radolan,
+#                                     vals_to_plot_dwd_min_netatmo,
+#                                     out_plot_path,
+#                                     temp_agg,
+#                                     event_date,
+#                                     radar_data,
+#                                     radar_lon,
+#                                     radar_lat,
+#                                     save_acc=''):
+#     '''plot interpolated events, grid wise '''
 #
-#     shp_xs, shp_ys = convert_coords_fr_wgs84_to_utm32_(
-#     epgs_initial_str=wgs82,
-#     epsg_final_str=utm32,
-#     first_coord=shp_lons,
-#     second_coord=shp_lats)
-
-    ax1 = fig.add_subplot(gs[:1, :2])
-    ax1.scatter(x_coords_grd, y_coords_grd,
-                c=vals_to_plot_dwd_netatmo,
-                marker=',', s=30, cmap=cmap_ppt,
-                vmin=min_val,
-                norm=norm_ppt,
-                vmax=max_val)
-
-#     ax1.scatter(shp_xs, shp_ys, c='k',
-#                 marker='.', s=10, alpha=0.05)
-#     ax1.scatter(dwd_xcoords, dwd_ycoords, c='darkgreen',
-#                 marker='x', s=10, alpha=0.25)
-
-    ax1.legend(title='DWD+Netatmo (a)', loc='upper left',  # upper
-               frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
-    # dwd
-    ax2 = fig.add_subplot(gs[:1, 2:4])
-    ax2.scatter(x_coords_grd, y_coords_grd,
-                c=vals_to_plot_dwd,
-                marker=',', s=30, cmap=cmap_ppt,
-                vmin=min_val,
-                norm=norm_ppt,
-                vmax=max_val)
-#     ax2.scatter(dwd_xcoords, dwd_ycoords, c='darkgreen',
-#                 marker='x', s=10, alpha=0.25)
-    ax2.legend(title='DWD (b)', loc='upper left',
-               frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
-
-    # radolan
-    ax_rad = fig.add_subplot(gs[:1, 4:6])
-
-    im_rad = ax_rad.scatter(radar_lon, radar_lat,
-                            c=radar_data, cmap=cmap_ppt, s=20, marker=',',
-                            vmin=min_val, norm=norm_ppt, vmax=max_val)
-    ax_rad.legend(title='Radolan (c)', loc='upper left',
-                  frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
-
-    # netatmo
-    ax3 = fig.add_subplot(gs[:1, 6:8])
-
-    im3 = ax3.scatter(x_coords_grd, y_coords_grd,
-                      c=vals_to_plot_netatmo,
-                      marker=',', s=30, cmap=cmap_ppt,
-                      vmin=min_val,
-                      norm=norm_ppt,
-                      vmax=max_val)
-#     ax3.scatter(netatmo_xcoords0, netatmo_ycoords0, c='m',
-#                 marker='1', s=10, alpha=0.25)
-    ax3.legend(title='Netatmo (d)', loc='upper left',
-               frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
-
-    # colorbar
-#     cax0 = fig.add_subplot(gs[:1, 6:7])
-    cax0 = fig.add_subplot(gs[:1, 8:9])
-
-    divider0 = make_axes_locatable(cax0)
-    cax20 = divider0.append_axes("left", size="8%", pad=0.00001)
-#     divider0 = make_axes_locatable(ax3)
-#     cax0 = divider0.append_axes("right", size="5%", pad=0.15)
-
-    cb0 = fig.colorbar(im3, ax=ax3, cax=cax20, norm=norm_ppt,
-                       ticks=bound_ppt, label=clbr_label,
-                       extend='max')
-
-    cb0.set_ticks(bound_ppt)
-    cb0.ax.tick_params(labelsize=color_fontsize)
-
-    #==========================================================================
-    # # second row
-    #==========================================================================
-    # dwd-dwd_netatmo
-    ax5 = fig.add_subplot(gs[1:, 1:3])
-    ax5.scatter(x_coords_grd, y_coords_grd,
-                c=vals_to_plot_dwd_min_dwd_netatmo,
-                marker=',', s=30, cmap=cmap_diff,
-                vmin=bound_diff[0],
-                norm=norm_diff,
-                vmax=bound_diff[-1])
-    ax5.legend(title='(a)-(b)', loc='upper left',
-               frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
-
-    # dwd-radolan
-    ax_rad2 = fig.add_subplot(gs[1:, 3:5])
-    im6 = ax_rad2.scatter(x_coords_grd, y_coords_grd,
-                          c=vals_to_plot_dwd_min_radolan,
-                          marker=',', s=30, cmap=cmap_diff,
-                          vmin=bound_diff[0],
-                          norm=norm_diff,
-                          vmax=bound_diff[-1])
-    ax_rad2.legend(title='(c)-(b)', loc='upper left',
-                   frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
-
-    # dwd-netatmo
-    ax6 = fig.add_subplot(gs[1:, 5:7])
-    im6 = ax6.scatter(x_coords_grd, y_coords_grd,
-                      c=vals_to_plot_dwd_min_netatmo,
-                      marker=',', s=30, cmap=cmap_diff,
-                      vmin=bound_diff[0],
-                      norm=norm_diff,
-                      vmax=bound_diff[-1])
-    ax6.legend(title='(d)-(b)', loc='upper left',
-               frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
-
-    ###
-    cax = fig.add_subplot(gs[1:, 7:8])
-
-    divider = make_axes_locatable(cax)
-    cax2 = divider.append_axes("left", size="8%", pad=0.00001)
-
-    cb1 = fig.colorbar(im6, ax=ax6, cax=cax2, norm=norm_diff,
-                       ticks=bound_diff, label=clbr_label,
-                       extend='both')
-    cb1.set_ticks(bound_diff)
-    cb1.ax.tick_params(labelsize=color_fontsize)
-    plt.setp(plt.gcf().get_axes(), xticks=[], yticks=[])
-
-#     fig.patch.set_visible(False)
-    ax1.axis('off'), ax2.axis('off'), ax3.axis('off')
-    ax5.axis('off'), ax6.axis('off'), ax_rad.axis('off')
-    cax.axis('off'), cax0.axis('off'), ax_rad2.axis('off')
-#     plt.tight_layout()
-    # plt.show()
-    plt.savefig((
-        out_plot_path / (
-                '%s_%s_%s_event_3' %
-                (save_acc, temp_agg,
-                 str(event_date).replace(
-                     '-', '_').replace(':',
-                                       '_').replace(' ', '_')))),
-                papertype='a4',
-                bbox_inches='tight',
-                pad_inches=0.05)
-    plt.close()
-
-    pass
+#     if temp_agg == '60min':
+#         min_val, max_val = 0, 30
+#         clbr_label = 'mm/h'  # 'Hourly precipitation [m]'
+#         bound_ppt = [0., 1, 2, 4, 8, 10, 15, 20, 25, 30]  # , 40, 45]
+#     if temp_agg == '1440min':
+#         min_val, max_val = 0, 45
+#         clbr_label = 'mm/d'
+#         bound_ppt = [0., 1, 2, 4, 8, 10, 15, 20, 25, 30, 40, 45]
+#
+#     plt.ioff()
+#
+# #     bound_ppt = [0., 1, 2, 4, 8, 10, 15, 20, 25, 30]  # , 40, 45]
+#
+#     interval_ppt = np.linspace(0.05, 0.95)
+#     colors_ppt = plt.get_cmap('jet_r')(interval_ppt)
+#     cmap_ppt = LinearSegmentedColormap.from_list('name', colors_ppt)
+#     #cmap_ppt = plt.get_cmap('jet_r')
+#     cmap_ppt.set_over('navy')
+#     norm_ppt = mcolors.BoundaryNorm(bound_ppt, cmap_ppt.N)
+#
+#     bound_diff = [-15, -10, -5, -2, 0, 2, 5, 10, 15]
+#     _fontsize = 8
+#     color_fontsize = 12
+#     # Remove the middle 10% of the RdBu_r colormap
+#     interval = np.hstack([np.linspace(0, 0.3), np.linspace(0.7, 1)])
+#     colors = plt.get_cmap('PiYG')(interval)
+#     cmap_diff = LinearSegmentedColormap.from_list('name', colors)
+#
+#     cmap_diff.set_over('darkslategrey')  # darkslategrey
+#     cmap_diff.set_under('crimson')
+#
+#     #cmap_diff = plt.get_cmap('PiYG')
+#     norm_diff = mcolors.BoundaryNorm(bound_diff, cmap_diff.N)
+#
+#     fig = plt.figure(figsize=(20, 12), constrained_layout=False, dpi=600)
+#     gs = gridspec.GridSpec(2, 9, width_ratios=[1, 1, 1, 1, 1, 1, 1, 1, 1])
+#
+# #     gs.update(left=0.25, right=1, wspace=0.01)
+#     # dwd-netatmo
+#     ax1 = fig.add_subplot(gs[:1, :2])
+#     ax1.scatter(x_coords_grd, y_coords_grd,
+#                 c=vals_to_plot_dwd_netatmo,
+#                 marker=',', s=40, cmap=cmap_ppt,
+#                 vmin=min_val,
+#                 norm=norm_ppt,
+#                 vmax=max_val)
+# #     ax1.scatter(netatmo_xcoords, netatmo_ycoords, c='m',
+# #                 marker='1', s=10, alpha=0.25)
+# #     ax1.scatter(dwd_xcoords, dwd_ycoords, c='darkgreen',
+# #                 marker='x', s=10, alpha=0.25)
+#
+#     ax1.legend(title='DWD+Netatmo (a)', loc='upper left',  # upper
+#                frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
+#     # dwd
+#     ax2 = fig.add_subplot(gs[:1, 2:4])
+#     ax2.scatter(x_coords_grd, y_coords_grd,
+#                 c=vals_to_plot_dwd,
+#                 marker=',', s=30, cmap=cmap_ppt,
+#                 vmin=min_val,
+#                 norm=norm_ppt,
+#                 vmax=max_val)
+# #     ax2.scatter(dwd_xcoords, dwd_ycoords, c='darkgreen',
+# #                 marker='x', s=10, alpha=0.25)
+#     ax2.legend(title='DWD (b)', loc='upper left',
+#                frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
+#
+#     # radolan
+#     ax_rad = fig.add_subplot(gs[:1, 4:6])
+#
+#     im_rad = ax_rad.scatter(radar_lon, radar_lat,
+#                             c=radar_data, cmap=cmap_ppt, s=20, marker=',',
+#                             vmin=min_val, norm=norm_ppt, vmax=max_val)
+#     ax_rad.legend(title='Radolan (c)', loc='upper left',
+#                   frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
+#
+#     # netatmo
+#     ax3 = fig.add_subplot(gs[:1, 6:8])
+#
+#     im3 = ax3.scatter(x_coords_grd, y_coords_grd,
+#                       c=vals_to_plot_netatmo,
+#                       marker=',', s=30, cmap=cmap_ppt,
+#                       vmin=min_val,
+#                       norm=norm_ppt,
+#                       vmax=max_val)
+# #     ax3.scatter(netatmo_xcoords0, netatmo_ycoords0, c='m',
+# #                 marker='1', s=10, alpha=0.25)
+#     ax3.legend(title='Netatmo (d)', loc='upper left',
+#                frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
+#
+#     # colorbar
+# #     cax0 = fig.add_subplot(gs[:1, 6:7])
+#     cax0 = fig.add_subplot(gs[:1, 8:9])
+#
+#     divider0 = make_axes_locatable(cax0)
+#     cax20 = divider0.append_axes("left", size="8%", pad=0.00001)
+# #     divider0 = make_axes_locatable(ax3)
+# #     cax0 = divider0.append_axes("right", size="5%", pad=0.15)
+#
+#     cb0 = fig.colorbar(im3, ax=ax3, cax=cax20, norm=norm_ppt,
+#                        ticks=bound_ppt, label=clbr_label,
+#                        extend='max')
+#
+#     cb0.set_ticks(bound_ppt)
+#     cb0.ax.tick_params(labelsize=color_fontsize)
+#
+#     #==========================================================================
+#     # # second row
+#     #==========================================================================
+#     # dwd-dwd_netatmo
+#     ax5 = fig.add_subplot(gs[1:, 1:3])
+#     ax5.scatter(x_coords_grd, y_coords_grd,
+#                 c=vals_to_plot_dwd_min_dwd_netatmo,
+#                 marker=',', s=30, cmap=cmap_diff,
+#                 vmin=bound_diff[0],
+#                 norm=norm_diff,
+#                 vmax=bound_diff[-1])
+#     ax5.legend(title='(a)-(b)', loc='upper left',
+#                frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
+#
+#     # dwd-radolan
+#     ax_rad2 = fig.add_subplot(gs[1:, 3:5])
+#     im6 = ax_rad2.scatter(x_coords_grd, y_coords_grd,
+#                           c=vals_to_plot_dwd_min_radolan,
+#                           marker=',', s=30, cmap=cmap_diff,
+#                           vmin=bound_diff[0],
+#                           norm=norm_diff,
+#                           vmax=bound_diff[-1])
+#     ax_rad2.legend(title='(c)-(b)', loc='upper left',
+#                    frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
+#
+#     # dwd-netatmo
+#     ax6 = fig.add_subplot(gs[1:, 5:7])
+#     im6 = ax6.scatter(x_coords_grd, y_coords_grd,
+#                       c=vals_to_plot_dwd_min_netatmo,
+#                       marker=',', s=30, cmap=cmap_diff,
+#                       vmin=bound_diff[0],
+#                       norm=norm_diff,
+#                       vmax=bound_diff[-1])
+#     ax6.legend(title='(d)-(b)', loc='upper left',
+#                frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
+#
+#     ###
+#     cax = fig.add_subplot(gs[1:, 7:8])
+#
+#     divider = make_axes_locatable(cax)
+#     cax2 = divider.append_axes("left", size="8%", pad=0.00001)
+#
+#     cb1 = fig.colorbar(im6, ax=ax6, cax=cax2, norm=norm_diff,
+#                        ticks=bound_diff, label=clbr_label,
+#                        extend='both')
+#     cb1.set_ticks(bound_diff)
+#     cb1.ax.tick_params(labelsize=color_fontsize)
+#     plt.setp(plt.gcf().get_axes(), xticks=[], yticks=[])
+#
+# #     fig.patch.set_visible(False)
+#     ax1.axis('off'), ax2.axis('off'), ax3.axis('off')
+#     ax5.axis('off'), ax6.axis('off'), ax_rad.axis('off')
+#     cax.axis('off'), cax0.axis('off'), ax_rad2.axis('off')
+# #     plt.tight_layout()
+#     # plt.show()
+#     plt.savefig((
+#         out_plot_path / (
+#                 '%s_%s_%s_event_' %
+#                 (save_acc, temp_agg,
+#                  str(event_date).replace(
+#                      '-', '_').replace(':',
+#                                        '_').replace(' ', '_')))),
+#                 papertype='a4',
+#                 bbox_inches='tight',
+#                 pad_inches=0.05)
+#     plt.close()
+#
+#     pass
 
 
 #==============================================================================
@@ -539,7 +503,7 @@ def plot_antrag_subplots(vals_to_plot_dwd_netatmo,
     colors_ppt = plt.get_cmap('jet_r')(interval_ppt)
     cmap_ppt = LinearSegmentedColormap.from_list('name', colors_ppt)
     #cmap_ppt = plt.get_cmap('jet_r')
-    cmap_ppt.set_over('navy')
+    cmap_ppt.set_over('k')
     norm_ppt = mcolors.BoundaryNorm(bound_ppt, cmap_ppt.N)
 
     bound_diff = [-15, -10, -5, -2, -1, 0, 1, 2, 5, 10, 15]
@@ -556,8 +520,8 @@ def plot_antrag_subplots(vals_to_plot_dwd_netatmo,
     #cmap_diff = plt.get_cmap('PiYG')
     norm_diff = mcolors.BoundaryNorm(bound_diff, cmap_diff.N)
 
-    fig = plt.figure(figsize=(12, 12), constrained_layout=False, dpi=600)
-    gs = gridspec.GridSpec(2, 3, width_ratios=[1, 1, 1, 1, 1, 1])
+    fig = plt.figure(figsize=(16, 12), constrained_layout=False, dpi=600)
+    gs = gridspec.GridSpec(2, 6, width_ratios=[1, 1, 1, 1, 1, 1])
 
 #     gs.update(left=0.25, right=1, wspace=0.01)
     # dwd-netatmo
@@ -569,7 +533,7 @@ def plot_antrag_subplots(vals_to_plot_dwd_netatmo,
                 norm=norm_ppt,
                 vmax=max_val)
 
-    ax1.legend(title='DWD (a)', loc='upper left',  # upper
+    ax1.legend(title='(a)', loc='upper left',  # upper DWD
                frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
     # dwd
     ax2 = fig.add_subplot(gs[:1, 2:4])
@@ -577,28 +541,29 @@ def plot_antrag_subplots(vals_to_plot_dwd_netatmo,
                       c=vals_to_plot_netatmo,
                       marker=',', s=40, cmap=cmap_ppt,
                       vmin=min_val,
+
                       norm=norm_ppt,
                       vmax=max_val)
 #     ax2.scatter(dwd_xcoords, dwd_ycoords, c='darkgreen',
 #                 marker='x', s=10, alpha=0.25)
-    ax2.legend(title='Netatmo (b)', loc='upper left',
+    ax2.legend(title='(b)', loc='upper left',  # Netatmo
                frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
 
     # colorbar
 #     cax0 = fig.add_subplot(gs[:1, 6:7])
-    cax0 = fig.add_subplot(gs[:1, 4:5])
+#     cax0 = fig.add_subplot(gs[:1, 4:5])
+#
+#     divider0 = make_axes_locatable(cax0)
+#     cax20 = divider0.append_axes("left", size="8%", pad=0.00001)
+# #     divider0 = make_axes_locatable(ax3)
+# #     cax0 = divider0.append_axes("right", size="5%", pad=0.15)
+#
+#     cb0 = fig.colorbar(im2, ax=ax2, cax=cax20, norm=norm_ppt,
+#                        ticks=bound_ppt, label=clbr_label,
+#                        extend='max')
 
-    divider0 = make_axes_locatable(cax0)
-    cax20 = divider0.append_axes("left", size="8%", pad=0.00001)
-#     divider0 = make_axes_locatable(ax3)
-#     cax0 = divider0.append_axes("right", size="5%", pad=0.15)
-
-    cb0 = fig.colorbar(im2, ax=ax2, cax=cax20, norm=norm_ppt,
-                       ticks=bound_ppt, label=clbr_label,
-                       extend='max')
-
-    cb0.set_ticks(bound_ppt)
-    cb0.ax.tick_params(labelsize=color_fontsize)
+#     cb0.set_ticks(bound_ppt)
+#     cb0.ax.tick_params(labelsize=color_fontsize)
     #==========================================================================
     # # second row
     #==========================================================================
@@ -609,7 +574,7 @@ def plot_antrag_subplots(vals_to_plot_dwd_netatmo,
                 c=vals_to_plot_dwd_netatmo,
                 marker=',', s=30, cmap=cmap_ppt,
                 vmin=min_val, norm=norm_ppt, vmax=max_val)
-    ax5.legend(title='DWD + Netatmo (c)', loc='upper left',
+    ax5.legend(title='(c)', loc='upper left',  # DWD + Netatmo
                frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
 
     # radolan
@@ -618,31 +583,42 @@ def plot_antrag_subplots(vals_to_plot_dwd_netatmo,
     im_rad = ax_rad.scatter(radar_lon, radar_lat,
                             c=radar_data, cmap=cmap_ppt, s=30, marker=',',
                             vmin=min_val, norm=norm_ppt, vmax=max_val)
-    ax_rad.legend(title='Radolan (c)', loc='upper left',
+    ax_rad.legend(title='(d)', loc='upper left',  # Radolan
                   frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
 
     ###
-    cax = fig.add_subplot(gs[1:, 4:5])
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
-    divider = make_axes_locatable(cax)
-    cax2 = divider.append_axes("left", size="8%", pad=0.00001)
-
-    cb1 = fig.colorbar(im_rad, ax=ax_rad, cax=cax2, norm=norm_diff,
-                       ticks=bound_diff, label=clbr_label,
-                       extend='both')
-    cb1.set_ticks(bound_diff)
+    axins = inset_axes(ax_rad,  # here using axis of the lowest plot
+                       width="4%",  # width = 5% of parent_bbox width
+                       height="150%",  # height : 340% good for a (4x4) Grid
+                       loc='lower left',
+                       bbox_to_anchor=(1.09, 0.35, 1, 1),
+                       bbox_transform=ax_rad.transAxes,
+                       borderpad=0,
+                       )
+#     cax = fig.add_subplot(gs[1:, 4:5])
+#
+#     divider = make_axes_locatable(cax)
+#     cax2 = divider.append_axes("left", size="8%", pad=0.00001)
+# ax=ax_rad,
+    cb1 = fig.colorbar(im_rad,  cax=axins, norm=norm_ppt,
+                       ticks=bound_ppt, label=clbr_label,
+                       extend='max')
+    cb1.set_ticks(bound_ppt)
     cb1.ax.tick_params(labelsize=color_fontsize)
+
     plt.setp(plt.gcf().get_axes(), xticks=[], yticks=[])
 
 #     fig.patch.set_visible(False)
     ax1.axis('off'), ax2.axis('off')
     ax5.axis('off'), ax_rad.axis('off')
-    cax.axis('off'), cax0.axis('off')
+    # cax.axis('off')  # , cax0.axis('off')
 #     plt.tight_layout()
     # plt.show()
     plt.savefig((
         out_plot_path / (
-                '%s_%s_%s_event_test' %
+                '%s_%s_%s_event_test2' %
                 (save_acc, temp_agg,
                  str(event_date).replace(
                      '-', '_').replace(':',
@@ -888,7 +864,7 @@ for temp_agg in resample_frequencies:
         # dwd_in_extremes_df.index:
         # dwd_in_extremes_df.index:
         if str(event_date) in hourly_events:  # dwd_in_extremes_df.index:
-            #             event_date = '2016-06-24 22:00:00'
+            #             event_date = '2019-07-27 20:00:00'
 
             radar_evt = df_radar_events_to_keep.loc[event_date, '0']
 
@@ -1542,67 +1518,20 @@ for temp_agg in resample_frequencies:
                 # # Krigging PPT
                 #======================================================
                 print('Krigging PPT after 1st and 2nd filter')
-                # using Netatmo-DWD data
-#                 try:
-#                     ordinary_kriging_dwd_netatmo_ppt = OrdinaryKriging(
-#                         xi=netatmo_dwd_x_coords,
-#                         yi=netatmo_dwd_y_coords,
-#                         zi=netatmo_dwd_ppt_vals,
-#                         xk=x_coords_grd,
-#                         yk=y_coords_grd,
-#                         model=vgs_model_dwd_ppt)
-#
-#                     #plt.scatter()
-#                     ordinary_kriging_dwd_netatmo_ppt.krige()
-#
-#                     interpolated_vals_dwd_netatmo = ordinary_kriging_dwd_netatmo_ppt.zk.copy()
-#
-#                     # put negative values to 0
-#                     interpolated_vals_dwd_netatmo[
-#                         interpolated_vals_dwd_netatmo < 0] = 0
-#                 except Exception as msg:
-#                     print(msg)
-#                     pass
-                # difference netatmo-dwd - dwd
-
-#                 diff_map_plus = interpolated_vals_dwd_netatmo - df_ppt_radolan.ppt.data
-#                 diff_map_plus2 = interpolated_vals_dwd_only - df_ppt_radolan.ppt.data
-#                 diff_map_plus3 = interpolated_vals_netatmo_only - df_ppt_radolan.ppt.data
-                dwd_min_dwd_netatmo = interpolated_vals_dwd_netatmo_unc - interpolated_vals_dwd_only
-                dwd_min_radolan = df_ppt_radolan.ppt.data - interpolated_vals_dwd_only
-                dwd_min_netatmo = interpolated_vals_netatmo_only - interpolated_vals_dwd_only
-
-                dwd_min_dwd_netatmo[np.where(
-                    np.logical_and(-1 < dwd_min_dwd_netatmo,
-                                   dwd_min_dwd_netatmo < 1))] = 0
-#                 dwd_min_dwd_netatmo[np.where(dwd_min_dwd_netatmo < 0.2)] = 0
-
-                dwd_min_radolan[np.where(np.logical_and(
-                    -1 < dwd_min_radolan,
-                    dwd_min_radolan < 1))] = 0
-#                 dwd_min_radolan[np.where()] = 0
-
-                dwd_min_netatmo[np.where(np.logical_and(
-                    -1 < dwd_min_netatmo,
-                    dwd_min_netatmo < 1))] = 0
-#                 dwd_min_netatmo[np.where(dwd_min_netatmo < 0.2)] = 0
 
                 plt.ioff()
 
-                plot_all_interplations_subplots(
+                plot_antrag_subplots(
                     vals_to_plot_dwd_netatmo=interpolated_vals_dwd_netatmo_unc,
                     vals_to_plot_dwd=interpolated_vals_dwd_only,
                     vals_to_plot_netatmo=interpolated_vals_netatmo_only,
-                    vals_to_plot_dwd_min_dwd_netatmo=dwd_min_dwd_netatmo,
-                    vals_to_plot_dwd_min_radolan=dwd_min_radolan,
-                    vals_to_plot_dwd_min_netatmo=dwd_min_netatmo,
                     out_plot_path=out_plots_path,
                     temp_agg=temp_agg,
                     event_date=event_date,
                     radar_data=df_ppt_radolan.ppt.values,
                     radar_lon=df_ppt_radolan.xlon.values,
                     radar_lat=df_ppt_radolan.ylat.values,
-                    save_acc='sqs')
+                    save_acc='test2')
 
 
 stop = timeit.default_timer()  # Ending time

@@ -98,10 +98,11 @@ def get_ppt_paths():
     #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
     #         r'edf_ppt_all_dwd_daily_.csv')
 
-    in_vals_df_loc = os.path.join(
-        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
-        r'edf_ppt_all_dwd_60min_.csv')
-
+    #     in_vals_df_loc = os.path.join(
+    #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+    #         r'edf_ppt_all_dwd_60min_.csv')
+    in_vals_df_loc = os.path.join(r"X:\staff\elhachem\2020_10_03_Rheinland_Pfalz"
+                                  r"\ppt_dwd_intense_events_5mm_60min.csv")
     # Cold - Warm season distributions DWD
 #     in_vals_df_loc = os.path.join(
 #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
@@ -109,8 +110,7 @@ def get_ppt_paths():
 
     # COORDS
     in_stn_coords_df_loc = os.path.join(
-        r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW\station_coordinates_names_hourly_only_in_BW_utm32.csv")
-
+        r"X:\staff\elhachem\2020_10_03_Rheinland_Pfalz\dwd_coords_utm32.csv")
 #     in_stn_coords_df_loc = os.path.join(
 #         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW\netatmo_bw_1hour_coords_utm32.csv")
 
@@ -139,8 +139,8 @@ def get_ppt_paths():
 #         r"\neckar_clim_data_20km_buff_new"
 #         r"\Wannweil_Echaz_2015_2019_hourly_hi_discharge_time_steps.csv")
 
-    out_dir = r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo'
-
+#     out_dir = r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo'
+    out_dir = r'X:\staff\elhachem\2020_10_03_Rheinland_Pfalz'
     return (in_vals_df_loc, in_stn_coords_df_loc,
             out_dir,
             path_to_netatmo_gd_stns_file,
@@ -156,7 +156,7 @@ def main():
 
     vg_vars = ['ppt']  # ['ppt']
 
-    strt_date = '2015-01-01'
+    strt_date = '2014-01-01'
     end_date = '2019-09-01'
     min_valid_stns = 10
 
@@ -177,7 +177,7 @@ def main():
 
     n_cpus = 4
 
-    sep = ';'
+    sep = ','  # ;
 
     for vg_var in vg_vars:
         if vg_var == 'mean_temp':
@@ -234,7 +234,7 @@ def main():
         #in_vals_df = in_vals_df[in_vals_df >= 0]
 
         in_coords_df = pd.read_csv(
-            in_stn_coords_df_loc, sep=sep, index_col=0, encoding='utf-8')
+            in_stn_coords_df_loc, sep=';', index_col=0, encoding='utf-8')
 
         if fit_for_extreme_events:
             df_extremes = pd.read_csv(path_to_dwd_ppt_extreme,
