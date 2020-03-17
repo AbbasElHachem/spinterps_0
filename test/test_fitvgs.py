@@ -101,8 +101,9 @@ def get_ppt_paths():
     #     in_vals_df_loc = os.path.join(
     #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
     #         r'edf_ppt_all_dwd_60min_.csv')
+
     in_vals_df_loc = os.path.join(r"X:\staff\elhachem\2020_10_03_Rheinland_Pfalz"
-                                  r"\ppt_dwd_intense_events_5mm_60min.csv")
+                                  r"\edf_ppt_all_dwd_60min_.csv")
     # Cold - Warm season distributions DWD
 #     in_vals_df_loc = os.path.join(
 #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
@@ -110,7 +111,7 @@ def get_ppt_paths():
 
     # COORDS
     in_stn_coords_df_loc = os.path.join(
-        r"X:\staff\elhachem\2020_10_03_Rheinland_Pfalz\dwd_coords_utm32.csv")
+        r"X:\staff\elhachem\2020_10_03_Rheinland_Pfalz\dwd_coords_in_around_RH_utm32.csv")
 #     in_stn_coords_df_loc = os.path.join(
 #         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW\netatmo_bw_1hour_coords_utm32.csv")
 
@@ -123,17 +124,18 @@ def get_ppt_paths():
 
     # Netatmo extremes
     path_to_netatmo_ppt_extreme = (
-        r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
-        r"\NetAtmo_BW"
-        r"\netatmo_daily_maximum_100_days.csv")
+        r"X:\staff\elhachem\2020_10_03_Rheinland_Pfalz"
+        r"\dwd_hourly_maximum_100_hours.csv")
 
     # DWD extremes
 
+#     path_to_dwd_ppt_extreme = (
+#         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
+#         r"\NetAtmo_BW"
+#         r"\dwd_60min_maximum_100_event.csv")
     path_to_dwd_ppt_extreme = (
-        r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
-        r"\NetAtmo_BW"
-        r"\dwd_60min_maximum_100_event.csv")
-
+        r"X:\staff\elhachem\2020_10_03_Rheinland_Pfalz"
+        r"\dwd_hourly_special_events_5mm_.csv")
 #     path_to_dwd_ppt_extreme = (
 #         r"X:\staff\elhachem\Data\DWD_BW_Data"
 #         r"\neckar_clim_data_20km_buff_new"
@@ -150,26 +152,29 @@ def get_ppt_paths():
 
 def main():
 
+    #     main_dir = Path(
+    #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo')
+
     main_dir = Path(
-        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo')
+        r'X:\staff\elhachem\2020_10_03_Rheinland_Pfalz')
     os.chdir(main_dir)
 
     vg_vars = ['ppt']  # ['ppt']
 
     strt_date = '2014-01-01'
-    end_date = '2019-09-01'
+    end_date = '2019-12-31'
     min_valid_stns = 10
 
     drop_stns = []
     mdr = 0.8
     perm_r_list = [1, 2]
     fit_vgs = ['Sph', 'Exp']
-    fil_nug_vg = 'Nug'  #
+    fil_nug_vg = 'Nug'  # 'Nug'
     n_best = 4
     ngp = 5
     figs_flag = True
 
-    fit_for_extreme_events = False
+    fit_for_extreme_events = True
 
     use_netatmo_good_stns = False
 
@@ -177,7 +182,7 @@ def main():
 
     n_cpus = 4
 
-    sep = ','  # ;
+    sep = ';'  # ;
 
     for vg_var in vg_vars:
         if vg_var == 'mean_temp':
@@ -216,7 +221,7 @@ def main():
 
         in_vals_df = pd.read_csv(
             in_vals_df_loc, sep=sep, index_col=0, encoding='utf-8',
-            parse_dates=True, infer_datetime_format=True)
+            parse_dates=True, infer_datetime_format=True, engine='c')
 
 #         in_vals_df.index = pd.to_datetime(in_vals_df.index,
 #                                           format='%Y-%m-%d')
@@ -245,15 +250,15 @@ def main():
             in_vals_df = in_vals_df.loc[
                 in_vals_df.index.intersection(df_extremes.index), :]
 
-        if DWD_stations:
-            # added by Abbas, for DWD stations
-
-            stndwd_ix = ['0' * (5 - len(str(stn_id))) + str(stn_id)
-                         if len(str(stn_id)) < 5 else str(stn_id)
-                         for stn_id in in_coords_df.index]
+#         if DWD_stations:
+#             # added by Abbas, for DWD stations
+#
+#             stndwd_ix = ['0' * (5 - len(str(stn_id))) + str(stn_id)
+#                          if len(str(stn_id)) < 5 else str(stn_id)
+#                          for stn_id in in_coords_df.index]
             #stndwd_ix = [stn for stn in stndwd_ix if stn in in_vals_df.columns]
 
-            in_coords_df.index = stndwd_ix
+#             in_coords_df.index = stndwd_ix
 
         in_coords_df.index = list(map(str, in_coords_df.index))
 

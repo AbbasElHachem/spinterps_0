@@ -64,7 +64,7 @@ path_to_dwd_stns_comb = in_filter_path / r'dwd_combination_to_use.csv'
 
 # path for interpolation grid
 path_grid_interpolate = in_filter_path / \
-    r"coords_interpolate_small.csv"  # _small  # _midle
+    r"coords_interpolate_midle.csv"  # _small  # _midle
 
 # path_grid_interpolate = r"X:\staff\elhachem\Shapefiles\Neckar\grid_for_interpolation_gk3.csv"
 
@@ -101,10 +101,10 @@ if use_reduced_sample_dwd:
 #==============================================================================
 #
 #==============================================================================
-resample_frequencies = ['60min']
+resample_frequencies = ['1440min']
 # '120min', '180min', '60min',  '360min',
 #                         '720min',
-title_ = r'ppt_grids_echaz_extr'
+title_ = r'ppt_grids_paper'
 
 
 if not use_netatmo_gd_stns:
@@ -143,12 +143,7 @@ diff_thr = 0.1
 edf_thr = 0.7  # 0.9
 
 hourly_events = ['2018-06-11 16:00:00',  # '2016-06-25 00:00:00',
-                 '2018-09-06 18:00:00',
-                 '2018-05-13 22:00:00',  # 16
-                 '2018-07-05 05:00:00',
-                 '2018-08-02 01:00:00',
-                 '2018-08-23 15:00:00',
-                 '2016-06-24 22:00:00']  # 22
+                 '2018-09-06 18:00:00']  # 22 '2018-06-11 16:00:00',
 #'2018-05-13 22:00:00'  # 16
 #'2018-07-05 05:00:00'
 #'2018-08-02 01:00:00'
@@ -164,9 +159,7 @@ hourly_events = ['2018-06-11 16:00:00',  # '2016-06-25 00:00:00',
 #'2018-09-23 18:00:00']
 #'2018-09-23 19:00:00']
 
-daily_events = ['2018-12-23 00:00:00',
-                '2019-05-22 00:00:00',
-                '2018-05-14 00:00:00',
+daily_events = ['2018-05-14 00:00:00',
                 '2019-07-28 00:00:00']
 #==============================================================================
 #
@@ -286,10 +279,24 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
     bound_diff = [-15, -10, -5, -2, -1, 0, 1, 2, 5, 10, 15]
     _fontsize = 12
     # Remove the middle 10% of the RdBu_r colormap
-    interval = np.hstack([np.linspace(0, 0.3), np.linspace(0.7, 1)])
-    colors = plt.get_cmap('PiYG')(interval)
-    cmap_diff = LinearSegmentedColormap.from_list('name', colors)
+    #interval = np.hstack([np.linspace(0, 0.3), np.linspace(0.7, 1)])
+    #colors = plt.get_cmap('PiYG')(interval)
+    #cmap_diff = LinearSegmentedColormap.from_list('name', colors)
 
+    # Concatenating colormaps
+    cmap_diff = LinearSegmentedColormap.from_list(
+        'custom',
+        [(0,    'darkmagenta'),
+         (0.1,    'mediumorchid'),
+         (0.2, 'hotpink'),
+         (0.3, 'pink'),
+         (0.4, 'lavender'),  # mintcream lavender
+         (0.5, 'lavender'),
+         (0.6, 'lavender'),
+         (0.7, 'yellowgreen'),
+         (0.8, 'lawngreen'),
+         (0.9, 'green'),
+         (1,    'darkgreen')], N=150)
     cmap_diff.set_over('darkslategrey')  # darkslategrey
     cmap_diff.set_under('crimson')
 
@@ -399,7 +406,7 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
     # plt.show()
     plt.savefig((
         out_plot_path / (
-                '%s_%s_%s_event_test_2' %
+                '%s_%s_%s_event_test_dwd_ref' %
                 (save_acc, temp_agg,
                  str(event_date).replace(
                      '-', '_').replace(':',
@@ -461,11 +468,11 @@ for temp_agg in resample_frequencies:
     path_to_netatmo_ppt = (path_to_data /
                            (r'ppt_all_netatmo_%s_.csv' % temp_agg))
 
-#     path_to_dwd_vgs = (path_to_vgs /
-#                        (r'vg_strs_dwd_%s_maximum_100_event.csv' % temp_agg))
+    path_to_dwd_vgs = (path_to_vgs /
+                       (r'vg_strs_dwd_%s_maximum_100_event.csv' % temp_agg))
 
-    path_to_dwd_vgs = (
-        r"X:\exchange\ElHachem\Events_HBV\Echaz\df_vgs_events.csv")
+#     path_to_dwd_vgs = (
+#         r"X:\exchange\ElHachem\Events_HBV\Echaz\df_vgs_events.csv")
 
     path_dwd_extremes_df = path_to_data / \
         (r'dwd_%s_maximum_100_event.csv' % temp_agg)
@@ -567,7 +574,7 @@ for temp_agg in resample_frequencies:
 
     # DWD Extremes
     #=========================================================================
-    dwd_in_extremes_df = pd.read_csv(path_to_dwd_vgs,  # path_dwd_extremes_df
+    dwd_in_extremes_df = pd.read_csv(path_dwd_extremes_df,  # path_dwd_extremes_df
                                      index_col=0,
                                      sep=';',
                                      parse_dates=True,
@@ -631,7 +638,7 @@ for temp_agg in resample_frequencies:
 
         #         # hourly_events daily_events  # == '2018-12-23 00:00:00':
         # dwd_in_extremes_df.index:
-        if str(event_date) in hourly_events:  # dwd_in_extremes_df.index:
+        if str(event_date) in daily_events:  # dwd_in_extremes_df.index:
             #!= '2018-08-02 18:00:00':
             print(event_date)
 
@@ -1244,9 +1251,14 @@ for temp_agg in resample_frequencies:
 #                     pass
                 # difference netatmo-dwd - dwd
 #                 diff_map_plus = interpolated_vals_dwd_only - interpolated_vals_dwd_netatmo
-                diff_map_plus2 = interpolated_vals_dwd_only - interpolated_vals_netatmo_only
+#                 diff_map_plus2 = interpolated_vals_dwd_only - interpolated_vals_netatmo_only
 
-                diff_map_plus3 = interpolated_vals_dwd_only - interpolated_vals_dwd_netatmo_unc
+#                 diff_map_plus3 = interpolated_vals_dwd_only - interpolated_vals_dwd_netatmo_unc
+
+                diff_map_plus2 = interpolated_vals_netatmo_only - interpolated_vals_dwd_only
+
+                diff_map_plus3 = interpolated_vals_dwd_netatmo_unc - interpolated_vals_dwd_only
+
                 #assert all(interpolated_vals_dwd_only)
 
                 print('Plotting')
@@ -1268,8 +1280,8 @@ for temp_agg in resample_frequencies:
                     vals_to_plot_dwd=interpolated_vals_dwd_only,
                     vals_to_plot_netatmo=interpolated_vals_netatmo_only,
                     # interpolated_vals_netatmo_only,
-                    vals_to_plot_dwd_min_dwd_netatmo=diff_map_plus3,
                     vals_to_plot_dwd_min_netatmo=diff_map_plus2,
+                    vals_to_plot_dwd_min_dwd_netatmo=diff_map_plus3,
                     out_plot_path=out_plots_path,
                     temp_agg=temp_agg,
                     event_date=event_date)
@@ -1289,25 +1301,25 @@ for temp_agg in resample_frequencies:
 
 # save results
 # df_grid_dwd_netatmo.dropna(how='all', inplace=True)
-df_grid_dwd.dropna(how='all', inplace=True)
-df_grid_netatmo.dropna(how='all', inplace=True)
-df_grid_dwd_netatmo_unc.dropna(how='all', inplace=True)
-
-df_grid_dwd_netatmo_unc.to_csv(os.path.join(
-    out_plots_path, 'df_grid_dwd_netatmo.csv'),
-    sep=';', float_format='%.2f')
-
-# df_grid_dwd_netatmo.to_csv(os.path.join(
-#     out_plots_path, 'df_grid_dwd_netatmo2.csv'),
+# df_grid_dwd.dropna(how='all', inplace=True)
+# df_grid_netatmo.dropna(how='all', inplace=True)
+# df_grid_dwd_netatmo_unc.dropna(how='all', inplace=True)
+#
+# df_grid_dwd_netatmo_unc.to_csv(os.path.join(
+#     out_plots_path, 'df_grid_dwd_netatmo.csv'),
 #     sep=';', float_format='%.2f')
-
-df_grid_dwd.to_csv(os.path.join(
-    out_plots_path, 'df_grid_dwd2.csv'),
-    sep=';', float_format='%.2f')
-
-df_grid_netatmo.to_csv(os.path.join(
-    out_plots_path, 'df_grid_netatmo2.csv'),
-    sep=';', float_format='%.2f')
+#
+# # df_grid_dwd_netatmo.to_csv(os.path.join(
+# #     out_plots_path, 'df_grid_dwd_netatmo2.csv'),
+# #     sep=';', float_format='%.2f')
+#
+# df_grid_dwd.to_csv(os.path.join(
+#     out_plots_path, 'df_grid_dwd2.csv'),
+#     sep=';', float_format='%.2f')
+#
+# df_grid_netatmo.to_csv(os.path.join(
+#     out_plots_path, 'df_grid_netatmo2.csv'),
+#     sep=';', float_format='%.2f')
 
 
 # plt.ioff()
