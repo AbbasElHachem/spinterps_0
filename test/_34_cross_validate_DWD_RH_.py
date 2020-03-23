@@ -52,6 +52,9 @@ path_to_vgs = main_dir
 path_to_dwd_coords = (path_to_data /
                       r'dwd_coords_in_around_RH_utm32.csv')
 
+path_to_dwd_coords_on_in_rh = (path_to_data /
+                      r'dwd_coords_only_in_RH.csv')
+
 path_to_netatmo_coords = (path_to_data /
                           r'netatmo_Rheinland-Pfalz_1hour_coords_utm32.csv')
 
@@ -94,7 +97,7 @@ end_date = '2019-12-31 00:00:00'
 
 idx_time_fmt = '%Y-%m-%d %H:%M:%S'
 
-radius = 10000
+radius = 1e4
 diff_thr = 1
 edf_thr = 0.7  # 0.9
 
@@ -126,7 +129,10 @@ dwd_in_coords_df = pd.read_csv(path_to_dwd_coords,
                                sep=';',
                                encoding='utf-8')
 
-
+# dwd_in_coords_df_in_rh = pd.read_csv(path_to_dwd_coords_on_in_rh,
+#                                index_col=0,
+#                                sep=';',
+#                                encoding='utf-8')
 # Netatmo first filter
 #df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
 #                         index_col=0,
@@ -143,12 +149,12 @@ df_dwd_stns_comb = pd.read_csv(
 #     """Yield successive n-sized chunks from l."""
 #     for i in range(0, len(l), n):
 #         yield l[i:i + n]
-# 
-# # divide DWD stations into group of 10
-# stns_dwd = dwd_in_coords_df.index.to_list()
+ 
+# divide DWD stations into group of 10
+# stns_dwd = dwd_in_coords_df_in_rh.index.to_list()
 # groups_of_10 = chunks(l=stns_dwd, n=10)
 # grp = [gr for gr in groups_of_10]
-# 
+#  
 # df_dwd_group_stns = pd.DataFrame(index=range(len(grp)),
 #                                  data=grp)
 # df_dwd_group_stns.to_csv(main_dir / 'dwd_combination_to_use_RH.csv',

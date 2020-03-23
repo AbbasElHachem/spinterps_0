@@ -78,7 +78,7 @@ use_netatmo_gd_stns = True  # general filter, Indicator kriging
 # if use_netatmo_gd_stns:
 path_to_netatmo_gd_stns = (
     main_dir / r'indicator_correlation' /
-    (r'keep_stns_98_0_per_60min_shift_20perc_5fact.csv'))
+    (r'keep_stns_99_0_per_60min_shift_0perc_5fact.csv'))
 # 99
 #==============================================================================
 #
@@ -98,7 +98,7 @@ end_date = '2019-12-31 00:00:00'
 
 idx_time_fmt = '%Y-%m-%d %H:%M:%S'
 
-radius = 10000
+radius = 1e4
 diff_thr = 0.2
 edf_thr = 0.9  # 0.9
 
@@ -228,7 +228,7 @@ for temp_agg in resample_frequencies:
 #         r"X:\exchange\ElHachem\Events_HBV\Echaz\df_vgs_events2.csv")
 
     path_dwd_extremes_df = path_to_data / \
-        (r'dwd_%s_maximum_100_hours.csv' % temp_agg)
+        (r'max_100_%s_events_dwd.csv' % temp_agg)
 #         (r'dwd_%s_maximum_100_hours.csv' % temp_agg)
 #         (r'dwd_%s_special_events_10mm_.csv' % temp_agg)
     #(r'dwd_%s_maximum_100_hours.csv' % temp_agg)
@@ -324,7 +324,7 @@ for temp_agg in resample_frequencies:
     # TODO: no hardcoding
     dwd_in_extremes_df = dwd_in_extremes_df.loc[strt_date:end_date, :]
     dwd_in_extremes_df= dwd_in_extremes_df.sort_values(
-        by=[1], ascending=False)[:100]
+        by=[1], ascending=False)  # [:100]
     
     # empty df for saving resuls
     data_arr = np.zeros(shape=(len(dwd_in_extremes_df.index),
@@ -364,13 +364,14 @@ for temp_agg in resample_frequencies:
     # # Go thourgh events ,interpolate all DWD for this event
     #==========================================================================
     for iev, event_date in enumerate(dwd_in_extremes_df.index):
-
+        # break
         print(event_date, '---', iev ,'/', len(dwd_in_extremes_df.index))
         _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
         _ppt_event_ = dwd_in_extremes_df.loc[event_date, 1]
         
         # start cross validating DWD stations for this event
-            
+        
+        
         obs_ppt_stn_dwd = dwd_in_ppt_vals_df.loc[
             event_date, all_dwd_stns].dropna()
 
@@ -810,7 +811,7 @@ for temp_agg in resample_frequencies:
             event_date, netatmo_stns_event_gd] = ppt_netatmo_vals_gd
 netatmo_in_ppt_vals_df_gd_corr.dropna(how='all', inplace=True)           
 netatmo_in_ppt_vals_df_gd_corr.to_csv(main_dir / (
-        'ppt_all_netatmo_100_intense_events_corrected_98_20_5_%s.csv'
+        'ppt_all_netatmo_100_intense_events_corrected_99_5_0_%s.csv'
         % (temp_agg)), sep=';', float_format='%0.2f')
 
 
