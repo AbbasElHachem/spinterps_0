@@ -78,7 +78,13 @@ use_netatmo_gd_stns = True  # general filter, Indicator kriging
 # if use_netatmo_gd_stns:
 path_to_netatmo_gd_stns = (
     main_dir / r'indicator_correlation' /
-    (r'keep_stns_99_0_per_60min_shift_0perc_5fact.csv'))
+    (r'keep_stns_99_0_per_60min_shift_10perc_10fact.csv'))
+
+path_to_netatmo_gd_stns = (
+   r"/run/media/abbas/EL Hachem 2019/home_office"
+   r"/Data_Bardossy/AW__Online_Meetings_"
+    r'/Good_Netatmo99.csv')  # Good
+# keep_stns_99_0_per_60min_shift_10perc_10fact
 # 99
 #==============================================================================
 #
@@ -92,7 +98,7 @@ title_ = r'ppt_cross_valid_RH_'
 #==============================================================================
 #
 #==============================================================================
-strt_date = '2015-01-01 00:00:00'
+strt_date = '2017-01-01 00:00:00'
 end_date = '2019-12-31 00:00:00'
 
 
@@ -187,7 +193,7 @@ def find_nearest(array, value):
 for temp_agg in resample_frequencies:
     
     # out path directory
-
+    
     dir_path = title_ + temp_agg
 
     #dir_path = title_ + temp_agg
@@ -228,7 +234,9 @@ for temp_agg in resample_frequencies:
 #         r"X:\exchange\ElHachem\Events_HBV\Echaz\df_vgs_events2.csv")
 
     path_dwd_extremes_df = path_to_data / \
-        (r'max_100_%s_events_dwd.csv' % temp_agg)
+        (r'dwd_%s_maximum_100_hours.csv' % temp_agg)
+        
+        # max_100_%s_events_dwd
 #         (r'dwd_%s_maximum_100_hours.csv' % temp_agg)
 #         (r'dwd_%s_special_events_10mm_.csv' % temp_agg)
     #(r'dwd_%s_maximum_100_hours.csv' % temp_agg)
@@ -293,8 +301,11 @@ for temp_agg in resample_frequencies:
 
     netatmo_in_ppt_vals_df = netatmo_in_ppt_vals_df.loc[:, cmn_stns]
     # #####
-    good_netatmo_stns = df_gd_stns.loc[
-        :, 'Stations'].values.ravel()
+    # good_netatmo_stns = df_gd_stns.loc[
+    #    :, 'Stations'].values.ravel()
+    
+    good_netatmo_stns = df_gd_stns.index
+        
     cmn_gd_stns = netatmo_in_vals_df.columns.intersection(
         good_netatmo_stns)
     netatmo_in_vals_df_gd = netatmo_in_vals_df.loc[
@@ -367,7 +378,7 @@ for temp_agg in resample_frequencies:
         # break
         print(event_date, '---', iev ,'/', len(dwd_in_extremes_df.index))
         _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
-        _ppt_event_ = dwd_in_extremes_df.loc[event_date, 1]
+        _ppt_event_ = float(dwd_in_extremes_df.loc[event_date, 1])
         
         # start cross validating DWD stations for this event
         
@@ -412,9 +423,9 @@ for temp_agg in resample_frequencies:
             event_date, :].dropna(how='all')
         
         netatmo_xcoords = netatmo_in_coords_df.loc[
-            netatmo_df_gd.index, 'X'].values.ravel()
+            netatmo_edf.index, 'X'].values.ravel()
         netatmo_ycoords = netatmo_in_coords_df.loc[
-            netatmo_df_gd.index, 'Y'].values.ravel()
+            netatmo_edf.index, 'Y'].values.ravel()
 
         #===============================================================
         # # apply on event filter
@@ -441,9 +452,12 @@ for temp_agg in resample_frequencies:
         std_est_vals = np.sqrt(
             ordinary_kriging_filter_netamto.est_vars)
         # calculate difference observed and estimated  # values
-        diff_obsv_interp = np.abs(
+        try:
+            diff_obsv_interp = np.abs(
             netatmo_edf.values - interpolated_vals)
-
+        except Exception:
+            print('ERROR 2nd FILTER')
+            
         idx_good_stns = np.where(
             diff_obsv_interp <= 3 * std_est_vals)
         idx_bad_stns = np.where(
@@ -811,7 +825,7 @@ for temp_agg in resample_frequencies:
             event_date, netatmo_stns_event_gd] = ppt_netatmo_vals_gd
 netatmo_in_ppt_vals_df_gd_corr.dropna(how='all', inplace=True)           
 netatmo_in_ppt_vals_df_gd_corr.to_csv(main_dir / (
-        'ppt_all_netatmo_100_intense_events_corrected_99_5_0_%s.csv'
+        'ppt_all_netatmo_100_intense_events_corrected_99_gd100_%s.csv'
         % (temp_agg)), sep=';', float_format='%0.2f')
 
 
