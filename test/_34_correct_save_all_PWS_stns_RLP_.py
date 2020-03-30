@@ -64,8 +64,9 @@ path_to_netatmo_coords = (path_to_data /
 # in_filter_path = main_dir / r'oridinary_kriging_compare_DWD_Netatmo'
 
 # path_to_dwd_stns_comb
-path_to_dwd_stns_comb =  main_dir / r'dwd_combination_to_use_RH.csv'
+path_to_dwd_stns_comb = main_dir / r'dwd_combination_to_use_RH_all_stns.csv'
 
+# r'dwd_combination_to_use_RH.csv'  # dwd combinations leave 10 out
 
 #==============================================================================
 # # NETATMO FIRST FILTER
@@ -98,7 +99,7 @@ title_ = r'ppt_cross_valid_RH_'
 #==============================================================================
 #
 #==============================================================================
-strt_date = '2017-01-01 00:00:00'
+strt_date = '2015-01-01 00:00:00'
 end_date = '2019-12-31 00:00:00'
 
 
@@ -154,14 +155,15 @@ df_dwd_stns_comb = pd.read_csv(
 #     for i in range(0, len(l), n):
 #         yield l[i:i + n]
 # 
+#  
 # # divide DWD stations into group of 10
 # stns_dwd = dwd_in_coords_df.index.to_list()
-# groups_of_10 = chunks(l=stns_dwd, n=10)
+# groups_of_10 = chunks(l=stns_dwd, n=1)
 # grp = [gr for gr in groups_of_10]
-# 
+#  
 # df_dwd_group_stns = pd.DataFrame(index=range(len(grp)),
 #                                  data=grp)
-# df_dwd_group_stns.to_csv(main_dir / 'dwd_combination_to_use_RH.csv',
+# df_dwd_group_stns.to_csv(main_dir / 'dwd_combination_to_use_RH_all_stns.csv',
 #                          sep=',')
 # pass
 #===============================================================================
@@ -233,8 +235,11 @@ for temp_agg in resample_frequencies:
 #     path_to_dwd_vgs = (
 #         r"X:\exchange\ElHachem\Events_HBV\Echaz\df_vgs_events2.csv")
 
-    path_dwd_extremes_df = path_to_data / \
-        (r'dwd_%s_maximum_100_hours.csv' % temp_agg)
+    path_dwd_extremes_df = (
+        r"/run/media/abbas/EL Hachem 2019/home_office/Data_Bardossy/EventsRLP.csv") 
+
+#     path_dwd_extremes_df = path_to_data / \
+#         (r'dwd_%s_maximum_100_hours.csv' % temp_agg)
         
         # max_100_%s_events_dwd
 #         (r'dwd_%s_maximum_100_hours.csv' % temp_agg)
@@ -377,8 +382,8 @@ for temp_agg in resample_frequencies:
     for iev, event_date in enumerate(dwd_in_extremes_df.index):
         # break
         print(event_date, '---', iev ,'/', len(dwd_in_extremes_df.index))
-        _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
-        _ppt_event_ = float(dwd_in_extremes_df.loc[event_date, 1])
+        # _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
+        _ppt_event_ = float(dwd_in_extremes_df.loc[event_date, :])  # 1
         
         # start cross validating DWD stations for this event
         
@@ -464,10 +469,10 @@ for temp_agg in resample_frequencies:
             diff_obsv_interp > 3 * std_est_vals)
 
         if len(idx_bad_stns[0]) or len(idx_good_stns[0]) > 0:
-            print('Number of Stations with bad index \n',
-                  len(idx_bad_stns[0]))
-            print('Number of Stations with good index \n',
-                 len(idx_good_stns[0]))
+#             print('Number of Stations with bad index \n',
+#                   len(idx_bad_stns[0]))
+#             print('Number of Stations with good index \n',
+#                  len(idx_good_stns[0]))
 
             try:
                 ids_netatmo_stns_gd = np.take(netatmo_df_gd.index,
@@ -641,7 +646,10 @@ for temp_agg in resample_frequencies:
                 else:
                     pass
                     # print('\nStn has no near neighbors')
-        
+        print('Number of Stations with bad index \n',
+                  len(ids_netatmo_stns_gd))
+        print('Number of Stations with good index \n',
+                 len(ids_netatmo_stns_bad))
         # rescale variogram
         vgs_model_dwd_ppt = str(
             np.round(vg_scaling_ratio, 4)
@@ -825,7 +833,7 @@ for temp_agg in resample_frequencies:
             event_date, netatmo_stns_event_gd] = ppt_netatmo_vals_gd
 netatmo_in_ppt_vals_df_gd_corr.dropna(how='all', inplace=True)           
 netatmo_in_ppt_vals_df_gd_corr.to_csv(main_dir / (
-        'ppt_all_netatmo_100_intense_events_corrected_99_gd100_%s.csv'
+        'ppt_all_netatmo_100_intense_events_corrected_99_gd165_%s.csv'
         % (temp_agg)), sep=';', float_format='%0.2f')
 
 

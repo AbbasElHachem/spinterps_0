@@ -64,7 +64,7 @@ path_to_netatmo_coords = (path_to_data /
 # in_filter_path = main_dir / r'oridinary_kriging_compare_DWD_Netatmo'
 
 # path_to_dwd_stns_comb
-path_to_dwd_stns_comb = main_dir / r'dwd_combination_to_use_in_ar_RH.csv'
+path_to_dwd_stns_comb = main_dir / r'dwd_combination_to_use_RH_all_stns.csv'
 # r'dwd_combination_to_use_RH.csv'
 
 #==============================================================================
@@ -89,7 +89,7 @@ resample_frequencies = ['60min']
 title_ = r'ppt_cross_valid_RH_'
 
 # for Netatmo good stations percentile_shiftpoly_shiftexp
-used_data_acc = r'99_gd100'
+used_data_acc = r'99_gd0'
 #==============================================================================
 #
 #==============================================================================
@@ -131,10 +131,10 @@ dwd_in_coords_df = pd.read_csv(path_to_dwd_coords,
                                sep=';',
                                encoding='utf-8')
 
-dwd_in_coords_df_in_rh = pd.read_csv(path_to_dwd_coords_on_in_rh,
-                            index_col=0,
-                                sep=';',
-                                encoding='utf-8')
+# dwd_in_coords_df_in_rh = pd.read_csv(path_to_dwd_coords_on_in_rh,
+#                             index_col=0,
+#                                 sep=';',
+#                                 encoding='utf-8')
 # Netatmo first filter    
 #df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
 #                         index_col=0,
@@ -234,9 +234,11 @@ for temp_agg in resample_frequencies:
 
 #     path_to_dwd_vgs = (
 #         r"X:\exchange\ElHachem\Events_HBV\Echaz\df_vgs_events2.csv")
+    path_dwd_extremes_df = (
+        r"/run/media/abbas/EL Hachem 2019/home_office/Data_Bardossy/EventsRLP.csv") 
 
-    path_dwd_extremes_df = path_to_data / \
-        (r'dwd_%s_maximum_100_hours.csv' % temp_agg)
+#     path_dwd_extremes_df = path_to_data / \
+#         (r'dwd_%s_maximum_100_hours.csv' % temp_agg)
 #         (r'dwd_%s_maximum_100_hours.csv' % temp_agg)
 #         (r'dwd_%s_special_events_10mm_.csv' % temp_agg)
     #(r'dwd_%s_maximum_100_hours.csv' % temp_agg)
@@ -318,12 +320,30 @@ for temp_agg in resample_frequencies:
     netatmo_in_ppt_vals_df = netatmo_in_ppt_vals_df.loc[:, cmn_stns]
     
     # corrected Netatmo data
+    path_to_netatmo_gd_stns = (
+           r"/run/media/abbas/EL Hachem 2019/home_office"
+           r"/Data_Bardossy/AW__Online_Meetings_"
+            r'/Good_Netatmo99.csv')  # Good
+    df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
+                         index_col=0,
+                         sep=';',
+                         encoding='utf-8')
     
-    netatmo_in_ppt_vals_df_gd = pd.read_csv(
-        path_to_netatmo_coorected_ppt,
-        sep=';', index_col=0,
-        parse_dates=True,
-        infer_datetime_format=True)
+    # netatmo_in_ppt_vals_df_gd = netatmo_in_ppt_vals_df
+    
+    good_netatmo_stns = df_gd_stns.index
+        
+    cmn_gd_stns = netatmo_in_vals_df.columns.intersection(
+        good_netatmo_stns)
+    netatmo_in_vals_df_gd = netatmo_in_vals_df.loc[
+        :, cmn_gd_stns]
+    netatmo_in_ppt_vals_df_gd = netatmo_in_ppt_vals_df.loc[:, cmn_gd_stns]
+    
+#     netatmo_in_ppt_vals_df_gd = pd.read_csv(
+#         path_to_netatmo_coorected_ppt,
+#         sep=';', index_col=0,
+#         parse_dates=True,
+#         infer_datetime_format=True)
     
     # DWD Extremes
     #=========================================================================
@@ -405,8 +425,8 @@ for temp_agg in resample_frequencies:
     for iev, event_date in enumerate(dwd_in_extremes_df.index):
 
         print(event_date, '---', iev ,'/', len(dwd_in_extremes_df.index))
-        _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
-        _ppt_event_ = dwd_in_extremes_df.loc[event_date, 1]
+        # _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
+        _ppt_event_ = dwd_in_extremes_df.loc[event_date, :]
         
         # start cross validating DWD stations for this event
         for idx_lst_comb in df_dwd_stns_comb.index:
