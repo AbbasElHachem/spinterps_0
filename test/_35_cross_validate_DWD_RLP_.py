@@ -131,10 +131,10 @@ dwd_in_coords_df = pd.read_csv(path_to_dwd_coords,
                                sep=';',
                                encoding='utf-8')
 
-# dwd_in_coords_df_in_rh = pd.read_csv(path_to_dwd_coords_on_in_rh,
-#                             index_col=0,
-#                                 sep=';',
-#                                 encoding='utf-8')
+dwd_in_coords_df_in_rh = pd.read_csv(path_to_dwd_coords_on_in_rh,
+                                     index_col=0,
+                                     sep=';',
+                                     encoding='utf-8')
 # Netatmo first filter    
 #df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
 #                         index_col=0,
@@ -151,12 +151,13 @@ df_dwd_stns_comb = pd.read_csv(
 #     """Yield successive n-sized chunks from l."""
 #     for i in range(0, len(l), n):
 #         yield l[i:i + n]
-#   
-# #divide DWD stations into group of 10
+# 
+#    
+# # divide DWD stations into group of 10
 # stns_dwd = dwd_in_coords_df_in_rh.index.to_list()
 # groups_of_10 = chunks(l=stns_dwd, n=10)
 # grp = [gr for gr in groups_of_10]
-#   
+#    
 # df_dwd_group_stns = pd.DataFrame(index=range(len(grp)),
 #                                  data=grp)
 # df_dwd_group_stns.to_csv(main_dir / 'dwd_combination_to_use_in_ar_RH.csv',
