@@ -89,7 +89,7 @@ resample_frequencies = ['60min']
 title_ = r'ppt_cross_valid_RH_'
 
 # for Netatmo good stations percentile_shiftpoly_shiftexp
-used_data_acc = r'99_gd0'
+used_data_acc = r'99_gd199'
 #==============================================================================
 #
 #==============================================================================
@@ -229,7 +229,7 @@ for temp_agg in resample_frequencies:
     # TODO: what to change
     path_to_dwd_vgs = (
         path_to_vgs /
-        ('vg_strs_max100_hours_%s.csv' % temp_agg))
+        ('vg_strs_max100_hours_%s2.csv' % temp_agg))
     #         ('vg_strs_special_events_%s.csv' % temp_agg))
 #         (r'vg_strs_max100_hours_%s.csv' % temp_agg))
 

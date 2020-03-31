@@ -228,7 +228,7 @@ for temp_agg in resample_frequencies:
     # TODO: what to change
     path_to_dwd_vgs = (
         path_to_vgs /
-        ('vg_strs_max100_hours_%s.csv' % temp_agg))
+        ('vg_strs_max100_hours_%s2.csv' % temp_agg))
     #         ('vg_strs_special_events_%s.csv' % temp_agg))
 #         (r'vg_strs_max100_hours_%s.csv' % temp_agg))
 
@@ -313,10 +313,11 @@ for temp_agg in resample_frequencies:
         
     cmn_gd_stns = netatmo_in_vals_df.columns.intersection(
         good_netatmo_stns)
+    
     netatmo_in_vals_df_gd = netatmo_in_vals_df.loc[
         :, cmn_gd_stns]
-    netatmo_in_ppt_vals_df_gd = netatmo_in_ppt_vals_df.loc[:, cmn_gd_stns]
     
+    netatmo_in_ppt_vals_df_gd = netatmo_in_ppt_vals_df.loc[:, cmn_gd_stns]
     
     # DWD Extremes
     #=========================================================================
@@ -833,7 +834,7 @@ for temp_agg in resample_frequencies:
             event_date, netatmo_stns_event_gd] = ppt_netatmo_vals_gd
 netatmo_in_ppt_vals_df_gd_corr.dropna(how='all', inplace=True)           
 netatmo_in_ppt_vals_df_gd_corr.to_csv(main_dir / (
-        'ppt_all_netatmo_100_intense_events_corrected_99_gd165_%s.csv'
+        'ppt_all_netatmo_100_intense_events_corrected_99_gd199_%s.csv'
         % (temp_agg)), sep=';', float_format='%0.2f')
 
 
