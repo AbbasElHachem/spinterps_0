@@ -102,16 +102,24 @@ def get_ppt_paths():
     #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
     #         r'edf_ppt_all_dwd_60min_.csv')
 
-    in_vals_df_loc = os.path.join(r"X:\staff\elhachem\2020_10_03_Rheinland_Pfalz"
-                                  r"\edf_ppt_all_dwd_60min_.csv")
+#     in_vals_df_loc = os.path.join(r"X:\staff\elhachem\2020_10_03_Rheinland_Pfalz"
+#                                   r"\edf_ppt_all_dwd_60min_.csv")
+    
+    in_vals_df_loc = (r'/run/media/abbas/EL Hachem 2019/home_office'
+                      r'/2020_10_03_Rheinland_Pfalz/edf_ppt_all_dwd_60min_.csv')
+    
     # Cold - Warm season distributions DWD
 #     in_vals_df_loc = os.path.join(
 #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
 #         r'df_dwd_distributions_cold_season_hourly.csv')
 
     # COORDS
+#     in_stn_coords_df_loc = os.path.join(
+#         r"X:\staff\elhachem\2020_10_03_Rheinland_Pfalz\dwd_coords_in_around_RH_utm32.csv")
     in_stn_coords_df_loc = os.path.join(
-        r"X:\staff\elhachem\2020_10_03_Rheinland_Pfalz\dwd_coords_in_around_RH_utm32.csv")
+        r'/run/media/abbas/EL Hachem 2019/home_office'
+        r'/2020_10_03_Rheinland_Pfalz/dwd_coords_in_around_RH_utm32.csv')
+    
 #     in_stn_coords_df_loc = os.path.join(
 #         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW\netatmo_bw_1hour_coords_utm32.csv")
 
@@ -133,16 +141,21 @@ def get_ppt_paths():
 #         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
 #         r"\NetAtmo_BW"
 #         r"\dwd_60min_maximum_100_event.csv")
+#     path_to_dwd_ppt_extreme = (
+#         r"X:\staff\elhachem\2020_10_03_Rheinland_Pfalz"
+#         r"\dwd_hourly_special_events_5mm_.csv")
+    
     path_to_dwd_ppt_extreme = (
-        r"X:\staff\elhachem\2020_10_03_Rheinland_Pfalz"
-        r"\dwd_hourly_special_events_5mm_.csv")
+        r"/run/media/abbas/EL Hachem 2019/home_office/Data_Bardossy/EventsRLP.csv") 
 #     path_to_dwd_ppt_extreme = (
 #         r"X:\staff\elhachem\Data\DWD_BW_Data"
 #         r"\neckar_clim_data_20km_buff_new"
 #         r"\Wannweil_Echaz_2015_2019_hourly_hi_discharge_time_steps.csv")
 
 #     out_dir = r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo'
-    out_dir = r'X:\staff\elhachem\2020_10_03_Rheinland_Pfalz'
+    # out_dir = r'X:\staff\elhachem\2020_10_03_Rheinland_Pfalz'
+    out_dir = (r"/run/media/abbas/EL Hachem 2019/home_office") 
+    
     return (in_vals_df_loc, in_stn_coords_df_loc,
             out_dir,
             path_to_netatmo_gd_stns_file,
@@ -156,12 +169,13 @@ def main():
     #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo')
 
     main_dir = Path(
-        r'X:\staff\elhachem\2020_10_03_Rheinland_Pfalz')
+        r"/run/media/abbas/EL Hachem 2019/home_office")
+        # r'X:\staff\elhachem\2020_10_03_Rheinland_Pfalz')
     os.chdir(main_dir)
 
     vg_vars = ['ppt']  # ['ppt']
 
-    strt_date = '2014-01-01'
+    strt_date = '2017-01-01'
     end_date = '2019-12-31'
     min_valid_stns = 10
 
@@ -178,7 +192,7 @@ def main():
 
     use_netatmo_good_stns = False
 
-    DWD_stations = True
+    DWD_stations = False
 
     n_cpus = 4
 
@@ -299,19 +313,19 @@ def main():
 
 if __name__ == '__main__':
 
-    _save_log_ = False
-    if _save_log_:
-        from datetime import datetime
-        from std_logger import StdFileLoggerCtrl
-
-        # save all console activity to out_log_file
-        out_log_file = os.path.join(
-            r'C:\Users\hachem\Desktop\fd\\%s_log_%s.log' % (
-                # r'P:\Synchronize\python_script_logs\\%s_log_%s.log' % (
-                os.path.basename(__file__),
-                datetime.now().strftime('%Y%m%d%H%M%S')))
-
-        log_link = StdFileLoggerCtrl(out_log_file)
+#     _save_log_ = False
+#     if _save_log_:
+#         from datetime import datetime
+#         from std_logger import StdFileLoggerCtrl
+# 
+#         # save all console activity to out_log_file
+#         out_log_file = os.path.join(
+#             r'C:\Users\hachem\Desktop\fd\\%s_log_%s.log' % (
+#                 # r'P:\Synchronize\python_script_logs\\%s_log_%s.log' % (
+#                 os.path.basename(__file__),
+#                 datetime.now().strftime('%Y%m%d%H%M%S')))
+# 
+#         log_link = StdFileLoggerCtrl(out_log_file)
 
     print('#### Started on %s ####\n' % time.asctime())
     START = timeit.default_timer()  # to get the runtime of the program
@@ -322,5 +336,5 @@ if __name__ == '__main__':
     print(('\n#### Done with everything on %s.\nTotal run time was'
            ' about %0.4f seconds ####' % (time.asctime(), STOP - START)))
 
-    if _save_log_:
-        log_link.stop()
+#     if _save_log_:
+#         log_link.stop()
