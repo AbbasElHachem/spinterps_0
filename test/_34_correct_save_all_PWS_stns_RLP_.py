@@ -512,15 +512,19 @@ for temp_agg in resample_frequencies:
         netatmo_coords = np.array(
                 [(x, y) for x, y in zip(netatmo_x_stns_gd,
                                          netatmo_y_stns_gd)])
-        # dwd_coords = np.array(
-        #    [(x, y) for x, y in zip(dwd_xcoords, dwd_ycoords)])
-        neighbors_coords_dwd_netatmo = netatmo_coords 
-        # np.concatenate((netatmo_coords, dwd_coords))
+        # coords of DWD
+        dwd_coords = np.array(
+            [(x, y) for x, y in zip(dwd_xcoords, dwd_ycoords)])
+        neighbors_coords_dwd_netatmo = np.concatenate((netatmo_coords,
+                                                        dwd_coords))
         # create a tree from coordinates
         points_tree = spatial.KDTree(neighbors_coords_dwd_netatmo)
         
         # get the ppt and edf data
-        
+        edf_netatmo_dwd_vals = np.concatenate((edf_gd_vals_df.values,
+                                              edf_dwd_vals))
+        ppt_netatmo_dwd_vals = np.concatenate((ppt_gd_vals_df.values,
+                                              ppt_dwd_vals))
         #======================================================================
         # check if bad are really bad, look at neighborhood
         #======================================================================
@@ -544,13 +548,13 @@ for temp_agg in resample_frequencies:
             # if there are any neighbors
             if len(idxs_neighbours) > 0:
                 # go through neighbors and check if correct
-                edf_all_ngbrs = edf_gd_vals_df[idxs_neighbours]
+                edf_all_ngbrs = edf_netatmo_dwd_vals[idxs_neighbours]
                 ppt_all_ngbrs = ppt_gd_vals_df[idxs_neighbours]
                 
                 # this means that the station and all of its neighbors are
                 # eiter wet or dry but not conflicting !
                 
-                if min(edf_all_ngbrs.values.min(), edf_stn) > edf_thr:
+                if min(edf_all_ngbrs.min(), edf_stn) > edf_thr:
                     # all are wet
                     if stn_ not in ids_netatmo_stns_gd:
                     
@@ -562,7 +566,7 @@ for temp_agg in resample_frequencies:
                                   ids_netatmo_stns_bad))
                         
                         print('added bad wet to good stns \n')
-                if max(edf_all_ngbrs.values.min(), edf_stn) < edf_thr:
+                if max(edf_all_ngbrs.min(), edf_stn) < edf_thr:
                     # all are dry
                     if stn_ not in ids_netatmo_stns_gd:
                     
