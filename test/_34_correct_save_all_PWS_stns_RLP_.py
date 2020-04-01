@@ -549,8 +549,10 @@ for temp_agg in resample_frequencies:
             if len(idxs_neighbours) > 0:
                 # go through neighbors and check if correct
                 edf_all_ngbrs = edf_netatmo_dwd_vals[idxs_neighbours]
-                ppt_all_ngbrs = ppt_gd_vals_df[idxs_neighbours]
-                
+                try:
+                    ppt_all_ngbrs = ppt_netatmo_dwd_vals[idxs_neighbours]
+                except Exception as msg:
+                    print(msg)
                 # this means that the station and all of its neighbors are
                 # eiter wet or dry but not conflicting !
                 
