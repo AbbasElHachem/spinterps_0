@@ -25,14 +25,14 @@ import time
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from spinterps import (OrdinaryKriging, OrdinaryKrigingWithScaledVg)
+from spinterps import (OrdinaryKriging)
 from scipy import spatial
-
+from scipy.spatial import distance
 from pathlib import Path
 
 
 neigbhrs_radius_dwd = 3e4
-neigbhrs_radius_netatmo = 3e4
+neigbhrs_radius_netatmo = 2e4
 # =============================================================================
 
 #main_dir = Path(r'X:\staff\elhachem\2020_10_03_Rheinland_Pfalz')
@@ -439,11 +439,15 @@ for temp_agg in resample_frequencies:
         
             obs_ppt_stn_dwd = dwd_in_ppt_vals_df.loc[
                 event_date, stn_comb]
+            
             x_dwd_interpolate = np.array(
                     dwd_in_coords_df.loc[stn_comb, 'X'].values)
             y_dwd_interpolate = np.array(
                     dwd_in_coords_df.loc[stn_comb, 'Y'].values)
-
+            
+#             xy_dwd_interp = np.array([x_dwd_interpolate[0],
+#                                        y_dwd_interpolate[0]])
+            
             # drop stns
             all_dwd_stns_except_interp_loc = [
                 stn for stn in dwd_in_vals_df.columns
@@ -545,9 +549,19 @@ for temp_agg in resample_frequencies:
                     x_dwd_interpolate.flatten(),
                     y_dwd_interpolate.flatten())]
                 for ix in idx])
-
-            stn_netatmo_all_ngbrs = ppt_netatmo_vals_sr.index[netatmo_idxs_neighbours]
-
+            
+            if netatmo_idxs_neighbours.size < 10:
+                neigbhrs_radius_netatmo = 3e4
+                netatmo_idxs_neighbours = np.unique([
+                ix for idx in [netatmo_points_tree.query_ball_point(
+                np.array((x_interp, y_interp)),
+                neigbhrs_radius_netatmo) for x_interp, y_interp in zip(
+                    x_dwd_interpolate.flatten(),
+                    y_dwd_interpolate.flatten())]
+                for ix in idx])
+                
+            stn_netatmo_all_ngbrs = ppt_netatmo_vals_sr.index[
+                netatmo_idxs_neighbours]
             
             ppt_netatmo_vals_nona = netatmo_in_ppt_vals_df.loc[
                 event_date, stn_netatmo_all_ngbrs].dropna().values
@@ -560,7 +574,16 @@ for temp_agg in resample_frequencies:
                 stn_netatmo_all_ngbrs, 'X'].values
             y_netatmo_all_ngbrs = netatmo_in_coords_df.loc[
                 stn_netatmo_all_ngbrs, 'Y'].values
-                
+            
+#             # find the closest neighbors, 25 first
+#             netatmo_xy_coords = np.array([(x, y) for x, y in zip(
+#                 x_netatmo_all_ngbrs, y_netatmo_all_ngbrs)])
+#             
+#             ngbrs_dist = distance.cdist([(x_dwd_interpolate[0],
+#                                           y_dwd_interpolate[0])],
+#                                         netatmo_xy_coords,
+#                                         'euclidean')
+            
             #===================================================================
 #             plt.ioff()           
 #             plt.scatter(x_netatmo_all,

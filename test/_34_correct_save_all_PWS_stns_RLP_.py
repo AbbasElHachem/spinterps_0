@@ -285,7 +285,7 @@ for temp_agg in resample_frequencies:
 
     netatmo_in_vals_df = netatmo_in_vals_df.loc[strt_date:end_date, :]
     netatmo_in_vals_df.dropna(how='all', axis=0, inplace=True)
-
+    
     cmn_stns = netatmo_in_coords_df.index.intersection(
         netatmo_in_vals_df.columns)
 
@@ -305,6 +305,13 @@ for temp_agg in resample_frequencies:
     netatmo_in_ppt_vals_df.dropna(how='all', axis=0, inplace=True)
 
     netatmo_in_ppt_vals_df = netatmo_in_ppt_vals_df.loc[:, cmn_stns]
+    
+    #==========================================================================
+    # # shift data
+    #==========================================================================
+    netatmo_in_vals_df = netatmo_in_vals_df.shift(1)
+    netatmo_in_ppt_vals_df = netatmo_in_ppt_vals_df.shift(1)
+    
     # #####
     # good_netatmo_stns = df_gd_stns.loc[
     #    :, 'Stations'].values.ravel()
@@ -483,14 +490,16 @@ for temp_agg in resample_frequencies:
 
             except Exception as msg:
                 print(msg)
-
+        
+        assert idx_good_stns[0].size == ids_netatmo_stns_gd.size
+        assert idx_bad_stns[0].size == ids_netatmo_stns_bad.size
+        
         try:
             edf_gd_vals_df = netatmo_edf.loc[ids_netatmo_stns_gd]
         except Exception as msg:
             print(msg, 'error while second filter')
 
-        netatmo_dry_gd = edf_gd_vals_df[
-            edf_gd_vals_df.values < edf_thr]
+        netatmo_dry_gd = edf_gd_vals_df[edf_gd_vals_df.values < edf_thr]
         # gd
 
         cmn_wet_dry_stns = netatmo_in_coords_df.index.intersection(
@@ -570,6 +579,10 @@ for temp_agg in resample_frequencies:
             netatmo_wet_gd,
             dwd_wet])
         
+        assert (netatmo_wet_gd.size + netatmo_wet_bad.size + 
+                netatmo_dry_gd.size + netatmo_dry_bad.size
+                ) == netatmo_df_gd.size
+        
         # check if dry stns are really dry
         if netatmo_wet_gd.size > 0:
 
@@ -612,31 +625,34 @@ for temp_agg in resample_frequencies:
 
                             try:
                                 netatmo_wet_gd[stn_] = edf_stn
-                                ids_netatmo_stns_gd = np.append(
-                                    ids_netatmo_stns_gd,
-                                    stn_)
-                                x_coords_gd_netatmo_wet = np.append(
-                                    x_coords_gd_netatmo_wet,
-                                    netatmo_x_stn)
-                                y_coords_gd_netatmo_wet = np.append(
-                                    y_coords_gd_netatmo_wet,
-                                    netatmo_y_stn)
-
-                                # remove from original bad
-                                # wet
-                                x_coords_bad_netatmo_wet = np.array(list(
-                                    filter(lambda x: x != netatmo_x_stn,
-                                           x_coords_bad_netatmo_wet)))
-
-                                y_coords_bad_netatmo_wet = np.array(list(
-                                    filter(lambda x: x != netatmo_y_stn,
-                                           y_coords_bad_netatmo_wet)))
-
-                                netatmo_wet_bad.loc[stn_] = np.nan
-
-                                ids_netatmo_stns_bad = list(
-                                    filter(lambda x: x != stn_,
-                                           ids_netatmo_stns_bad))
+                                
+                                if stn_ not in ids_netatmo_stns_gd:
+                                    
+                                    ids_netatmo_stns_gd = np.append(
+                                        ids_netatmo_stns_gd,
+                                        stn_)
+                                    x_coords_gd_netatmo_wet = np.append(
+                                        x_coords_gd_netatmo_wet,
+                                        netatmo_x_stn)
+                                    y_coords_gd_netatmo_wet = np.append(
+                                        y_coords_gd_netatmo_wet,
+                                        netatmo_y_stn)
+    
+                                    # remove from original bad
+                                    # wet
+                                    x_coords_bad_netatmo_wet = np.array(list(
+                                        filter(lambda x: x != netatmo_x_stn,
+                                               x_coords_bad_netatmo_wet)))
+    
+                                    y_coords_bad_netatmo_wet = np.array(list(
+                                        filter(lambda x: x != netatmo_y_stn,
+                                               y_coords_bad_netatmo_wet)))
+    
+                                    netatmo_wet_bad.loc[stn_] = np.nan
+    
+                                    ids_netatmo_stns_bad = list(
+                                        filter(lambda x: x != stn_,
+                                               ids_netatmo_stns_bad))
                             except Exception as msg:
                                 print(msg)
                                 pass
@@ -648,9 +664,15 @@ for temp_agg in resample_frequencies:
                     pass
                     # print('\nStn has no near neighbors')
         print('Number of Stations with bad index \n',
-                  len(ids_netatmo_stns_gd))
+                  len(ids_netatmo_stns_bad), '/', len(netatmo_df_gd.index))
         print('Number of Stations with good index \n',
-                 len(ids_netatmo_stns_bad))
+                 len(ids_netatmo_stns_gd), '/', len(netatmo_df_gd.index))
+        
+        try:
+            assert len(netatmo_df_gd.index) == (len(ids_netatmo_stns_bad) + 
+                                                len(ids_netatmo_stns_gd))
+        except Exception as msg:
+            print(msg)
         # rescale variogram
         vgs_model_dwd_ppt = str(
             np.round(vg_scaling_ratio, 4)
