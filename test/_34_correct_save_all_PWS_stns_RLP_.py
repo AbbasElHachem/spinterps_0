@@ -79,12 +79,12 @@ use_netatmo_gd_stns = True  # general filter, Indicator kriging
 # if use_netatmo_gd_stns:
 path_to_netatmo_gd_stns = (
     main_dir / r'indicator_correlation' /
-    (r'keep_stns_99_0_per_60min_shift_10perc_10fact.csv'))
+    (r'keep_stns_all_neighbor_99_0_per_60min_s0_1st_rh.csv'))
 
-path_to_netatmo_gd_stns = (
-   r"/run/media/abbas/EL Hachem 2019/home_office"
-   r"/Data_Bardossy/AW__Online_Meetings_"
-    r'/Good_Netatmo99.csv')  # Good
+# path_to_netatmo_gd_stns = (
+#    r"/run/media/abbas/EL Hachem 2019/home_office"
+#    r"/Data_Bardossy/AW__Online_Meetings_"
+#     r'/Good_Netatmo99.csv')  # Good
 # keep_stns_99_0_per_60min_shift_10perc_10fact
 # 99
 #==============================================================================
@@ -140,7 +140,7 @@ dwd_in_coords_df = pd.read_csv(path_to_dwd_coords,
 
 # Netatmo first filter
 df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
-                         index_col=0,
+                         index_col=1,  # 0
                          sep=';',
                          encoding='utf-8')
 
@@ -248,7 +248,6 @@ for temp_agg in resample_frequencies:
     # Files to use
     # =========================================================================
 
-    netatmo_data_to_use = path_to_netatmo_edf
     dwd_data_to_use = path_to_dwd_edf
 
     # DWD DATA
@@ -281,7 +280,7 @@ for temp_agg in resample_frequencies:
                                      encoding='utf-8', engine='c')
 
     netatmo_in_vals_df.index = pd.to_datetime(
-        netatmo_in_vals_df.index, format='%Y-%m-%d')
+        netatmo_in_vals_df.index, format='%Y-%m-%d %H:%M:%S')
 
     netatmo_in_vals_df = netatmo_in_vals_df.loc[strt_date:end_date, :]
     netatmo_in_vals_df.dropna(how='all', axis=0, inplace=True)
@@ -309,8 +308,8 @@ for temp_agg in resample_frequencies:
     #==========================================================================
     # # shift data
     #==========================================================================
-    netatmo_in_vals_df = netatmo_in_vals_df.shift(1)
-    netatmo_in_ppt_vals_df = netatmo_in_ppt_vals_df.shift(1)
+    # netatmo_in_vals_df = netatmo_in_vals_df.shift(1)
+    # netatmo_in_ppt_vals_df = netatmo_in_ppt_vals_df.shift(1)
     
     # #####
     # good_netatmo_stns = df_gd_stns.loc[
@@ -567,7 +566,7 @@ for temp_agg in resample_frequencies:
                            filter(lambda x: x != stn_,
                                   ids_netatmo_stns_bad))
                         
-                        print('added bad wet to good stns \n')
+                        # print('added bad wet to good stns \n')
                 if max(edf_all_ngbrs.min(), edf_stn) < edf_thr:
                     # all are dry
                     if stn_ not in ids_netatmo_stns_gd:
@@ -578,7 +577,7 @@ for temp_agg in resample_frequencies:
                         ids_netatmo_stns_bad = list(
                            filter(lambda x: x != stn_,
                                   ids_netatmo_stns_bad))
-                        print('added bad dry to good stns \n')
+                        # print('added bad dry to good stns \n')
                         
         print('Number of Stations with bad index \n',
                   len(ids_netatmo_stns_bad), '/', len(netatmo_df_gd.index))

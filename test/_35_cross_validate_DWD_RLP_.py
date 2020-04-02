@@ -30,7 +30,6 @@ from scipy import spatial
 from scipy.spatial import distance
 from pathlib import Path
 
-
 neigbhrs_radius_dwd = 3e4
 neigbhrs_radius_netatmo = 2e4
 # =============================================================================
@@ -315,37 +314,43 @@ for temp_agg in resample_frequencies:
     netatmo_in_ppt_vals_df.index = pd.to_datetime(
         netatmo_in_ppt_vals_df.index,
         format='%Y-%m-%d')
-
+    netatmo_in_ppt_vals_df = netatmo_in_ppt_vals_df.loc[strt_date:end_date, :]
     netatmo_in_ppt_vals_df.dropna(how='all', axis=0, inplace=True)
 
     netatmo_in_ppt_vals_df = netatmo_in_ppt_vals_df.loc[:, cmn_stns]
     
     # corrected Netatmo data
-    path_to_netatmo_gd_stns = (
-           r"/run/media/abbas/EL Hachem 2019/home_office"
-           r"/Data_Bardossy/AW__Online_Meetings_"
-            r'/Good_Netatmo99.csv')  # Good
-    df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
-                         index_col=0,
-                         sep=';',
-                         encoding='utf-8')
+#     path_to_netatmo_gd_stns = (
+#            r"/run/media/abbas/EL Hachem 2019/home_office"
+#            r"/Data_Bardossy/AW__Online_Meetings_"
+#             r'/Good_Netatmo99.csv')  # Good
+#     
+    # if use_netatmo_gd_stns:
+#     path_to_netatmo_gd_stns = (
+#         main_dir / r'indicator_correlation' / 
+#     (r'keep_stns_all_neighbor_99_0_per_60min_s0_1st_rh.csv'))
+# 
+#     df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
+#                          index_col=1,  # 0
+#                          sep=';',
+#                          encoding='utf-8')
     
     # netatmo_in_ppt_vals_df_gd = netatmo_in_ppt_vals_df
     
-    good_netatmo_stns = df_gd_stns.index
-        
-    cmn_gd_stns = netatmo_in_vals_df.columns.intersection(
-        good_netatmo_stns)
-    netatmo_in_vals_df_gd = netatmo_in_vals_df.loc[
-        :, cmn_gd_stns]
-    netatmo_in_ppt_vals_df_gd = netatmo_in_ppt_vals_df.loc[:, cmn_gd_stns]
-    
-#     netatmo_in_ppt_vals_df_gd = pd.read_csv(
-#         path_to_netatmo_coorected_ppt,
-#         sep=';', index_col=0,
-#         parse_dates=True,
-#         infer_datetime_format=True)
-    
+#     good_netatmo_stns = df_gd_stns.index
+#         
+#     cmn_gd_stns = netatmo_in_vals_df.columns.intersection(
+#         good_netatmo_stns)
+#     netatmo_in_vals_df_gd = netatmo_in_vals_df.loc[
+#         :, cmn_gd_stns]
+#     netatmo_in_ppt_vals_df_gd = netatmo_in_ppt_vals_df.loc[:, cmn_gd_stns]
+#     
+    netatmo_in_ppt_vals_df_gd = pd.read_csv(
+        path_to_netatmo_coorected_ppt,
+        sep=';', index_col=0,
+        parse_dates=True,
+        infer_datetime_format=True)
+     
     # DWD Extremes
     #=========================================================================
     dwd_in_extremes_df = pd.read_csv(path_dwd_extremes_df,  # path_dwd_extremes_df
@@ -436,9 +441,9 @@ for temp_agg in resample_frequencies:
                         for stn in df_dwd_stns_comb.iloc[
                         idx_lst_comb, :].dropna().values]
             
-        
+            # print(stn_comb)
             obs_ppt_stn_dwd = dwd_in_ppt_vals_df.loc[
-                event_date, stn_comb]
+                event_date, stn_comb].values
             
             x_dwd_interpolate = np.array(
                     dwd_in_coords_df.loc[stn_comb, 'X'].values)
@@ -496,16 +501,14 @@ for temp_agg in resample_frequencies:
                 for ix in idx])
             
             stn_dwd_all_ngbrs = stn_dwd_all[dwd_idxs_neighbours]
-
-            
+      
             # ppt dwd vals neighbors
             ppt_dwd_vals_nona = dwd_in_ppt_vals_df.loc[
                 event_date,
                 stn_dwd_all_ngbrs].dropna().values
             # edf dwd vals neighbors
             edf_dwd_vals = dwd_in_vals_df.loc[
-                event_date,
-                stn_dwd_all_ngbrs].dropna().values
+                event_date, stn_dwd_all_ngbrs].dropna().values
 
             x_dwd_all_ngbrs = dwd_in_coords_df.loc[stn_dwd_all_ngbrs, 'X'].values
             y_dwd_all_ngbrs = dwd_in_coords_df.loc[stn_dwd_all_ngbrs, 'Y'].values
