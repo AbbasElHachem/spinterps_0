@@ -35,11 +35,11 @@ neigbhrs_radius_dwd = 3e4
 neigbhrs_radius_netatmo = 2e4
 # =============================================================================
 
-#main_dir = Path(r'X:\staff\elhachem\2020_10_03_Rheinland_Pfalz')
+main_dir = Path(r'X:\staff\elhachem\2020_10_03_Rheinland_Pfalz')
 
-main_dir = Path(
-    r'/run/media/abbas/EL Hachem 2019/home_office'
-    r'/2020_10_03_Rheinland_Pfalz')
+# main_dir = Path(
+#     r'/run/media/abbas/EL Hachem 2019/home_office'
+#     r'/2020_10_03_Rheinland_Pfalz')
 
 #main_dir = Path(r'/home/abbas/Documents/Python/Extremes')
 # main_dir = Path(r'/home/IWS/hachem/Extremes')
@@ -55,7 +55,7 @@ path_to_dwd_coords = (path_to_data /
 
 path_to_dwd_coords_on_in_rh = (path_to_data /
                                r'dwd_coords_in_around_RH_utm32.csv')
-                      # r'dwd_coords_only_in_RH.csv')
+# r'dwd_coords_only_in_RH.csv')
 
 path_to_netatmo_coords = (path_to_data /
                           r'netatmo_Rheinland-Pfalz_1hour_coords_utm32.csv')
@@ -73,10 +73,10 @@ path_to_dwd_stns_comb = main_dir / r'dwd_combination_to_use_RH_all_stns.csv'
 
 # run it to filter Netatmo
 use_netatmo_gd_stns = True  # general filter, Indicator kriging
-
+use_one_event_filter = True
 
 # if use_netatmo_gd_stns:
-#path_to_netatmo_gd_stns = (
+# path_to_netatmo_gd_stns = (
 #    main_dir / r'indicator_correlation' /
 #    (r'keep_stns_99_0_per_60min_shift_10perc_3fact.csv'))
 # 99
@@ -135,8 +135,8 @@ dwd_in_coords_df_in_rh = pd.read_csv(path_to_dwd_coords_on_in_rh,
                                      index_col=0,
                                      sep=';',
                                      encoding='utf-8')
-# Netatmo first filter    
-#df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
+# Netatmo first filter
+# df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
 #                         index_col=0,
 #                         sep=';',
 #                         encoding='utf-8')
@@ -146,24 +146,24 @@ df_dwd_stns_comb = pd.read_csv(
     path_to_dwd_stns_comb, index_col=0,
     sep=',', dtype=str)
 
-#===============================================================================
+#=========================================================================
 # def chunks(l, n):
 #     """Yield successive n-sized chunks from l."""
 #     for i in range(0, len(l), n):
 #         yield l[i:i + n]
-# 
-#    
+#
+#
 # # divide DWD stations into group of 10
 # stns_dwd = dwd_in_coords_df_in_rh.index.to_list()
 # groups_of_10 = chunks(l=stns_dwd, n=10)
 # grp = [gr for gr in groups_of_10]
-#    
+#
 # df_dwd_group_stns = pd.DataFrame(index=range(len(grp)),
 #                                  data=grp)
 # df_dwd_group_stns.to_csv(main_dir / 'dwd_combination_to_use_in_ar_RH.csv',
 #                          sep=',')
 # pass
-#===============================================================================
+#=========================================================================
 #==============================================================================
 # NEEDED FUNCTIONS
 #==============================================================================
@@ -190,7 +190,7 @@ def find_nearest(array, value):
 #
 #==============================================================================
 for temp_agg in resample_frequencies:
-    
+
     # out path directory
 
     dir_path = title_ + temp_agg
@@ -221,11 +221,11 @@ for temp_agg in resample_frequencies:
         path_to_data /
         (r'ppt_all_netatmo_rh_2014_2019_%s_no_freezing_5deg.csv'
             % temp_agg))
-    
+
     path_to_netatmo_coorected_ppt = (
         main_dir / (
             r'ppt_all_netatmo_100_intense_events_corrected_%s_%s.csv'
-                    % (used_data_acc, temp_agg)))
+            % (used_data_acc, temp_agg)))
     # TODO: what to change
     path_to_dwd_vgs = (
         path_to_vgs /
@@ -236,7 +236,9 @@ for temp_agg in resample_frequencies:
 #     path_to_dwd_vgs = (
 #         r"X:\exchange\ElHachem\Events_HBV\Echaz\df_vgs_events2.csv")
     path_dwd_extremes_df = (
-        r"/run/media/abbas/EL Hachem 2019/home_office/Data_Bardossy/EventsRLP.csv") 
+        #r"/run/media/abbas/EL Hachem 2019/home_office"
+        main_dir /
+        r"Data_Bardossy/EventsRLP.csv")
 
 #     path_dwd_extremes_df = path_to_data / \
 #         (r'dwd_%s_maximum_100_hours.csv' % temp_agg)
@@ -244,10 +246,10 @@ for temp_agg in resample_frequencies:
 #         (r'dwd_%s_special_events_10mm_.csv' % temp_agg)
     #(r'dwd_%s_maximum_100_hours.csv' % temp_agg)
 
-    #df_radar_events_to_keep = pd.read_csv(
+    # df_radar_events_to_keep = pd.read_csv(
     #    r'X:\staff\elhachem\2020_10_03_Rheinland_Pfalz'
-        #         r'\%s_max_events_radolan_files.csv'
-        #         r'\%s_intense_events_radolan_files.csv'
+    #         r'\%s_max_events_radolan_files.csv'
+    #         r'\%s_intense_events_radolan_files.csv'
     #    r'\%s_intense_events_5mm_radolan_files.csv'
     #    % (temp_agg), index_col=0,
     #    sep=';', engine='c',
@@ -286,7 +288,6 @@ for temp_agg in resample_frequencies:
     dwd_in_ppt_vals_df = dwd_in_ppt_vals_df.loc[strt_date:end_date, :]
     dwd_in_ppt_vals_df.dropna(how='all', axis=0, inplace=True)
 
-
     # NETAMO DATA
     #=========================================================================
     netatmo_in_vals_df = pd.read_csv(path_to_netatmo_edf,
@@ -319,33 +320,33 @@ for temp_agg in resample_frequencies:
     netatmo_in_ppt_vals_df.dropna(how='all', axis=0, inplace=True)
 
     netatmo_in_ppt_vals_df = netatmo_in_ppt_vals_df.loc[:, cmn_stns]
-    
+
     # corrected Netatmo data
     path_to_netatmo_gd_stns = (
-           r"/run/media/abbas/EL Hachem 2019/home_office"
-           r"/Data_Bardossy/AW__Online_Meetings_"
-            r'/Good_Netatmo99.csv')  # Good
+        main_dir / r'indicator_correlation' /
+        (r'keep_stns_all_neighbor_99_0_per_60min_s0_1st_rh.csv'))
     df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
-                         index_col=0,
-                         sep=';',
-                         encoding='utf-8')
-    
+                             index_col=0,
+                             sep=';',
+                             encoding='utf-8')
+
     # netatmo_in_ppt_vals_df_gd = netatmo_in_ppt_vals_df
-    
+
     good_netatmo_stns = df_gd_stns.index
-        
+
     cmn_gd_stns = netatmo_in_vals_df.columns.intersection(
         good_netatmo_stns)
     netatmo_in_vals_df_gd = netatmo_in_vals_df.loc[
         :, cmn_gd_stns]
     netatmo_in_ppt_vals_df_gd = netatmo_in_ppt_vals_df.loc[:, cmn_gd_stns]
-    
-#     netatmo_in_ppt_vals_df_gd = pd.read_csv(
-#         path_to_netatmo_coorected_ppt,
-#         sep=';', index_col=0,
-#         parse_dates=True,
-#         infer_datetime_format=True)
-    
+
+    if use_one_event_filter:
+        netatmo_in_ppt_vals_df_gd = pd.read_csv(
+            path_to_netatmo_coorected_ppt,
+            sep=';', index_col=0,
+            parse_dates=True,
+            infer_datetime_format=True)
+
     # DWD Extremes
     #=========================================================================
     dwd_in_extremes_df = pd.read_csv(path_dwd_extremes_df,  # path_dwd_extremes_df
@@ -367,7 +368,7 @@ for temp_agg in resample_frequencies:
     # get the highest 100 event
     # TODO: no hardcoding
     dwd_in_extremes_df = dwd_in_extremes_df.loc[strt_date:end_date, :]
-    dwd_in_extremes_df= dwd_in_extremes_df.sort_values(
+    dwd_in_extremes_df = dwd_in_extremes_df.sort_values(
         by=[1], ascending=False)  # [:100]
 
     # number events with good vg
@@ -386,7 +387,7 @@ for temp_agg in resample_frequencies:
         dwd_in_extremes_df.index.intersection(
             df_vgs.index).intersection(
                 netatmo_in_ppt_vals_df_gd.index), :]
-    
+
     print('\n%d Intense Event with gd VG to interpolate\n'
           % dwd_in_extremes_df.shape[0])
     dwd_in_extremes_df = dwd_in_extremes_df.sort_index()
@@ -394,30 +395,30 @@ for temp_agg in resample_frequencies:
     # # Go thourgh events ,interpolate all DWD for this event
     #==========================================================================
     all_dwd_stns = dwd_in_vals_df.columns.tolist()
-        
+
     # CREATE DFS FOR RESULT; Index is Date, Columns as Stns
     df_interpolated_dwd_only = pd.DataFrame(
         index=dwd_in_extremes_df.index,
         columns=all_dwd_stns)
-    
+
     df_interpolated_netatmo_only = pd.DataFrame(
         index=dwd_in_extremes_df.index,
         columns=all_dwd_stns)
-    
+
     df_interpolated_dwd_netatmos_comb = pd.DataFrame(
         index=dwd_in_extremes_df.index,
         columns=all_dwd_stns)
-    
-    #===========================================================================
-    # 
-    #===========================================================================
+
+    #=========================================================================
+    #
+    #=========================================================================
     # Netatmo COORDS
 #     netatmo_all_stns = netatmo_in_ppt_vals_df.columns
 #     netatmo_neighbors_coords = np.array(
 #                 [(x, y) for x, y
 #                  in zip(netatmo_in_coords_df.loc[:, 'X'].values,
 #                         netatmo_in_coords_df.loc[:, 'Y'].values)])
-#     
+#
 #     # create a tree from coordinates
 #     netatmo_points_tree = spatial.KDTree(netatmo_neighbors_coords)
     #==========================================================================
@@ -425,40 +426,39 @@ for temp_agg in resample_frequencies:
     #==========================================================================
     for iev, event_date in enumerate(dwd_in_extremes_df.index):
 
-        print(event_date, '---', iev ,'/', len(dwd_in_extremes_df.index))
+        print(event_date, '---', iev, '/', len(dwd_in_extremes_df.index))
         # _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
         _ppt_event_ = dwd_in_extremes_df.loc[event_date, :]
-        
+
         # start cross validating DWD stations for this event
         for idx_lst_comb in df_dwd_stns_comb.index:
 
             stn_comb = [stn.replace("'", "")
                         for stn in df_dwd_stns_comb.iloc[
                         idx_lst_comb, :].dropna().values]
-            
-        
+
             obs_ppt_stn_dwd = dwd_in_ppt_vals_df.loc[
                 event_date, stn_comb]
-            
+
             x_dwd_interpolate = np.array(
-                    dwd_in_coords_df.loc[stn_comb, 'X'].values)
+                dwd_in_coords_df.loc[stn_comb, 'X'].values)
             y_dwd_interpolate = np.array(
-                    dwd_in_coords_df.loc[stn_comb, 'Y'].values)
-            
+                dwd_in_coords_df.loc[stn_comb, 'Y'].values)
+
 #             xy_dwd_interp = np.array([x_dwd_interpolate[0],
 #                                        y_dwd_interpolate[0]])
-            
+
             # drop stns
             all_dwd_stns_except_interp_loc = [
                 stn for stn in dwd_in_vals_df.columns
                 if stn not in stn_comb]
-            
+
             # ppt at dwd all other stns for event
-            
+
             ppt_dwd_vals_sr = dwd_in_ppt_vals_df.loc[
                 event_date,
                 all_dwd_stns_except_interp_loc].dropna(how='all')
-                            
+
             # coords of all other stns for event
             x_dwd_all = dwd_in_coords_df.loc[
                 dwd_in_coords_df.index.intersection(
@@ -472,9 +472,9 @@ for temp_agg in resample_frequencies:
             stn_dwd_all = dwd_in_coords_df.loc[
                 dwd_in_coords_df.index.intersection(
                     ppt_dwd_vals_sr.index), :].index
-            #===================================================================
+            #==================================================================
             # # GET nearest DWD stations
-            #===================================================================
+            #==================================================================
 
             # coords of neighbors
             dwd_neighbors_coords = np.array(
@@ -486,18 +486,17 @@ for temp_agg in resample_frequencies:
             points_tree = spatial.KDTree(dwd_neighbors_coords)
 
             # This finds the index of all points within radius
-            
+
             dwd_idxs_neighbours = np.unique([
                 ix for idx in [points_tree.query_ball_point(
-                np.array((x_interp, y_interp)),
-                neigbhrs_radius_dwd) for x_interp, y_interp in zip(
+                    np.array((x_interp, y_interp)),
+                    neigbhrs_radius_dwd) for x_interp, y_interp in zip(
                     x_dwd_interpolate.flatten(),
                     y_dwd_interpolate.flatten())]
                 for ix in idx])
-            
+
             stn_dwd_all_ngbrs = stn_dwd_all[dwd_idxs_neighbours]
 
-            
             # ppt dwd vals neighbors
             ppt_dwd_vals_nona = dwd_in_ppt_vals_df.loc[
                 event_date,
@@ -509,28 +508,28 @@ for temp_agg in resample_frequencies:
 
             x_dwd_all_ngbrs = dwd_in_coords_df.loc[stn_dwd_all_ngbrs, 'X'].values
             y_dwd_all_ngbrs = dwd_in_coords_df.loc[stn_dwd_all_ngbrs, 'Y'].values
-            #===================================================================
+            #==================================================================
 #             plt.ioff()
-#             plt.scatter(x_dwd_all,y_dwd_all, c='g', label='dwd all') 
+#             plt.scatter(x_dwd_all,y_dwd_all, c='g', label='dwd all')
 #             plt.scatter(x_dwd_all_ngbrs,y_dwd_all_ngbrs, c='b', label='dwd ngbrs')
 #             plt.scatter(x_dwd_interpolate,y_dwd_interpolate, c='r', label='dwd interp')
-#             plt.legend(loc=0)       
+#             plt.legend(loc=0)
 #             plt.show()
-            #===================================================================
-            
-            #===================================================================
+            #==================================================================
+
+            #==================================================================
             # # GET nearest NETATMO stations
-            #===================================================================
+            #==================================================================
 
             # ppt data at other NETATMO stations
             ppt_netatmo_vals_sr = netatmo_in_ppt_vals_df.loc[
                 event_date, :].dropna()
-                
+
             x_netatmo_all = netatmo_in_coords_df.loc[
                 ppt_netatmo_vals_sr.index, 'X'].values
             y_netatmo_all = netatmo_in_coords_df.loc[
                 ppt_netatmo_vals_sr.index, 'Y'].values
-                
+
             # coords of neighbors
             netatmo_neighbors_coords = np.array(
                 [(x, y) for x, y
@@ -539,30 +538,30 @@ for temp_agg in resample_frequencies:
 
             # create a tree from coordinates
             netatmo_points_tree = spatial.KDTree(netatmo_neighbors_coords)
-            
+
             # This finds the index of all points within radius
-            
+
             netatmo_idxs_neighbours = np.unique([
                 ix for idx in [netatmo_points_tree.query_ball_point(
-                np.array((x_interp, y_interp)),
-                neigbhrs_radius_netatmo) for x_interp, y_interp in zip(
+                    np.array((x_interp, y_interp)),
+                    neigbhrs_radius_netatmo) for x_interp, y_interp in zip(
                     x_dwd_interpolate.flatten(),
                     y_dwd_interpolate.flatten())]
                 for ix in idx])
-            
+
             if netatmo_idxs_neighbours.size < 10:
                 neigbhrs_radius_netatmo = 3e4
                 netatmo_idxs_neighbours = np.unique([
-                ix for idx in [netatmo_points_tree.query_ball_point(
-                np.array((x_interp, y_interp)),
-                neigbhrs_radius_netatmo) for x_interp, y_interp in zip(
-                    x_dwd_interpolate.flatten(),
-                    y_dwd_interpolate.flatten())]
-                for ix in idx])
-                
+                    ix for idx in [netatmo_points_tree.query_ball_point(
+                        np.array((x_interp, y_interp)),
+                        neigbhrs_radius_netatmo) for x_interp, y_interp in zip(
+                        x_dwd_interpolate.flatten(),
+                        y_dwd_interpolate.flatten())]
+                    for ix in idx])
+
             stn_netatmo_all_ngbrs = ppt_netatmo_vals_sr.index[
                 netatmo_idxs_neighbours]
-            
+
             ppt_netatmo_vals_nona = netatmo_in_ppt_vals_df.loc[
                 event_date, stn_netatmo_all_ngbrs].dropna().values
 
@@ -574,28 +573,28 @@ for temp_agg in resample_frequencies:
                 stn_netatmo_all_ngbrs, 'X'].values
             y_netatmo_all_ngbrs = netatmo_in_coords_df.loc[
                 stn_netatmo_all_ngbrs, 'Y'].values
-            
+
 #             # find the closest neighbors, 25 first
 #             netatmo_xy_coords = np.array([(x, y) for x, y in zip(
 #                 x_netatmo_all_ngbrs, y_netatmo_all_ngbrs)])
-#             
+#
 #             ngbrs_dist = distance.cdist([(x_dwd_interpolate[0],
 #                                           y_dwd_interpolate[0])],
 #                                         netatmo_xy_coords,
 #                                         'euclidean')
-            
-            #===================================================================
-#             plt.ioff()           
+
+            #==================================================================
+#             plt.ioff()
 #             plt.scatter(x_netatmo_all,
 #                         y_netatmo_all,
-#                         c='g', label='netatmo all')  
+#                         c='g', label='netatmo all')
 #             plt.scatter(x_netatmo_all_ngbrs,y_netatmo_all_ngbrs, c='b',
-#                         label='netatmo ngbrs') 
+#                         label='netatmo ngbrs')
 #             plt.scatter(x_dwd_interpolate,y_dwd_interpolate, c='r',
-#                         label='dwd interp')    
+#                         label='dwd interp')
 #             plt.show()
-            #===================================================================
-                        
+            #==================================================================
+
             # get vg model for this day
             vgs_model_dwd_ppt = df_vgs.loc[event_date, 'vg_model']
 
@@ -608,9 +607,9 @@ for temp_agg in resample_frequencies:
             # rescale variogram
             vgs_model_dwd_ppt = str(
                 np.round(vg_scaling_ratio, 4)
-                ) + ' ' + vgs_model_dwd_ppt.split(" ")[1]
-            #print(vgs_model_dwd_ppt)
-            
+            ) + ' ' + vgs_model_dwd_ppt.split(" ")[1]
+            # print(vgs_model_dwd_ppt)
+
             dwd_xcoords = np.array(x_dwd_all_ngbrs)
             dwd_ycoords = np.array(y_dwd_all_ngbrs)
             ppt_dwd_vals = np.array(ppt_dwd_vals_nona)
@@ -622,7 +621,7 @@ for temp_agg in resample_frequencies:
             #print('\n**NETATMO NOT FILTERED**')
             netatmo_ppt_vals_fr_dwd_interp = np.array(
                 ppt_netatmo_vals_nona)
- 
+
             x_netatmo_ppt_vals_fr_dwd_interp = np.array(
                 x_netatmo_all_ngbrs)
             y_netatmo_ppt_vals_fr_dwd_interp = np.array(
@@ -630,7 +629,7 @@ for temp_agg in resample_frequencies:
             #======================================================
             # # Krigging PPT
             #======================================================
-             
+
             # using DWD data
             ordinary_kriging_dwd_ppt = OrdinaryKriging(
                 xi=dwd_xcoords,
@@ -639,7 +638,7 @@ for temp_agg in resample_frequencies:
                 xk=x_dwd_interpolate,
                 yk=y_dwd_interpolate,
                 model=vgs_model_dwd_ppt)
- 
+
             # using Netatmo data
             ordinary_kriging_netatmo_ppt = OrdinaryKriging(
                 xi=x_netatmo_ppt_vals_fr_dwd_interp,
@@ -648,19 +647,19 @@ for temp_agg in resample_frequencies:
                 xk=x_dwd_interpolate,
                 yk=y_dwd_interpolate,
                 model=vgs_model_dwd_ppt)
- 
+
             # print('\nOK using DWD')
             ordinary_kriging_dwd_ppt.krige()
- 
+
             # print('\nOK using Netatmo')
             ordinary_kriging_netatmo_ppt.krige()
- 
+
             interpolated_vals_dwd_only = ordinary_kriging_dwd_ppt.zk.copy()
             interpolated_vals_netatmo_only = ordinary_kriging_netatmo_ppt.zk.copy()
- 
+
             interpolated_vals_dwd_only[
                 interpolated_vals_dwd_only < 0] = 0
- 
+
             interpolated_vals_netatmo_only[
                 interpolated_vals_netatmo_only < 0] = 0
 
@@ -672,9 +671,9 @@ for temp_agg in resample_frequencies:
             # netatmo neighbors gd
             netatmo_gd_stns_evt = netatmo_in_ppt_vals_df_gd.columns.intersection(
                 stn_netatmo_all_ngbrs)
-            
+
             netatmo_df_gd = netatmo_in_ppt_vals_df_gd.loc[
-                event_date, netatmo_gd_stns_evt].dropna(how='all')            
+                event_date, netatmo_gd_stns_evt].dropna(how='all')
 
             netatmo_xcoords = netatmo_in_coords_df.loc[
                 netatmo_df_gd.index, 'X'].values.ravel()
@@ -724,23 +723,23 @@ for temp_agg in resample_frequencies:
             df_interpolated_dwd_netatmos_comb.loc[
                 event_date, stn_comb] = np.round(
                     interpolated_vals_dwd_netatmo, 3)
-                
+
     df_interpolated_dwd_only.dropna(how='all', inplace=True)
     df_interpolated_netatmo_only.dropna(how='all', inplace=True)
     df_interpolated_dwd_netatmos_comb.dropna(how='all', inplace=True)
-    
+
 df_interpolated_dwd_only.to_csv(out_plots_path / (
-        'df_interpolated_dwd_only_%s_data_%s.csv'
-        % (temp_agg, used_data_acc)),
-        sep=';', float_format='%0.3f')
+    '2df_interpolated_dwd_only_%s_data_%s.csv'
+    % (temp_agg, used_data_acc)),
+    sep=';', float_format='%0.3f')
 df_interpolated_netatmo_only.to_csv(out_plots_path / (
-        'df_interpolated_netatmo_only_%s_data_%s.csv'
-        % (temp_agg, used_data_acc)),
-        sep=';', float_format='%0.3f')
+    '2df_interpolated_netatmo_only_%s_data_%s.csv'
+    % (temp_agg, used_data_acc)),
+    sep=';', float_format='%0.3f')
 df_interpolated_dwd_netatmos_comb.to_csv(out_plots_path / (
-        'df_interpolated_dwd_netatmos_comb_%s_data_%s.csv'
-        % (temp_agg, used_data_acc)),
-        sep=';', float_format='%0.3f')
+    '2df_interpolated_dwd_netatmos_comb_%s_data_%s.csv'
+    % (temp_agg, used_data_acc)),
+    sep=';', float_format='%0.3f')
 
 
 stop = timeit.default_timer()  # Ending time

@@ -97,7 +97,7 @@ use_netatmo_gd_stns = True  # general filter, Indicator kriging
 # if use_netatmo_gd_stns:
 path_to_netatmo_gd_stns = (
     main_dir / r'indicator_correlation' /
-    (r'keep_stns_99_0_per_60min_s0_shift_10perc.csv'))
+    (r'keep_stns_all_neighbor_99_0_per_60min_s0_1st_rh.csv'))
 
 # for second filter
 # path_to_dwd_ratios = in_filter_path / 'ppt_ratios_'
@@ -116,7 +116,7 @@ path_to_netatmo_gd_stns = (
 resample_frequencies = ['60min']
 # '120min', '180min', '60min',  '360min',
 #                         '720min',
-title_ = r'ppt_radolan_rh3'
+title_ = r'ppt_radolan_rh4'
 
 
 #==============================================================================
@@ -505,24 +505,27 @@ for temp_agg in resample_frequencies:
     # TODO: what to change
     path_to_dwd_vgs = (
         path_to_vgs /
-        ('vg_strs_special_events_5mm_%s.csv' % temp_agg))
+        ('vg_strs_max100_hours_%s2.csv' % temp_agg))
     #         ('vg_strs_special_events_%s.csv' % temp_agg))
 #         (r'vg_strs_max100_hours_%s.csv' % temp_agg))
 
 #     path_to_dwd_vgs = (
 #         r"X:\exchange\ElHachem\Events_HBV\Echaz\df_vgs_events2.csv")
 
-    path_dwd_extremes_df = path_to_data / \
-        (r'dwd_%s_special_events_5mm_.csv' % temp_agg)
+    path_dwd_extremes_df = (
+        main_dir /
+        "Data_Bardossy/EventsRLP.csv")
 #         (r'dwd_%s_maximum_100_hours.csv' % temp_agg)
 #         (r'dwd_%s_special_events_10mm_.csv' % temp_agg)
     #(r'dwd_%s_maximum_100_hours.csv' % temp_agg)
 
     df_radar_events_to_keep = pd.read_csv(
-        r'X:\staff\elhachem\2020_10_03_Rheinland_Pfalz'
+        # r'X:\staff\elhachem\2020_10_03_Rheinland_Pfalz'
+        r'X:\exchange\ElHachem'
         #         r'\%s_max_events_radolan_files.csv'
         #         r'\%s_intense_events_radolan_files.csv'
-        r'\%s_intense_events_5mm_radolan_files.csv'
+        r'\%s_intense_events_radolan_files_RLP.csv'
+        # r'\%s_intense_events_5mm_radolan_files.csv'
         % (temp_agg), index_col=0,
         sep=';', engine='c',
         parse_dates=True,
@@ -676,7 +679,7 @@ for temp_agg in resample_frequencies:
     #==========================================================================
     all_dwd_stns = dwd_in_vals_df.columns.tolist()
     # TODO: FOS
-    for event_date in hourly_events:  # dwd_in_extremes_df.index[90:]:
+    for event_date in dwd_in_extremes_df.index:  # hourly_events:  #
 
         #         if str(event_date) == '2019-07-28 13:00:00':
         #             pass
@@ -760,7 +763,7 @@ for temp_agg in resample_frequencies:
 
             print('Plotting extracted Radolan data and coordinates')
 
-            _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
+            #_stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
 #             if len(_stn_id_event_) < 5:
 #                 _stn_id_event_ = (5 - len(_stn_id_event_)) * \
 #                     '0' + _stn_id_event_
@@ -827,6 +830,7 @@ for temp_agg in resample_frequencies:
                 #==========================================================
 
                 print('NETATMO NOT FILTERED')
+
                 netatmo_ppt_vals_fr_dwd_interp = netatmo_df.values
 
                 x_netatmo_ppt_vals_fr_dwd_interp = netatmo_in_coords_df.loc[
@@ -960,6 +964,96 @@ for temp_agg in resample_frequencies:
                     except Exception as msg:
                         print(msg)
 
+                assert idx_good_stns[0].size == ids_netatmo_stns_gd.size
+                assert idx_bad_stns[0].size == ids_netatmo_stns_bad.size
+
+                try:
+                    edf_gd_vals_df = netatmo_edf.loc[ids_netatmo_stns_gd]
+                    ppt_gd_vals_df = netatmo_df_gd.loc[ids_netatmo_stns_gd]
+
+                    edf_bad_vals_df = netatmo_edf.loc[ids_netatmo_stns_bad]
+                except Exception as msg:
+                    print(msg, 'error while second filter')
+
+                # coords of Netatmo neighbors with good values
+
+                netatmo_x_stns_gd = netatmo_in_coords_df.loc[
+                    ids_netatmo_stns_gd, 'X'].values
+                netatmo_y_stns_gd = netatmo_in_coords_df.loc[
+                    ids_netatmo_stns_gd, 'Y'].values
+
+                netatmo_coords = np.array(
+                    [(x, y) for x, y in zip(netatmo_x_stns_gd,
+                                            netatmo_y_stns_gd)])
+                # coords of DWD
+                dwd_coords = np.array(
+                    [(x, y) for x, y in zip(dwd_xcoords, dwd_ycoords)])
+                neighbors_coords_dwd_netatmo = np.concatenate((netatmo_coords,
+                                                               dwd_coords))
+                # create a tree from coordinates
+                points_tree = spatial.KDTree(neighbors_coords_dwd_netatmo)
+
+                # get the ppt and edf data
+                edf_netatmo_dwd_vals = np.concatenate((edf_gd_vals_df.values,
+                                                       edf_dwd_vals))
+                ppt_netatmo_dwd_vals = np.concatenate((ppt_gd_vals_df.values,
+                                                       ppt_dwd_vals))
+                #==============================================================
+                # check if bad are really bad, look at neighborhood
+                #==============================================================
+                for stn_ in edf_bad_vals_df.index:
+
+                    # coords of stns self
+                    netatmo_x_stn = netatmo_in_coords_df.loc[stn_, 'X']
+                    netatmo_y_stn = netatmo_in_coords_df.loc[stn_, 'Y']
+
+                    stn_coords = np.array([(netatmo_x_stn,
+                                            netatmo_y_stn)])
+                    # ppt and edf of stn
+                    ppt_stn = netatmo_in_ppt_vals_df.loc[event_date, stn_]
+                    edf_stn = netatmo_in_vals_df.loc[event_date, stn_]
+
+                    # This finds the index of all points within
+                    # radius of 5 km
+                    idxs_neighbours = points_tree.query_ball_point(
+                        np.array((netatmo_x_stn, netatmo_y_stn)), 5e3)
+
+                    # if there are any neighbors
+                    if len(idxs_neighbours) > 0:
+                        # go through neighbors and check if correct
+                        edf_all_ngbrs = edf_netatmo_dwd_vals[idxs_neighbours]
+                        try:
+                            ppt_all_ngbrs = ppt_netatmo_dwd_vals[idxs_neighbours]
+                        except Exception as msg:
+                            print(msg)
+                        # this means that the station and all of its neighbors are
+                        # eiter wet or dry but not conflicting !
+
+                        if min(edf_all_ngbrs.min(), edf_stn) > edf_thr:
+                            # all are wet
+                            if stn_ not in ids_netatmo_stns_gd:
+
+                                ids_netatmo_stns_gd = np.append(
+                                    ids_netatmo_stns_gd,
+                                    stn_)
+                                ids_netatmo_stns_bad = list(
+                                    filter(lambda x: x != stn_,
+                                           ids_netatmo_stns_bad))
+
+                                #print('added bad wet to good stns \n')
+                        if max(edf_all_ngbrs.min(), edf_stn) < edf_thr:
+                            # all are dry
+                            if stn_ not in ids_netatmo_stns_gd:
+
+                                ids_netatmo_stns_gd = np.append(
+                                    ids_netatmo_stns_gd,
+                                    stn_)
+                                ids_netatmo_stns_bad = list(
+                                    filter(lambda x: x != stn_,
+                                           ids_netatmo_stns_bad))
+                                #print('added bad dry to good stns \n')
+
+                """
                 try:
                     edf_gd_vals_df = netatmo_df_gd.loc[ids_netatmo_stns_gd]
                 except Exception as msg:
@@ -1127,6 +1221,7 @@ for temp_agg in resample_frequencies:
                         else:
                             pass
 #                             print('\nStn has no near neighbors')
+                """
 
                 netatmo_stns_event_gd = []
                 netatmo_ppt_vals_fr_dwd_interp_gd = []
