@@ -84,16 +84,16 @@ path_to_netatmo_gd_stns = (
     (r'keep_stns_all_neighbor_99_0_per_60min_s0_1st_rh.csv'))
 
 # path_to_netatmo_gd_stns = (
-<<<<<<< HEAD
+
 #     #r"/run/media/abbas/EL Hachem 2019/home_office"
 #     r'X:\staff\elhachem\2020_10_03_Rheinland_Pfalz'
 #     r"\Data_Bardossy\AW__Online_Meetings_"
 #     r'\Good_Netatmo99.csv')  # Good
-=======
+
 #    r"/run/media/abbas/EL Hachem 2019/home_office"
 #    r"/Data_Bardossy/AW__Online_Meetings_"
 #     r'/Good_Netatmo99.csv')  # Good
->>>>>>> refs/remotes/origin/master
+
 # keep_stns_99_0_per_60min_shift_10perc_10fact
 # 99
 #==============================================================================
@@ -313,19 +313,9 @@ for temp_agg in resample_frequencies:
     netatmo_in_ppt_vals_df.dropna(how='all', axis=0, inplace=True)
 
     netatmo_in_ppt_vals_df = netatmo_in_ppt_vals_df.loc[:, cmn_stns]
-<<<<<<< HEAD
 
-    #==========================================================================
-    # # shift data
-    #==========================================================================
-    netatmo_in_vals_df = netatmo_in_vals_df.shift(1)
-    netatmo_in_ppt_vals_df = netatmo_in_ppt_vals_df.shift(1)
-
-    # #####
-=======
-    
     # good netatmo stations
->>>>>>> refs/remotes/origin/master
+
     # good_netatmo_stns = df_gd_stns.loc[
     #    :, 'Stations'].values.ravel()
 
@@ -367,22 +357,13 @@ for temp_agg in resample_frequencies:
     data_arr = np.zeros(shape=(len(dwd_in_extremes_df.index),
                                len(netatmo_in_ppt_vals_df_gd.columns)))
     data_arr[data_arr == 0] = np.nan
-<<<<<<< HEAD
 
-=======
-    
     #################
->>>>>>> refs/remotes/origin/master
+
     netatmo_in_ppt_vals_df_gd_corr = pd.DataFrame(
-<<<<<<< HEAD
         index=dwd_in_extremes_df.index, data=data_arr,
         columns=netatmo_in_ppt_vals_df_gd.columns)
 
-=======
-        index=dwd_in_extremes_df.index, data=data_arr, 
-        columns= netatmo_in_ppt_vals_df_gd.columns)
-    
->>>>>>> refs/remotes/origin/master
     # number events with good vg
     evts = []
     df_vgs = pd.DataFrame(index=dwd_in_extremes_df.index,
@@ -396,17 +377,12 @@ for temp_agg in resample_frequencies:
     df_vgs.dropna(how='all', inplace=True)
 
     dwd_in_extremes_df = dwd_in_extremes_df.loc[
-<<<<<<< HEAD
         dwd_in_extremes_df.index.intersection(
             df_vgs.index), :]
 
-=======
-        dwd_in_extremes_df.index.intersection(df_vgs.index), :]
-    
->>>>>>> refs/remotes/origin/master
     print('\n%d Intense Event with gd VG to interpolate\n'
           % dwd_in_extremes_df.shape[0])
-    
+
     dwd_in_extremes_df = dwd_in_extremes_df.sort_index()
 
     all_dwd_stns = dwd_in_vals_df.columns.tolist()
@@ -415,22 +391,15 @@ for temp_agg in resample_frequencies:
     # # Go thourgh events ,interpolate all DWD for this event
     #==========================================================================
     for iev, event_date in enumerate(dwd_in_extremes_df.index):
-<<<<<<< HEAD
+
         # break
         print(event_date, '---', iev, '/', len(dwd_in_extremes_df.index))
-=======
-        
-        print(event_date, '---', iev ,'/', len(dwd_in_extremes_df.index))
-        
->>>>>>> refs/remotes/origin/master
+
         # _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
         _ppt_event_ = float(dwd_in_extremes_df.loc[event_date, :])  # 1
 
         # start cross validating DWD stations for this event
-<<<<<<< HEAD
 
-=======
->>>>>>> refs/remotes/origin/master
         obs_ppt_stn_dwd = dwd_in_ppt_vals_df.loc[
             event_date, all_dwd_stns].dropna()
 
@@ -471,7 +440,7 @@ for temp_agg in resample_frequencies:
 
         netatmo_xcoords = netatmo_in_coords_df.loc[
             netatmo_edf.index, 'X'].values.ravel()
-        
+
         netatmo_ycoords = netatmo_in_coords_df.loc[
             netatmo_edf.index, 'Y'].values.ravel()
 
@@ -498,24 +467,21 @@ for temp_agg in resample_frequencies:
 
         # calcualte standard deviation of estimated values
         std_est_vals = np.sqrt(ordinary_kriging_filter_netamto.est_vars)
-        
+
         # calculate difference observed and estimated  # values
         try:
             diff_obsv_interp = np.abs(
                 netatmo_edf.values - interpolated_vals)
         except Exception:
             print('ERROR 2nd FILTER')
-<<<<<<< HEAD
 
         idx_good_stns = np.where(
             diff_obsv_interp <= 3 * std_est_vals)
         idx_bad_stns = np.where(
             diff_obsv_interp > 3 * std_est_vals)
-=======
-            
+
         idx_good_stns = np.where(diff_obsv_interp <= 3 * std_est_vals)
         idx_bad_stns = np.where(diff_obsv_interp > 3 * std_est_vals)
->>>>>>> refs/remotes/origin/master
 
         if len(idx_bad_stns[0]) or len(idx_good_stns[0]) > 0:
             #             print('Number of Stations with bad index \n',
@@ -542,7 +508,6 @@ for temp_agg in resample_frequencies:
             edf_bad_vals_df = netatmo_edf.loc[ids_netatmo_stns_bad]
         except Exception as msg:
             print(msg, 'error while second filter')
-<<<<<<< HEAD
 
         # coords of Netatmo neighbors with good values
 
@@ -622,15 +587,13 @@ for temp_agg in resample_frequencies:
                                    ids_netatmo_stns_bad))
                         print('added bad dry to good stns \n')
 
-=======
-        
 #         # coords of Netatmo neighbors with good values
-# 
+#
 #         netatmo_x_stns_gd = netatmo_in_coords_df.loc[
 #             ids_netatmo_stns_gd, 'X'].values
 #         netatmo_y_stns_gd = netatmo_in_coords_df.loc[
 #             ids_netatmo_stns_gd, 'Y'].values
-#         
+#
 #         netatmo_coords = np.array(
 #                 [(x, y) for x, y in zip(netatmo_x_stns_gd,
 #                                          netatmo_y_stns_gd)])
@@ -641,7 +604,7 @@ for temp_agg in resample_frequencies:
 #                                                         dwd_coords))
 #         # create a tree from coordinates
 #         points_tree = spatial.KDTree(neighbors_coords_dwd_netatmo)
-#         
+#
 #         # get the ppt and edf data
 #         edf_netatmo_dwd_vals = np.concatenate((edf_gd_vals_df.values,
 #                                               edf_dwd_vals))
@@ -651,22 +614,22 @@ for temp_agg in resample_frequencies:
 #         # check if bad are really bad, look at neighborhood
 #         #======================================================================
 #         for stn_ in edf_bad_vals_df.index:
-#            
-#             # coords of stns self 
+#
+#             # coords of stns self
 #             netatmo_x_stn = netatmo_in_coords_df.loc[stn_, 'X']
 #             netatmo_y_stn = netatmo_in_coords_df.loc[stn_, 'Y']
-# 
+#
 #             stn_coords = np.array([(netatmo_x_stn,
 #                                    netatmo_y_stn)])
 #             # ppt and edf of stn
 #             ppt_stn = netatmo_in_ppt_vals_df.loc[event_date, stn_]
 #             edf_stn = netatmo_in_vals_df.loc[event_date, stn_]
-# 
+#
 #             # This finds the index of all points within
 #             # radius of 5 km
 #             idxs_neighbours = points_tree.query_ball_point(
 #                np.array((netatmo_x_stn, netatmo_y_stn)), 5e3)
-#             
+#
 #             # if there are any neighbors
 #             if len(idxs_neighbours) > 0:
 #                 # go through neighbors and check if correct
@@ -677,32 +640,31 @@ for temp_agg in resample_frequencies:
 #                     print(msg)
 #                 # this means that the station and all of its neighbors are
 #                 # eiter wet or dry but not conflicting !
-#                 
+#
 #                 if min(edf_all_ngbrs.min(), edf_stn) > edf_thr:
 #                     # all are wet
 #                     if stn_ not in ids_netatmo_stns_gd:
-#                     
+#
 #                         ids_netatmo_stns_gd = np.append(
 #                             ids_netatmo_stns_gd,
-#                             stn_)    
+#                             stn_)
 #                         ids_netatmo_stns_bad = list(
 #                            filter(lambda x: x != stn_,
 #                                   ids_netatmo_stns_bad))
-#                         
+#
 #                         # print('added bad wet to good stns \n')
 #                 if max(edf_all_ngbrs.min(), edf_stn) < edf_thr:
 #                     # all are dry
 #                     if stn_ not in ids_netatmo_stns_gd:
-#                     
+#
 #                         ids_netatmo_stns_gd = np.append(
 #                             ids_netatmo_stns_gd,
-#                             stn_)    
+#                             stn_)
 #                         ids_netatmo_stns_bad = list(
 #                            filter(lambda x: x != stn_,
 #                                   ids_netatmo_stns_bad))
 #                         # print('added bad dry to good stns \n')
-                        
->>>>>>> refs/remotes/origin/master
+
         print('Number of Stations with bad index \n',
               len(ids_netatmo_stns_bad), '/', len(netatmo_df_gd.index))
         print('Number of Stations with good index \n',
@@ -894,14 +856,7 @@ for temp_agg in resample_frequencies:
         #======================================================
         netatmo_in_ppt_vals_df_gd_corr.loc[
             event_date, netatmo_stns_event_gd] = ppt_netatmo_vals_gd
-<<<<<<< HEAD
-=======
-            
-netatmo_in_ppt_vals_df_gd_corr.dropna(how='all', inplace=True)           
-netatmo_in_ppt_vals_df_gd_corr.to_csv(main_dir / (
-        'ppt_all_netatmo_100_intense_events_corrected_99_gd199_%s2.csv'
-        % (temp_agg)), sep=';', float_format='%0.2f')
->>>>>>> refs/remotes/origin/master
+
 
 netatmo_in_ppt_vals_df_gd_corr.dropna(how='all', inplace=True)
 netatmo_in_ppt_vals_df_gd_corr.to_csv(main_dir / (
