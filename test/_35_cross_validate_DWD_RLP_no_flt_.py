@@ -72,14 +72,14 @@ path_to_dwd_stns_comb = main_dir / r'dwd_combination_to_use_RH_all_stns.csv'
 resample_frequencies = ['60min']
 # '120min', '180min', '60min',  '360min',
 #                         '720min',
-title_ = r'ppt_cross_valid_RH_'
+title_ = r'ppt_cross_valid_RLP_'
 
 # for Netatmo good stations percentile_shiftpoly_shiftexp
-used_data_acc = r'99_gd199'
+used_data_acc = r'99_RLP'
 #==============================================================================
 #
 #==============================================================================
-strt_date = '2017-01-01 00:00:00'
+strt_date = '2015-01-01 00:00:00'
 end_date = '2019-12-31 00:00:00'
 
 idx_time_fmt = '%Y-%m-%d %H:%M:%S'
@@ -175,16 +175,16 @@ for temp_agg in resample_frequencies:
 
     # TODO: what to change
     path_to_dwd_vgs = (
-        path_to_vgs /
-        ('vg_strs_max100_hours_%s2.csv' % temp_agg))
+        path_to_vgs / r'vg_strs_special_events_5mm_60min.csv')
+    #('vg_strs_max100_hours_%s2.csv' % temp_agg))
     #         ('vg_strs_special_events_%s.csv' % temp_agg))
 #         (r'vg_strs_max100_hours_%s.csv' % temp_agg))
 
 #     path_to_dwd_vgs = (
 #         r"X:\exchange\ElHachem\Events_HBV\Echaz\df_vgs_events2.csv")
     path_dwd_extremes_df = (
-        main_dir /
-        r"Data_Bardossy/EventsRLP.csv")
+        main_dir / r'dwd_60min_special_events_5mm_.csv')
+    # r"Data_Bardossy/EventsRLP.csv")
 
     #==========================================================================
     # DWD Extremes
@@ -373,15 +373,26 @@ for temp_agg in resample_frequencies:
                     y_dwd_interpolate.flatten())]
                 for ix in idx])
 
-            stn_dwd_all_ngbrs = stn_dwd_all[dwd_idxs_neighbours]
+            try:
+                stn_dwd_all_ngbrs = stn_dwd_all[dwd_idxs_neighbours]
+            except Exception as msg:
+                neigbhrs_radius_dwd = 5e4
+                dwd_idxs_neighbours = np.unique([
+                    ix for idx in [points_tree.query_ball_point(
+                        np.array((x_interp, y_interp)),
+                        neigbhrs_radius_dwd) for x_interp, y_interp in zip(
+                        x_dwd_interpolate.flatten(),
+                        y_dwd_interpolate.flatten())]
+                    for ix in idx])
+                stn_dwd_all_ngbrs = stn_dwd_all[dwd_idxs_neighbours]
 
             # ppt dwd vals neighbors
             ppt_dwd_vals_nona = dwd_in_ppt_vals_df.loc[
                 event_date,
                 stn_dwd_all_ngbrs].dropna().values
-#
-#             x_dwd_all_ngbrs = dwd_in_coords_df.loc[stn_dwd_all_ngbrs, 'X'].values
-#             y_dwd_all_ngbrs = dwd_in_coords_df.loc[stn_dwd_all_ngbrs, 'Y'].values
+
+            x_dwd_all_ngbrs = dwd_in_coords_df.loc[stn_dwd_all_ngbrs, 'X'].values
+            y_dwd_all_ngbrs = dwd_in_coords_df.loc[stn_dwd_all_ngbrs, 'Y'].values
             #==================================================================
 #             plt.ioff()
 # #             plt.scatter(x_dwd_all,y_dwd_all, c='g', label='dwd all')
@@ -447,24 +458,24 @@ for temp_agg in resample_frequencies:
             ) + ' ' + vgs_model_dwd_ppt.split(" ")[1]
             # print(vgs_model_dwd_ppt)
 
-#             dwd_xcoords = np.array(x_dwd_all_ngbrs)
-#             dwd_ycoords = np.array(y_dwd_all_ngbrs)
-#             ppt_dwd_vals = np.array(ppt_dwd_vals_nona)
+            dwd_xcoords = np.array(x_dwd_all_ngbrs)
+            dwd_ycoords = np.array(y_dwd_all_ngbrs)
+            ppt_dwd_vals = np.array(ppt_dwd_vals_nona)
 
             # using DWD data
-#             ordinary_kriging_dwd_ppt = OrdinaryKriging(
-#                 xi=dwd_xcoords,
-#                 yi=dwd_ycoords,
-#                 zi=ppt_dwd_vals,
-#                 xk=x_dwd_interpolate,
-#                 yk=y_dwd_interpolate,
-#                 model=vgs_model_dwd_ppt)
-#             # print('\nOK using DWD')
-#             ordinary_kriging_dwd_ppt.krige()
-#
-#             interpolated_vals_dwd_only = ordinary_kriging_dwd_ppt.zk.copy()
-#             interpolated_vals_dwd_only[interpolated_vals_dwd_only < 0] = 0
-#
+            ordinary_kriging_dwd_ppt = OrdinaryKriging(
+                xi=dwd_xcoords,
+                yi=dwd_ycoords,
+                zi=ppt_dwd_vals,
+                xk=x_dwd_interpolate,
+                yk=y_dwd_interpolate,
+                model=vgs_model_dwd_ppt)
+            # print('\nOK using DWD')
+            ordinary_kriging_dwd_ppt.krige()
+
+            interpolated_vals_dwd_only = ordinary_kriging_dwd_ppt.zk.copy()
+            interpolated_vals_dwd_only[interpolated_vals_dwd_only < 0] = 0
+
             #==========================================================
             # NO FILTER USED
             #==========================================================
@@ -497,21 +508,21 @@ for temp_agg in resample_frequencies:
             #======================================================
             # # SAVING PPT
             #======================================================
-#             df_interpolated_dwd_only.loc[
-#                 event_date, stn_comb] = np.round(
-#                     interpolated_vals_dwd_only, 2)
+            df_interpolated_dwd_only.loc[
+                event_date, stn_comb] = np.round(
+                    interpolated_vals_dwd_only, 2)
 
             df_interpolated_netatmo_only.loc[
                 event_date, stn_comb] = np.round(
                     interpolated_vals_netatmo_only, 2)
 
-#     df_interpolated_dwd_only.dropna(how='all', inplace=True)
+    df_interpolated_dwd_only.dropna(how='all', inplace=True)
     df_interpolated_netatmo_only.dropna(how='all', inplace=True)
 
-#     df_interpolated_dwd_only.to_csv(out_plots_path / (
-#             'df_interpolated_dwd_only_%s_data_%s.csv'
-#             % (temp_agg, used_data_acc)),
-#             sep=';', float_format='%0.3f')
+    df_interpolated_dwd_only.to_csv(out_plots_path / (
+        'df_interpolated_dwd_only_%s_data_%s.csv'
+        % (temp_agg, used_data_acc)),
+        sep=';', float_format='%0.3f')
     df_interpolated_netatmo_only.to_csv(out_plots_path / (
         'df_interpolated_netatmo_only_%s_data_%s.csv'
         % (temp_agg, used_data_acc)),
