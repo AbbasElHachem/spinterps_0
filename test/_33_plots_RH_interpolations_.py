@@ -117,13 +117,13 @@ path_to_netatmo_gd_stns = (
 resample_frequencies = ['60min']
 # '120min', '180min', '60min',  '360min',
 #                         '720min',
-title_ = r'ppt_radolan_RLP_1st_and_transf'
+title_ = r'max_DWD_RLP_1st_trf'
 
 
 #==============================================================================
 #
 #==============================================================================
-strt_date = '2015-01-01 00:00:00'
+strt_date = '2014-06-01 00:00:00'
 end_date = '2019-12-31 00:00:00'
 
 
@@ -258,7 +258,10 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
                                     radar_data,
                                     radar_lon,
                                     radar_lat,
-                                    save_acc=''):
+                                    save_acc,
+                                    nbr_netatmo,
+                                    nbr_dwd,
+                                    nbr_netatmo_flt):
     '''plot interpolated events, grid wise '''
 
     if temp_agg == '60min':
@@ -328,7 +331,8 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
 #     ax1.scatter(dwd_xcoords, dwd_ycoords, c='darkgreen',
 #                 marker='x', s=10, alpha=0.25)
 
-    ax1.legend(title='DWD+Netatmo (a)', loc='upper left',  # upper
+    ax1.legend(title='DWD+Netatmo (a)\n%d+%d' % (nbr_dwd, nbr_netatmo_flt),
+               loc='upper left',  # upper
                frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
     # dwd
     ax2 = fig.add_subplot(gs[:1, 2:4])
@@ -340,7 +344,7 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
                 vmax=max_val)
 #     ax2.scatter(dwd_xcoords, dwd_ycoords, c='darkgreen',
 #                 marker='x', s=10, alpha=0.25)
-    ax2.legend(title='DWD (b)', loc='upper left',
+    ax2.legend(title='DWD (b)\n%d' % nbr_dwd, loc='upper left',
                frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
 
     # radolan
@@ -363,7 +367,8 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
                       vmax=max_val)
 #     ax3.scatter(netatmo_xcoords0, netatmo_ycoords0, c='m',
 #                 marker='1', s=10, alpha=0.25)
-    ax3.legend(title='Netatmo (d)', loc='upper left',
+    ax3.legend(title='Netatmo(d) \n%d' % nbr_netatmo,
+               loc='upper left',
                frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
 
     # colorbar
@@ -504,7 +509,8 @@ for temp_agg in resample_frequencies:
             % temp_agg))
 
     path_to_dwd_vgs = (
-        path_to_vgs / r'vg_strs_special_events_5mm_60min.csv')
+        path_to_vgs / r'vg_strs_max100_hours_60min_vg1.csv')
+    # r'vg_strs_special_events_5mm_60min.csv')
     #('vg_strs_max100_hours_%s2.csv' % temp_agg))
     #         ('vg_strs_special_events_%s.csv' % temp_agg))
 #         (r'vg_strs_max100_hours_%s.csv' % temp_agg))
@@ -513,7 +519,8 @@ for temp_agg in resample_frequencies:
 #         r"X:\exchange\ElHachem\Events_HBV\Echaz\df_vgs_events2.csv")
 
     path_dwd_extremes_df = (
-        main_dir / r'dwd_60min_special_events_5mm_.csv')
+        main_dir / (r'dwd_%s_maximum_100_hours.csv' % temp_agg))
+    # r'dwd_60min_special_events_5mm_.csv')
     #"Data_Bardossy/EventsRLP.csv")
 #         (r'dwd_%s_maximum_100_hours.csv' % temp_agg)
 #         (r'dwd_%s_special_events_10mm_.csv' % temp_agg)
@@ -522,8 +529,8 @@ for temp_agg in resample_frequencies:
     df_radar_events_to_keep = pd.read_csv(
         r'X:\staff\elhachem\2020_10_03_Rheinland_Pfalz'
         #         r'X:\exchange\ElHachem'
-        #         r'\%s_max_events_radolan_files.csv'
-        r'\%s_intense_events_5mm_radolan_files.csv'
+        r'\%s_max_events_radolan_files.csv'
+        # r'\%s_intense_events_5mm_radolan_files.csv'
         # r'\%s_intense_events_radolan_files.csv'
         #         r'\%s_intense_events_radolan_files_RLP.csv'
         # r'\%s_intense_events_5mm_radolan_files.csv'
@@ -863,13 +870,13 @@ for temp_agg in resample_frequencies:
                 ppt_netatmo_vals = np.round(np.array(
                     netatmo_ppt_vals_fr_dwd_interp).ravel(), 2)
 
-                netatmo_dwd_x_coords = np.concatenate([netatmo_xcoords0,
-                                                       dwd_xcoords])
-                netatmo_dwd_y_coords = np.concatenate([netatmo_ycoords0,
-                                                       dwd_ycoords])
-                netatmo_dwd_ppt_vals = np.round(np.hstack(
-                    (ppt_netatmo_vals,
-                     ppt_dwd_vals)), 2).ravel()
+#                 netatmo_dwd_x_coords = np.concatenate([netatmo_xcoords0,
+#                                                        dwd_xcoords])
+#                 netatmo_dwd_y_coords = np.concatenate([netatmo_ycoords0,
+#                                                        dwd_ycoords])
+#                 netatmo_dwd_ppt_vals = np.round(np.hstack(
+#                     (ppt_netatmo_vals,
+#                      ppt_dwd_vals)), 2).ravel()
 
                 #======================================================
                 # # Krigging PPT
@@ -1522,50 +1529,14 @@ for temp_agg in resample_frequencies:
                 # # Krigging PPT
                 #======================================================
                 print('Plotting PPT after 1st and 2nd filter')
-                # using Netatmo-DWD data
-#                 try:
-#                     ordinary_kriging_dwd_netatmo_ppt = OrdinaryKriging(
-#                         xi=netatmo_dwd_x_coords,
-#                         yi=netatmo_dwd_y_coords,
-#                         zi=netatmo_dwd_ppt_vals,
-#                         xk=x_coords_grd,
-#                         yk=y_coords_grd,
-#                         model=vgs_model_dwd_ppt)
-#
-#                     #plt.scatter()
-#                     ordinary_kriging_dwd_netatmo_ppt.krige()
-#
-#                     interpolated_vals_dwd_netatmo = ordinary_kriging_dwd_netatmo_ppt.zk.copy()
-#
-#                     # put negative values to 0
-#                     interpolated_vals_dwd_netatmo[
-#                         interpolated_vals_dwd_netatmo < 0] = 0
-#                 except Exception as msg:
-#                     print(msg)
-#                     pass
-                # difference netatmo-dwd - dwd
-
-#                 diff_map_plus = interpolated_vals_dwd_netatmo - df_ppt_radolan.ppt.data
-#                 diff_map_plus2 = interpolated_vals_dwd_only - df_ppt_radolan.ppt.data
-#                 diff_map_plus3 = interpolated_vals_netatmo_only - df_ppt_radolan.ppt.data
+                # nbr of used stns
+                nbr_netatmo = netatmo_ppt_vals_fr_dwd_interp.size
+                nbr_netatmo_flt = ppt_netatmo_vals_gd.size
+                nbr_dwd = ppt_dwd_vals_sr.size
+                # difference maps
                 dwd_min_dwd_netatmo = interpolated_vals_dwd_netatmo_unc - interpolated_vals_dwd_only
                 dwd_min_radolan = df_ppt_radolan.ppt.data - interpolated_vals_dwd_only
                 dwd_min_netatmo = interpolated_vals_netatmo_only - interpolated_vals_dwd_only
-
-#                 dwd_min_dwd_netatmo[np.where(
-#                     np.logical_and(-1 < dwd_min_dwd_netatmo,
-#                                    dwd_min_dwd_netatmo < 1))] = 0
-# #                 dwd_min_dwd_netatmo[np.where(dwd_min_dwd_netatmo < 0.2)] = 0
-#
-#                 dwd_min_radolan[np.where(np.logical_and(
-#                     -1 < dwd_min_radolan,
-#                     dwd_min_radolan < 1))] = 0
-# #                 dwd_min_radolan[np.where()] = 0
-#
-#                 dwd_min_netatmo[np.where(np.logical_and(
-#                     -1 < dwd_min_netatmo,
-#                     dwd_min_netatmo < 1))] = 0
-#                 dwd_min_netatmo[np.where(dwd_min_netatmo < 0.2)] = 0
 
                 plt.ioff()
 
@@ -1582,7 +1553,10 @@ for temp_agg in resample_frequencies:
                     radar_data=df_ppt_radolan.ppt.values,
                     radar_lon=df_ppt_radolan.xlon.values,
                     radar_lat=df_ppt_radolan.ylat.values,
-                    save_acc='sqs')
+                    save_acc='sqs',
+                    nbr_netatmo=nbr_netatmo,
+                    nbr_dwd=nbr_dwd,
+                    nbr_netatmo_flt=nbr_netatmo_flt)
 
 
 stop = timeit.default_timer()  # Ending time

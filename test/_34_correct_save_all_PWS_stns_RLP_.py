@@ -108,7 +108,7 @@ title_ = r'ppt_cross_valid_RLP_'
 #==============================================================================
 #
 #==============================================================================
-strt_date = '2015-01-01 00:00:00'
+strt_date = '2014-06-01 00:00:00'
 end_date = '2019-12-31 00:00:00'
 
 
@@ -236,7 +236,8 @@ for temp_agg in resample_frequencies:
 
     # TODO: what to change
     path_to_dwd_vgs = (
-        path_to_vgs / r'vg_strs_special_events_5mm_60min.csv')
+        path_to_vgs / r'vg_strs_max100_hours_60min_vg1.csv')
+    #/ r'vg_strs_special_events_5mm_60min.csv')
     #('vg_strs_max100_hours_%s2.csv' % temp_agg))
     #         ('vg_strs_special_events_%s.csv' % temp_agg))
 #         (r'vg_strs_max100_hours_%s.csv' % temp_agg))
@@ -245,7 +246,8 @@ for temp_agg in resample_frequencies:
 #         r"X:\exchange\ElHachem\Events_HBV\Echaz\df_vgs_events2.csv")
 
     path_dwd_extremes_df = (
-        main_dir / r'dwd_60min_special_events_5mm_.csv')
+        main_dir / (r'dwd_%s_maximum_100_hours.csv' % temp_agg))
+    #/ r'dwd_60min_special_events_5mm_.csv')
     #"Data_Bardossy/EventsRLP.csv")
 
 #     path_dwd_extremes_df = path_to_data / \
@@ -783,7 +785,7 @@ for temp_agg in resample_frequencies:
 
 netatmo_in_ppt_vals_df_gd_corr.dropna(how='all', inplace=True)
 netatmo_in_ppt_vals_df_gd_corr.to_csv(main_dir / (
-    'ppt_all_netatmo_100_intense_events_corrected_99_RLP_%s.csv'
+    'ppt_all_netatmo_100_dwd_max_events_corrected_99_RLP_%s.csv'
     % (temp_agg)), sep=';', float_format='%0.2f')
 
 

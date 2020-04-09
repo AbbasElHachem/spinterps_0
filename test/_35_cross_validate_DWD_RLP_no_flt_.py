@@ -75,7 +75,7 @@ resample_frequencies = ['60min']
 title_ = r'ppt_cross_valid_RLP_'
 
 # for Netatmo good stations percentile_shiftpoly_shiftexp
-used_data_acc = r'99_RLP'
+used_data_acc = r'99_RLP_DWD'
 #==============================================================================
 #
 #==============================================================================
@@ -175,7 +175,8 @@ for temp_agg in resample_frequencies:
 
     # TODO: what to change
     path_to_dwd_vgs = (
-        path_to_vgs / r'vg_strs_special_events_5mm_60min.csv')
+        path_to_vgs / r'vg_strs_max100_hours_60min_vg1.csv')
+    #/ r'vg_strs_special_events_5mm_60min.csv')
     #('vg_strs_max100_hours_%s2.csv' % temp_agg))
     #         ('vg_strs_special_events_%s.csv' % temp_agg))
 #         (r'vg_strs_max100_hours_%s.csv' % temp_agg))
@@ -183,7 +184,8 @@ for temp_agg in resample_frequencies:
 #     path_to_dwd_vgs = (
 #         r"X:\exchange\ElHachem\Events_HBV\Echaz\df_vgs_events2.csv")
     path_dwd_extremes_df = (
-        main_dir / r'dwd_60min_special_events_5mm_.csv')
+        main_dir / (r'dwd_%s_maximum_100_hours.csv' % temp_agg))
+    #/ r'dwd_60min_special_events_5mm_.csv')
     # r"Data_Bardossy/EventsRLP.csv")
 
     #==========================================================================
