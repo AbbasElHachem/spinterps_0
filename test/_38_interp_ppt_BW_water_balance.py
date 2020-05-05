@@ -32,14 +32,20 @@ import shapefile as shp
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.gridspec as gridspec
+from shapely.geometry import shape
+import shapely.geometry as shg
+
+from shapely.geometry import Point
+from shapely.geometry.polygon import Polygon
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.colors import LinearSegmentedColormap
 from spinterps import (OrdinaryKriging, OrdinaryKrigingWithScaledVg)
 from scipy import spatial
 from scipy.spatial import cKDTree
-from pathlib import Path
 
+from pathlib import Path
+from matplotlib import path
 
 plt.rcParams.update({'font.size': 12})
 plt.rcParams.update({'axes.labelsize': 12})
@@ -51,7 +57,10 @@ utm32 = "+init=EPSG:32632"
 # catchment = 'Danube'
 # catchment = 'Plochingen'
 # catchment = 'Rockenau'
-catchment = 'Rhein'
+# catchment = 'Rhein'
+
+# catchment = 'Sub_Catch1'
+catchment = 'Sub_Catch2'
 # =============================================================================
 
 main_dir = Path(r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes')
@@ -76,8 +85,6 @@ in_filter_path = main_dir / r'oridinary_kriging_compare_DWD_Netatmo'
 path_grid_interpolate = (r"X:\staff\elhachem\Shapefiles\Neckar_seperate"
                          r"\%s_grid_1Km_utm32.csv" % catchment)
 
-path_dwd_max_catchment = (r"X:\staff\elhachem\Shapefiles\Neckar_seperate"
-                          r"\df_daily_%s_max.csv" % catchment)
 # path_grid_interpolate = r"X:\staff\elhachem\Shapefiles\Neckar\grid_for_interpolation_gk3.csv"
 
 shp_objects_all = list(fiona.open(
@@ -88,7 +95,6 @@ shp_objects_all = list(fiona.open(
 # shp_objects_all = [shp for shp in shp_objects_all
 #                    if shp['properties']['NAME_1'] == 'Baden-W�rttemberg']
 # mas for BW data
-from matplotlib import path
 
 
 #==============================================================================
@@ -103,6 +109,7 @@ use_first_neghbr_as_gd_stns = True  # False
 use_first_and_second_nghbr_as_gd_stns = False  # True
 
 
+plot_radolan = True
 _acc_ = '1st'
 
 # if use_netatmo_gd_stns:
@@ -191,13 +198,6 @@ df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
                          sep=';',
                          encoding='utf-8')
 
-#==============================================================================
-#
-#==============================================================================
-
-df_dwd_max_daily = pd.read_csv(path_dwd_max_catchment,
-                               sep=';', index_col=0, parse_dates=True,
-                               infer_datetime_format=True, engine='c')
 
 #==============================================================================
 #
@@ -301,12 +301,12 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
                                     # radar_lat,
                                     save_acc=''):
     '''plot interpolated events, grid wise '''
-
+    print('plotting data: ', temp_agg)
     if temp_agg == '60min':
         min_val, max_val = 0, 30
         clbr_label = 'mm/h'  # 'Hourly precipitation [m]'
         bound_ppt = [0., 1, 2, 4, 8, 10, 15, 20, 25, 30]  # , 40, 45]
-    if temp_agg == '1440min':
+    if temp_agg in ['180min', '360min', '720min', '1440min']:
         min_val, max_val = 0, 60
         clbr_label = 'mm/d'
         bound_ppt = [0., 1, 2, 4, 8, 10, 15, 20, 25, 30, 40, 45, 50, 55, 60]
@@ -501,6 +501,36 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
 #==============================================================================
 
 
+def get_radar_intense_events(radar_files_loc, intense_events_df_index_lst):
+    ''' Given a list of radolan files and rainfall intense events df
+        find the corresponding radolan files, save to a new df,
+        index=Event Time; columns=file_path
+    '''
+    radolan_events_to_keep, event_dates = [], []
+    for i, file in enumerate(radar_files_loc):
+        #     file = file + '.gz'
+
+        event_date_raw = file.split('\\')[-1].split('-')[2]
+        event_date_str = ('20' + event_date_raw[:2] + '-' + event_date_raw[2:4] +
+                          '-' + event_date_raw[4:6] + ' ' + event_date_raw[6:8] +
+                          ':' + event_date_raw[8:] + ':00')
+
+        event_date_ix = pd.DatetimeIndex([event_date_str])
+
+        if event_date_ix in intense_events_df_index_lst:
+            print('Event: ', i, '/', len(radar_files_loc),  event_date_str)
+            radolan_events_to_keep.append(file)
+            event_dates.append(event_date_str)
+
+    df_radar_events_to_keep = pd.DataFrame(index=event_dates,
+                                           data=radolan_events_to_keep)
+
+    return df_radar_events_to_keep
+#==============================================================================
+#
+#==============================================================================
+
+
 lon_coords_grd, lat_coords_grd = convert_coords_fr_wgs84_to_utm32_(
     epgs_initial_str=utm32,
     epsg_final_str=wgs82,
@@ -554,17 +584,28 @@ for temp_agg in resample_frequencies:
     path_dwd_extremes_df = path_to_data / \
         (r'dwd_%s_maximum_100_event.csv' % temp_agg)
 
-    df_radar_events_to_keep = pd.read_csv(r'X:\exchange\ElHachem'
-                                          r'\%s_intense_events_radolan_files.csv'
-                                          % (temp_agg), index_col=0,
-                                          sep=';', engine='c',
-                                          parse_dates=True,
-                                          infer_datetime_format=True)
+#     try:
+#         df_radar_events_to_keep = pd.read_csv(
+#             r'X:\exchange\ElHachem'
+#             r'\%s_intense_events_radolan_files.csv'
+#             % (temp_agg), index_col=0,
+#             sep=';', engine='c',
+#             parse_dates=True,
+#             infer_datetime_format=True)
+#     except Exception:
+#
+#         df_radar_events_to_keep = pd.read_csv(
+#             r'X:\exchange\ElHachem'
+#             r'\60min_intense_events_radolan_files.csv',
+#             index_col=0,
+#             sep=';', engine='c',
+#             parse_dates=True,
+#             infer_datetime_format=True)
 
     # RADOLAN
-    base_path = (r'X:\exchange\ElHachem\radolan_%s_data\*' % temp_agg)
+    base_path = (r'X:\exchange\ElHachem\radolan_%s_data\*' % '60Min')
 
-    files = glob.glob(base_path)
+    radolan_files = glob.glob(base_path)
 
     # Files to use
     # =========================================================================
@@ -684,169 +725,212 @@ for temp_agg in resample_frequencies:
     df_vgs.dropna(how='all', inplace=True)
 
     vg0 = df_vgs.values[0][0]
-    # date range
-    dates_ = {dx: [pd.date_range(start=dx,
-                                 end=dx + pd.Timedelta(days=1),
-                                 freq=temp_agg)]
-              for dx in df_dwd_max_daily.index}
 
+    # keep dwd stations in and around catchment
+    # informationen aus shapefiles holen
+
+    polygons = shape(shp_objects_all[0]['geometry'])
+
+    polygons_buffer = polygons.buffer(0.05)  # ca 5km
+    # keep dwd stns within bound of bounding box
+    id_stns = dwd_in_coords_df.index.to_list()
+    x_stns = dwd_in_coords_df.loc[:, 'X'].values.flatten()
+    y_stns = dwd_in_coords_df.loc[:, 'Y'].values.flatten()
+
+    # convert to same coords as shapefile
+    lon_stns, lat_stns = convert_coords_fr_wgs84_to_utm32_(
+        epgs_initial_str=utm32,
+        epsg_final_str=wgs82,
+        first_coord=x_stns,
+        second_coord=y_stns)
+
+    stns_to_keep = [stn_id for stn_id, x, y in zip(
+        id_stns, lon_stns, lat_stns) if polygons_buffer.contains(Point(x, y))]
+
+    x_stns_keep = dwd_in_coords_df.loc[stns_to_keep, 'X'].values.flatten()
+    y_stns_keep = dwd_in_coords_df.loc[stns_to_keep, 'Y'].values.flatten()
+
+    # find most wet events
+
+    dwd_ppt_stns_to_keep = dwd_in_ppt_vals_df.loc[:, stns_to_keep]
+    # for every station get highest 5 events
+
+    stns_events_dict = {
+        stn: [dwd_in_ppt_vals_df.loc[:, stn].dropna().sort_values()[-3:].index]
+        for stn in stns_to_keep}
+    # get single events and create a datetime index
     ix_dates = []
-    for k, v in dates_.items():
+    for k, v in stns_events_dict.items():
         for ix_ in v:
             for x_ in ix_:
-                ix_dates.append(x_)
-    ix_dates = pd.DatetimeIndex(ix_dates)
-    pass
-
-#     dwd_in_extremes_df.loc[]
-#     dwd_in_extremes_df = dwd_in_extremes_df.loc[
-#         dwd_in_extremes_df.index.intersection(
-#             df_vgs.index).intersection(
-#             df_radar_events_to_keep.index).intersection(
-#                 df_dwd_max_daily.index), :]
-
-    # empty df for saving resuls
-
+                if x_ not in ix_dates:
+                    ix_dates.append(x_)
+    ix_dates = pd.DatetimeIndex(ix_dates).sort_values()
+#     plt.ioff()
+#     plt.scatter(x_stns_keep, y_stns_keep, c='r', marker='X')
+#     plt.scatter(grid_interp_df.X, grid_interp_df.Y)
+#     plt.show()
     #==========================================================================
     # save results
     #==========================================================================
     interp_grid_netatmo_dwd = pd.DataFrame(
         index=ix_dates,
-        # dwd_in_extremes_df.index,
         columns=grid_interp_df.index)
 
     interp_grid_dwd = pd.DataFrame(
         index=ix_dates,
         columns=grid_interp_df.index)
 
-    print('\n%d Intense Event with gd VG to interpolate\n'
-          % dwd_in_extremes_df.shape[0])
+    # for cross validation of DWD stations
+    interp_stns_netatmo_dwd = pd.DataFrame(
+        index=ix_dates,
+        columns=stns_to_keep)
 
+    interp_stns_dwd = pd.DataFrame(
+        index=ix_dates,
+        columns=stns_to_keep)
     #==========================================================================
     # # Go thourgh events ,interpolate all DWD for this event
     #==========================================================================
     all_dwd_stns = dwd_in_vals_df.columns.tolist()
+
+    cmn_events = dwd_in_vals_df.index.intersection(
+        ix_dates).intersection(netatmo_in_vals_df.index)
+
+    print('\n%d Intense Event with gd VG to interpolate\n'
+          % cmn_events.shape[0])
     # TODO: FOS
-    for event_date in ix_dates:  # dwd_in_extremes_df.index:  # [140:153]:
+    for event_date in cmn_events:  # dwd_in_extremes_df.index:  # [140:153]:
         #         if str(event_date) == '2019-07-28 13:00:00':
         #             pass
-        #         break
-        #         # hourly_events daily_events  # == '2018-12-23 00:00:00':
-        # dwd_in_extremes_df.index:
-        # dwd_in_extremes_df.index:
-        if str(event_date) in ix_dates:  # dwd_in_extremes_df.index:  # :
-            #             event_date = '2016-06-24 22:00:00'
 
-            try:
-                radar_evt = df_radar_events_to_keep.loc[event_date, '0']
+        if event_date in cmn_events:
 
-                #event_date = pd.DatetimeIndex([event_date])
-                print(event_date)
+            print(event_date, '__', temp_agg)
 
-                # read radolan file
-                rwdata, rwattrs = wrl.io.read_radolan_composite(radar_evt)
-                # mask data
-                sec = rwattrs['secondary']
-                rwdata.flat[sec] = -9999
-                rwdata = np.ma.masked_equal(rwdata, -9999)
+            if plot_radolan:
+                temp_agg_int = int(temp_agg.split('m')[0]) + 10
+                # since radar dates end with 50
+                start_radar_evt = event_date - \
+                    pd.Timedelta(minutes=temp_agg_int)
+                end_radar_evt = event_date - pd.Timedelta(minutes=10)
 
-                # create radolan projection object
-                proj_stereo = wrl.georef.create_osr("dwd-radolan")
+                radar_dates = pd.date_range(start=start_radar_evt,
+                                            end=end_radar_evt,
+                                            freq='60Min')
 
-                # create wgs84 projection object
-                proj_wgs = osr.SpatialReference()
-                proj_wgs.ImportFromEPSG(4326)
-
-                # get radolan grid
-                radolan_grid_xy = wrl.georef.get_radolan_grid(900, 900)
-                x1 = radolan_grid_xy[:, :, 0]
-                y1 = radolan_grid_xy[:, :, 1]
-
-                # convert to lonlat
-                radolan_grid_ll = wrl.georef.reproject(radolan_grid_xy,
-                                                       projection_source=proj_stereo,
-                                                       projection_target=proj_wgs)
-
-                lon1 = radolan_grid_ll[:, :, 0]
-                lat1 = radolan_grid_ll[:, :, 1]
+                df_radar_events_to_keep = get_radar_intense_events(
+                    radar_files_loc=radolan_files,
+                    intense_events_df_index_lst=radar_dates.to_list())
 
                 try:
-                    mask = np.load(
-                        r"X:\staff\elhachem\Shapefiles\Neckar_seperate\%s_mask.npy"
-                        % catchment,
-                        allow_pickle=True)
+
+                    ppt_loc_acc = {ix: [] for ix in range(x_coords_grd.size)}
+
+                    for rad_file in df_radar_events_to_keep.values.ravel():
+                        print(rad_file)
+                        # read radolan file
+                        rwdata, rwattrs = wrl.io.read_radolan_composite(
+                            rad_file)
+                        # mask data
+                        sec = rwattrs['secondary']
+                        rwdata.flat[sec] = -9999
+                        rwdata = np.ma.masked_equal(rwdata, -9999)
+
+                        # create radolan projection object
+                        proj_stereo = wrl.georef.create_osr("dwd-radolan")
+
+                        # create wgs84 projection object
+                        proj_wgs = osr.SpatialReference()
+                        proj_wgs.ImportFromEPSG(4326)
+
+                        # get radolan grid
+                        radolan_grid_xy = wrl.georef.get_radolan_grid(900, 900)
+                        x1 = radolan_grid_xy[:, :, 0]
+                        y1 = radolan_grid_xy[:, :, 1]
+
+                        # convert to lonlat
+                        radolan_grid_ll = wrl.georef.reproject(
+                            radolan_grid_xy,
+                            projection_source=proj_stereo,
+                            projection_target=proj_wgs)
+
+                        lon1 = radolan_grid_ll[:, :, 0]
+                        lat1 = radolan_grid_ll[:, :, 1]
+
+                        try:
+                            mask = np.load(
+                                r"X:\staff\elhachem\Shapefiles"
+                                r"\Neckar_seperate\%s_mask.npy"
+                                % catchment,
+                                allow_pickle=True)
+                        except Exception:
+                            mask = create_mask(shp_objects_all, lon1, lat1)
+
+                        rwdata[mask] = -1
+
+                        radolan_grid_ll[mask] = -1
+                        lon1 = radolan_grid_ll[:, :, 0]
+                        lat1 = radolan_grid_ll[:, :, 1]
+
+                        lon1_maskes = lon1[~mask]
+                        lat1_maskes = lat1[~mask]
+                        rw_maskes = rwdata[~mask]
+
+            #             rw_maskes = np.ma.masked_array(rwdata, rwdata < 0.)
+                        rw_maskes[rw_maskes.data < 0.] = np.nan
+
+                        radolan_coords = np.array([(lo, la) for lo, la in zip(
+                            lon1_maskes, lat1_maskes)])
+
+                        radolan_coords_tree = cKDTree(radolan_coords)
+
+                        print('\nGetting station data\n')
+
+                        for ix, (x0, y0) in enumerate(zip(lon_coords_grd,
+                                                          lat_coords_grd)):
+
+                            dd, ii = radolan_coords_tree.query([x0, y0], k=1)
+
+    #                         grd_lon_loc = lon1_maskes[ii]
+    #                         grd_lat_loc = lat1_maskes[ii]
+    #
+                            ppt_loc = rw_maskes[ii]
+                            ppt_loc_acc[ix].append(ppt_loc)
+    #                         df_ppt_radolan.loc[ix, 'xlon'] = grd_lon_loc
+    #                         df_ppt_radolan.loc[ix, 'ylat'] = grd_lat_loc
+    #
+    #                         df_ppt_radolan.loc[ix, 'ppt'] = ppt_loc
+
+                        # df_ppt_radolan.ppt.plot()
+                        # plt.plot(rw_maskes.data)
+                    df_ppt_radolan = pd.DataFrame(index=range(x_coords_grd.size),
+                                                  columns=['ppt'])
+
+                    for ix in df_ppt_radolan.index:
+                        df_ppt_radolan.loc[ix, 'ppt'] = np.nansum(
+                            ppt_loc_acc[ix])
+
                 except Exception:
-                    mask = create_mask(shp_objects_all, lon1, lat1)
-                mask = np.ones_like(lon1, dtype=np.bool)
-
-                # first['geometry']['coordinates']
-                for n, i_poly_all in enumerate(shp_objects_all):
-                    i_poly = i_poly_all['geometry']['coordinates']
-                    if 0 < len(i_poly) <= 1:
-                        p = path.Path(np.array(i_poly)[0])
-                        grid_mask = p.contains_points(
-                            np.vstack((lon1.flatten(),
-                                       lat1.flatten())).T).reshape(900, 900)
-                        mask[grid_mask] = 0
-                    else:
-                        for ix in range(len(i_poly)):
-
-                            p = path.Path(np.array(i_poly[ix]))
-                            grid_mask = p.contains_points(
-                                np.vstack((lon1.flatten(),
-                                           lat1.flatten())).T).reshape(900, 900)
-                            mask[grid_mask] = 0
-
-                rwdata[mask] = -1
-
-                radolan_grid_ll[mask] = -1
-                lon1 = radolan_grid_ll[:, :, 0]
-                lat1 = radolan_grid_ll[:, :, 1]
-
-                lon1_maskes = lon1[~mask]
-                lat1_maskes = lat1[~mask]
-                rw_maskes = rwdata[~mask]
-
-    #             rw_maskes = np.ma.masked_array(rwdata, rwdata < 0.)
-                rw_maskes[rw_maskes.data < 0.] = np.nan
-
-                radolan_coords = np.array([(lo, la) for lo, la in zip(
-                    lon1_maskes, lat1_maskes)])
-
-                radolan_coords_tree = cKDTree(radolan_coords)
-
-                df_ppt_radolan = pd.DataFrame(index=grid_interp_df.index)
-
-                print('\nGetting station data\n')
-                ix_lon_loc, ix_lat_loc, ppt_locs = [], [], []
-
-                for ix, (x0, y0) in enumerate(zip(lon_coords_grd, lat_coords_grd)):
-
-                    dd, ii = radolan_coords_tree.query([x0, y0], k=1)
-
-                    grd_lon_loc = lon1_maskes[ii]
-                    grd_lat_loc = lat1_maskes[ii]
-                    ppt_loc = rw_maskes[ii]
-
-                    df_ppt_radolan.loc[ix, 'xlon'] = grd_lon_loc
-                    df_ppt_radolan.loc[ix, 'ylat'] = grd_lat_loc
-                    df_ppt_radolan.loc[ix, 'ppt'] = ppt_loc
-
-                # df_ppt_radolan.ppt.plot()
-                # plt.plot(rw_maskes.data)
-            except Exception:
-                df_ppt_radolan = np.nan
-                continue
+                    df_ppt_radolan = pd.DataFrame(index=grid_interp_df.index,
+                                                  columns=['ppt'])
+    #
+                    continue
+            else:
+                df_ppt_radolan = pd.DataFrame(index=grid_interp_df.index,
+                                              columns=['ppt'])
             print('Done getting station data\n')
 
             print('Plotting extracted Radolan data and coordinates')
 
-            _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
-            if len(_stn_id_event_) < 5:
-                _stn_id_event_ = (5 - len(_stn_id_event_)) * \
-                    '0' + _stn_id_event_
+#             _stn_id_event_ = str(dwd_in_extremes_df.loc[event_date, 2])
+#             if len(_stn_id_event_) < 5:
+#                 _stn_id_event_ = (5 - len(_stn_id_event_)) * \
+#                     '0' + _stn_id_event_
 
-            _ppt_event_ = dwd_in_ppt_vals_df.loc[event_date, :].max()
+            #print(event_date, ' getting data')
+            _ppt_event_ = dwd_in_ppt_vals_df.loc[event_date, stns_to_keep].max(
+            )
             # dwd_in_extremes_df.loc[event_date, 1]
 
             #==============================================================
@@ -884,20 +968,24 @@ for temp_agg in resample_frequencies:
                 print('\n+++ KRIGING PPT at DWD +++\n')
 
                 vg_sill = float(vgs_model_dwd_ppt.split(" ")[0])
+                if vg_sill < 0.005:
+                    vg_sill = 0.075
                 dwd_vals_var = np.var(ppt_dwd_vals)
-                vg_scaling_ratio = dwd_vals_var / vg_sill
+                vg_scaling_ratio = round(dwd_vals_var / vg_sill, 2)
+
+                vg_model = vgs_model_dwd_ppt.split(" ")[1]
 
                 if vg_scaling_ratio == 0:
                     vg_scaling_ratio = 1
+
+                vg_model_scaled = str(vg_scaling_ratio) + ' ' + vg_model
                 # netatmo stns for this event
                 # Netatmo data and coords
 
                 #vg_scaling_ratio = 1
 
                 netatmo_df = netatmo_in_ppt_vals_df.loc[
-                    event_date,
-                    :].dropna(
-                    how='all')
+                    event_date, :].dropna(how='all')
 
                 #==========================================================
                 # NO FILTER USED
@@ -941,7 +1029,7 @@ for temp_agg in resample_frequencies:
                     zi=ppt_dwd_vals,
                     xk=x_coords_grd,
                     yk=y_coords_grd,
-                    model=vgs_model_dwd_ppt)
+                    model=vg_model_scaled)
 
                 # using Netatmo data
                 ordinary_kriging_netatmo_ppt = OrdinaryKriging(
@@ -950,7 +1038,7 @@ for temp_agg in resample_frequencies:
                     zi=ppt_netatmo_vals,
                     xk=x_coords_grd,
                     yk=y_coords_grd,
-                    model=vgs_model_dwd_ppt)
+                    model=vg_model_scaled)
 
                 print('\nOK using DWD')
                 ordinary_kriging_dwd_ppt.krige()
@@ -966,6 +1054,25 @@ for temp_agg in resample_frequencies:
 
                 interpolated_vals_netatmo_only[
                     interpolated_vals_netatmo_only < 0] = 0
+
+                """
+                # using Netatmo data
+                ordinary_kriging_netatmo_ppt_cr = OrdinaryKriging(
+                    xi=netatmo_xcoords0,
+                    yi=netatmo_ycoords0,
+                    zi=ppt_netatmo_vals,
+                    xk=x_stns_keep,
+                    yk=y_stns_keep,
+                    model=vg_model_scaled)
+
+                print('\nOK using Netatmo CROSS VALIDATION')
+                ordinary_kriging_netatmo_ppt_cr.krige()
+
+
+                interp_netatmo_only = ordinary_kriging_netatmo_ppt_cr.zk.copy()
+
+                interp_netatmo_only[interp_netatmo_only < 0] = 0
+                """
 
                 #==========================================================
                 # FIRST AND SECOND FILTER
@@ -1168,32 +1275,33 @@ for temp_agg in resample_frequencies:
                                     #                                         'bad wet netatmo station is good')
                                     # add to good wet netatmos
                                     try:
-                                        netatmo_wet_gd[stn_] = edf_stn
-                                        ids_netatmo_stns_gd = np.append(
-                                            ids_netatmo_stns_gd,
-                                            stn_)
-                                        x_coords_gd_netatmo_wet = np.append(
-                                            x_coords_gd_netatmo_wet,
-                                            netatmo_x_stn)
-                                        y_coords_gd_netatmo_wet = np.append(
-                                            y_coords_gd_netatmo_wet,
-                                            netatmo_y_stn)
+                                        if stn_ not in ids_netatmo_stns_gd:
+                                            netatmo_wet_gd[stn_] = edf_stn
+                                            ids_netatmo_stns_gd = np.append(
+                                                ids_netatmo_stns_gd,
+                                                stn_)
+                                            x_coords_gd_netatmo_wet = np.append(
+                                                x_coords_gd_netatmo_wet,
+                                                netatmo_x_stn)
+                                            y_coords_gd_netatmo_wet = np.append(
+                                                y_coords_gd_netatmo_wet,
+                                                netatmo_y_stn)
 
-                                        # remove from original bad
-                                        # wet
-                                        x_coords_bad_netatmo_wet = np.array(list(
-                                            filter(lambda x: x != netatmo_x_stn,
-                                                   x_coords_bad_netatmo_wet)))
+                                            # remove from original bad
+                                            # wet
+                                            x_coords_bad_netatmo_wet = np.array(list(
+                                                filter(lambda x: x != netatmo_x_stn,
+                                                       x_coords_bad_netatmo_wet)))
 
-                                        y_coords_bad_netatmo_wet = np.array(list(
-                                            filter(lambda x: x != netatmo_y_stn,
-                                                   y_coords_bad_netatmo_wet)))
+                                            y_coords_bad_netatmo_wet = np.array(list(
+                                                filter(lambda x: x != netatmo_y_stn,
+                                                       y_coords_bad_netatmo_wet)))
 
-                                        netatmo_wet_bad.loc[stn_] = np.nan
+                                            netatmo_wet_bad.loc[stn_] = np.nan
 
-                                        ids_netatmo_stns_bad = list(
-                                            filter(lambda x: x != stn_,
-                                                   ids_netatmo_stns_bad))
+                                            ids_netatmo_stns_bad = list(
+                                                filter(lambda x: x != stn_,
+                                                       ids_netatmo_stns_bad))
                                     except Exception as msg:
                                         print(msg)
                                         pass
@@ -1315,7 +1423,7 @@ for temp_agg in resample_frequencies:
                                     zi=ppt_vals_dwd_new_for_obsv_ppt,
                                     xk=x_netatmo_interpolate,
                                     yk=y_netatmo_interpolate,
-                                    model=vgs_model_dwd_ppt)
+                                    model=vg_model_scaled)
 
                                 try:
                                     ordinary_kriging_dwd_netatmo_crt.krige()
@@ -1372,12 +1480,16 @@ for temp_agg in resample_frequencies:
                 #======================================================
                 # Transform everything to arrays and combine
                 # dwd-netatmo
-
+                # np.unique(netatmo_stns_event_gd).size
                 netatmo_xcoords = np.array(
                     x_netatmo_ppt_vals_fr_dwd_interp_gd).ravel()
+
                 netatmo_ycoords = np.array(
                     y_netatmo_ppt_vals_fr_dwd_interp_gd).ravel()
 
+                xys = np.array([(x, y) for x, y in zip(
+                    netatmo_xcoords, netatmo_ycoords)])
+                uq = np.unique(xys)
                 ppt_netatmo_vals_gd = np.round(np.array(
                     netatmo_ppt_vals_fr_dwd_interp_gd).ravel(), 2)
 
@@ -1389,28 +1501,23 @@ for temp_agg in resample_frequencies:
                     (ppt_netatmo_vals_gd,
                      ppt_dwd_vals)), 2).ravel()
 
-                # ok unc
-                ppt_unc_term_05perc = np.array([
-                    0.0005 * p for p in ppt_netatmo_vals_gd])
-                uncert_dwd = np.zeros(
-                    shape=ppt_dwd_vals.shape)
-
-                ppt_dwd_netatmo_vals_uncert_05perc = np.concatenate([
-                    ppt_unc_term_05perc,
-                    uncert_dwd])
-
-                ordinary_kriging_dwd_netatmo_ppt_unc_05perc = OrdinaryKrigingWithScaledVg(
+                ordinary_kriging_dwd_netatmo_ppt_unc_05perc = OrdinaryKriging(
                     xi=netatmo_dwd_x_coords,
                     yi=netatmo_dwd_y_coords,
                     zi=netatmo_dwd_ppt_vals_gd,
-                    uncert=ppt_dwd_netatmo_vals_uncert_05perc,
-                    sc_ft=np.array(vg_scaling_ratio),
                     xk=x_coords_grd,
                     yk=y_coords_grd,
-                    model=vgs_model_dwd_ppt)
+                    model=vg_model_scaled)
 
-                ordinary_kriging_dwd_netatmo_ppt_unc_05perc.krige()
-
+#                 plt.ioff()
+#                 plt.scatter(netatmo_dwd_x_coords, netatmo_dwd_y_coords)
+#                 plt.scatter(x_coords_grd, y_coords_grd)
+#                 plt.show()
+                try:
+                    ordinary_kriging_dwd_netatmo_ppt_unc_05perc.krige()
+                except Exception as msg:
+                    print(msg)
+                    pass
                 interpolated_vals_dwd_netatmo_unc = (
                     ordinary_kriging_dwd_netatmo_ppt_unc_05perc.zk.copy())
 
@@ -1419,53 +1526,103 @@ for temp_agg in resample_frequencies:
                     interpolated_vals_dwd_netatmo_unc < 0] = 0
 
                 #======================================================
+                # # CROSS VALIDATION PPT
+                #======================================================
+
+                ppt_crs_valid_dwd = []
+                ppt_crs_valid_dwd_netatmo = []
+                for stn_crs_valid in stns_to_keep:
+                    x_cr = dwd_in_coords_df.loc[stn_crs_valid, 'X'].ravel()
+                    y_cr = dwd_in_coords_df.loc[stn_crs_valid, 'Y'].ravel()
+
+                    all_dwd_stns_leave_oneout = [
+                        stn for stn in all_dwd_stns if stn != stn_crs_valid]
+                    # stn_crs_valid in all_dwd_stns_leave_oneout
+                    ppt_dwd_vals_cr = []
+                    dwd_xcoords_cr = []
+                    dwd_ycoords_cr = []
+                    dwd_stn_ids_cr = []
+
+                    for stn_id_cr in all_dwd_stns_leave_oneout:
+                        #print('station is', stn_id)
+
+                        ppt_stn_vals_cr = dwd_in_ppt_vals_df.loc[
+                            event_date, stn_id_cr]
+                        if ppt_stn_vals_cr >= 0:
+                            ppt_dwd_vals_cr.append(
+                                np.round(ppt_stn_vals_cr, 2))
+                            dwd_xcoords_cr.append(
+                                dwd_in_coords_df.loc[stn_id_cr, 'X'])
+                            dwd_ycoords_cr.append(
+                                dwd_in_coords_df.loc[stn_id_cr, 'Y'])
+                            dwd_stn_ids_cr.append(stn_id_cr)
+
+                    dwd_xcoords_cr = np.array(dwd_xcoords_cr)
+                    dwd_ycoords_cr = np.array(dwd_ycoords_cr)
+                    ppt_dwd_vals_cr = np.array(ppt_dwd_vals_cr)
+
+                    # using DWD data
+                    ordinary_kriging_dwd_ppt_cr = OrdinaryKriging(
+                        xi=dwd_xcoords_cr,
+                        yi=dwd_ycoords_cr,
+                        zi=ppt_dwd_vals_cr,
+                        xk=x_cr,
+                        yk=y_cr,
+                        model=vg_model_scaled)
+                    # plt.ioff()
+                    # plt.scatter(x_cr, y_cr)
+                    # plt.scatter(dwd_xcoords_cr, dwd_ycoords_cr)
+                    # plt.show()
+                    ordinary_kriging_dwd_ppt_cr.krige()
+                    interp_ppt_cr = ordinary_kriging_dwd_ppt_cr.zk.copy()
+
+                    interp_ppt_cr[interp_ppt_cr < 0] = 0
+
+                    ppt_crs_valid_dwd.append(float(interp_ppt_cr))
+
+                    netatmo_dwd_x_coords_cr = np.concatenate([netatmo_xcoords,
+                                                              dwd_xcoords_cr])
+                    netatmo_dwd_y_coords_cr = np.concatenate([netatmo_ycoords,
+                                                              dwd_ycoords_cr])
+                    netatmo_dwd_ppt_vals_gd_cr = np.round(np.hstack(
+                        (ppt_netatmo_vals_gd,
+                         ppt_dwd_vals_cr)), 2).ravel()
+
+                    ordinary_kriging_dwd_netatmo_ppt_cr = OrdinaryKriging(
+                        xi=netatmo_dwd_x_coords_cr,
+                        yi=netatmo_dwd_y_coords_cr,
+                        zi=netatmo_dwd_ppt_vals_gd_cr,
+                        xk=x_cr,
+                        yk=y_cr,
+                        model=vg_model_scaled)
+
+                    ordinary_kriging_dwd_netatmo_ppt_cr.krige()
+
+                    interpolated_vals_dwd_netatmo_cr = (
+                        ordinary_kriging_dwd_netatmo_ppt_cr.zk.copy())
+
+                    # put negative values to 0
+                    interpolated_vals_dwd_netatmo_cr[
+                        interpolated_vals_dwd_netatmo_cr < 0] = 0
+
+                    ppt_crs_valid_dwd_netatmo.append(round(
+                        float(interpolated_vals_dwd_netatmo_cr), 2))
+
+                interp_stns_dwd.loc[event_date, :] = ppt_crs_valid_dwd
+                interp_stns_netatmo_dwd.loc[event_date,
+                                            :] = ppt_crs_valid_dwd_netatmo
+                #======================================================
                 # # Krigging PPT
                 #======================================================
                 print('Krigging PPT after 1st and 2nd filter')
-                # using Netatmo-DWD data
-#                 try:
-#                     ordinary_kriging_dwd_netatmo_ppt = OrdinaryKriging(
-#                         xi=netatmo_dwd_x_coords,
-#                         yi=netatmo_dwd_y_coords,
-#                         zi=netatmo_dwd_ppt_vals,
-#                         xk=x_coords_grd,
-#                         yk=y_coords_grd,
-#                         model=vgs_model_dwd_ppt)
-#
-#                     #plt.scatter()
-#                     ordinary_kriging_dwd_netatmo_ppt.krige()
-#
-#                     interpolated_vals_dwd_netatmo = ordinary_kriging_dwd_netatmo_ppt.zk.copy()
-#
-#                     # put negative values to 0
-#                     interpolated_vals_dwd_netatmo[
-#                         interpolated_vals_dwd_netatmo < 0] = 0
-#                 except Exception as msg:
-#                     print(msg)
-#                     pass
-                # difference netatmo-dwd - dwd
 
-#                 diff_map_plus = interpolated_vals_dwd_netatmo - df_ppt_radolan.ppt.data
-#                 diff_map_plus2 = interpolated_vals_dwd_only - df_ppt_radolan.ppt.data
-#                 diff_map_plus3 = interpolated_vals_netatmo_only - df_ppt_radolan.ppt.data
-                dwd_min_dwd_netatmo = interpolated_vals_dwd_netatmo_unc - interpolated_vals_dwd_only
-                dwd_min_radolan = df_ppt_radolan.ppt.data - interpolated_vals_dwd_only
-                dwd_min_netatmo = interpolated_vals_netatmo_only - interpolated_vals_dwd_only
+                dwd_min_dwd_netatmo = (interpolated_vals_dwd_netatmo_unc -
+                                       interpolated_vals_dwd_only)
 
-#                 dwd_min_dwd_netatmo[np.where(
-#                     np.logical_and(-1 < dwd_min_dwd_netatmo,
-#                                    dwd_min_dwd_netatmo < 1))] = 0
-# #                 dwd_min_dwd_netatmo[np.where(dwd_min_dwd_netatmo < 0.2)] = 0
-#
-#                 dwd_min_radolan[np.where(np.logical_and(
-#                     -1 < dwd_min_radolan,
-#                     dwd_min_radolan < 1))] = 0
-# #                 dwd_min_radolan[np.where()] = 0
-#
-#                 dwd_min_netatmo[np.where(np.logical_and(
-#                     -1 < dwd_min_netatmo,
-#                     dwd_min_netatmo < 1))] = 0
-#                 dwd_min_netatmo[np.where(dwd_min_netatmo < 0.2)] = 0
+                dwd_min_radolan = (df_ppt_radolan.ppt.values.ravel() -
+                                   interpolated_vals_dwd_only)
+                dwd_min_netatmo = (interpolated_vals_netatmo_only -
+                                   interpolated_vals_dwd_only)
 
                 plt.ioff()
 
@@ -1481,7 +1638,7 @@ for temp_agg in resample_frequencies:
                     event_date=event_date,
                     radar_data=df_ppt_radolan.ppt.values,
                     # radar_lon=df_ppt_radolan.xlon.values,
-                    # radar_lat=df_ppt_radolan.ylat.values,
+                    #                     radar_lat=df_ppt_radolan.ylat.values,
                     save_acc='%s' % catchment)
 
                 interp_grid_netatmo_dwd.loc[
@@ -1500,6 +1657,16 @@ interp_grid_dwd.to_csv(
                  '%s_interp_grid_dwd.csv' % catchment),
     sep=';', float_format='%0.3f')
 
+
+interp_stns_netatmo_dwd.to_csv(
+    os.path.join(out_plots_path,
+                 '%s_interp_stns_netatmo_dwd.csv' % catchment),
+    sep=';', float_format='%0.3f')
+
+interp_stns_dwd.to_csv(
+    os.path.join(out_plots_path,
+                 '%s_interp_stns_dwd.csv' % catchment),
+    sep=';', float_format='%0.3f')
 
 stop = timeit.default_timer()  # Ending time
 print('\n\a\a\a Done with everything on %s \a\a\a' %

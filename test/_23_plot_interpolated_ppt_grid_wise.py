@@ -105,7 +105,7 @@ path_to_dwd_ratios = in_filter_path / 'ppt_ratios_'
 #==============================================================================
 #
 #==============================================================================
-resample_frequencies = ['60min']
+resample_frequencies = ['14400min']
 # '120min', '180min', '60min',  '360min',
 #                         '720min',
 title_ = r'Ppt_ok_ok_un_2'

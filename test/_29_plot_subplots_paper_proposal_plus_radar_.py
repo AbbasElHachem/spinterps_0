@@ -90,7 +90,7 @@ shp_objects_all = list(fiona.open(
 shp_objects_all = [shp for shp in shp_objects_all
                    if shp['properties']['NAME_1'] == 'Baden-Württemberg']
 # mas for BW data
-mask = np.load(r'C:\Users\hachem\Desktop\radar\masked_array_bw',
+mask = np.load(r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\radar\masked_array_bw",
                allow_pickle=True)
 #==============================================================================
 # # NETATMO FIRST FILTER
@@ -124,7 +124,7 @@ if use_reduced_sample_dwd:
 #==============================================================================
 #
 #==============================================================================
-resample_frequencies = ['1440min']
+resample_frequencies = ['60min']
 # '120min', '180min', '60min',  '360min',
 #                         '720min',
 title_ = r'ppt_radolan_paper'
@@ -380,7 +380,7 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
 #     ax1.scatter(dwd_xcoords, dwd_ycoords, c='darkgreen',
 #                 marker='x', s=10, alpha=0.25)
 
-    ax1.legend(title='a)', loc='upper left',  # upper DWD+Netatmo
+    ax1.legend(title='DWD+Netatmo (a)', loc='upper left',  # upper DWD+Netatmo
                frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
     # dwd
     ax2 = fig.add_subplot(gs[:1, 2:4])
@@ -392,7 +392,7 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
                 vmax=max_val)
 #     ax2.scatter(dwd_xcoords, dwd_ycoords, c='darkgreen',
 #                 marker='x', s=10, alpha=0.25)
-    ax2.legend(title='b)', loc='upper left',  # DWD
+    ax2.legend(title='DWD (b)', loc='upper left',  # DWD
                frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
 
     # radolan
@@ -401,7 +401,7 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
     im_rad = ax_rad.scatter(radar_lon, radar_lat,
                             c=radar_data, cmap=cmap_ppt, s=20, marker=',',
                             vmin=min_val, norm=norm_ppt, vmax=max_val)
-    ax_rad.legend(title='c)', loc='upper left',  # Radolan
+    ax_rad.legend(title='Radolan (c)', loc='upper left',  # Radolan
                   frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
 
     # netatmo
@@ -415,7 +415,7 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
                       vmax=max_val)
 #     ax3.scatter(netatmo_xcoords0, netatmo_ycoords0, c='m',
 #                 marker='1', s=10, alpha=0.25)
-    ax3.legend(title='d)', loc='upper left',  # Netatmo
+    ax3.legend(title='Netatmo (d)', loc='upper left',  #
                frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
 
     # colorbar
@@ -445,7 +445,7 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
                 vmin=bound_diff[0],
                 norm=norm_diff,
                 vmax=bound_diff[-1])
-    ax5.legend(title='e)', loc='upper left',  # (a)-(b)
+    ax5.legend(title='(a)-(b)', loc='upper left',  # (a)-(b)
                frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
 
     # dwd-radolan
@@ -456,7 +456,7 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
                           vmin=bound_diff[0],
                           norm=norm_diff,
                           vmax=bound_diff[-1])
-    ax_rad2.legend(title='f)', loc='upper left',  # (c)-(b)
+    ax_rad2.legend(title='(c)-(b)', loc='upper left',  # (c)-(b)
                    frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
 
     # dwd-netatmo
@@ -467,7 +467,7 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
                       vmin=bound_diff[0],
                       norm=norm_diff,
                       vmax=bound_diff[-1])
-    ax6.legend(title='g)', loc='upper left',  # (c)-(b)
+    ax6.legend(title='(d)-(b)', loc='upper left',  # (d)-(b)
                frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
 
     ###
@@ -886,7 +886,7 @@ for temp_agg in resample_frequencies:
         #         # hourly_events daily_events  # == '2018-12-23 00:00:00':
         # dwd_in_extremes_df.index:
         # dwd_in_extremes_df.index:
-        if str(event_date) in daily_events:  # dwd_in_extremes_df.index:
+        if str(event_date) in hourly_events:  # dwd_in_extremes_df.index:
             #             event_date = '2016-06-24 22:00:00'
 
             radar_evt = df_radar_events_to_keep.loc[event_date, '0']
