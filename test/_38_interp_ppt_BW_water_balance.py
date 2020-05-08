@@ -55,12 +55,12 @@ wgs82 = "+init=EPSG:4326"
 utm32 = "+init=EPSG:32632"
 
 # catchment = 'Danube'
-# catchment = 'Plochingen'
+catchment = 'Plochingen'
 # catchment = 'Rockenau'
 # catchment = 'Rhein'
 
 # catchment = 'Sub_Catch1'
-catchment = 'Sub_Catch2'
+# catchment = 'Sub_Catch2'
 # =============================================================================
 
 main_dir = Path(r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes')
@@ -302,14 +302,16 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
                                     save_acc=''):
     '''plot interpolated events, grid wise '''
     print('plotting data: ', temp_agg)
+
+    clbr_label = 'mm/%s' % temp_agg
     if temp_agg == '60min':
         min_val, max_val = 0, 30
-        clbr_label = 'mm/h'  # 'Hourly precipitation [m]'
+        # 'Hourly precipitation [m]'
         bound_ppt = [0., 1, 2, 4, 8, 10, 15, 20, 25, 30]  # , 40, 45]
     if temp_agg in ['180min', '360min', '720min', '1440min']:
-        min_val, max_val = 0, 60
-        clbr_label = 'mm/d'
-        bound_ppt = [0., 1, 2, 4, 8, 10, 15, 20, 25, 30, 40, 45, 50, 55, 60]
+        min_val, max_val = 0, 50
+
+        bound_ppt = [0., 1, 2, 4, 8, 10, 15, 20, 25, 30, 40, 45, 50]
 
     plt.ioff()
 
@@ -531,6 +533,53 @@ def get_radar_intense_events(radar_files_loc, intense_events_df_index_lst):
 #==============================================================================
 
 
+def plt_dwd_vs_dwd_netatmo(interpolated_vals_dwd_only,
+                           interpolated_vals_dwd_netatmo_unc,
+                           save_acc,
+                           out_plot_path):
+    '''
+        scatter plot interpolated grid value per event DWD and
+        DWD -Netatmo 
+    '''
+    max_val = max(interpolated_vals_dwd_only.max(),
+                  interpolated_vals_dwd_netatmo_unc.max())
+    plt.ioff()
+    plt.figure(figsize=(12, 8))
+    plt.scatter(interpolated_vals_dwd_only,
+                interpolated_vals_dwd_netatmo_unc,
+                c='r', alpha=0.75, marker='+')
+
+    plt.plot([0, max_val],
+             [0, max_val],
+             c='grey', alpha=0.5)
+
+    plt.grid(alpha=0.75)
+    plt.xlabel('DWD Interpolation')
+    plt.ylabel('DWD-Netatmo Interpolation')
+    plt.title(
+        'Event Date: %s Temp Agg %s'
+        % (str(event_date), temp_agg))
+    plt.xlim([-0.1, max_val + 1])
+    plt.ylim([-0.1, max_val + 1])
+    # plt.axis('equal')
+    plt.tight_layout(True)
+    # plt.show()
+    plt.savefig((
+        out_plot_path / (
+            'scatter_%s_%s_%s_event' %
+            (save_acc, temp_agg,
+             str(event_date).replace(
+                 '-', '_').replace(':',
+                                   '_').replace(' ', '_')))),
+        papertype='a4',
+        bbox_inches='tight',
+        pad_inches=0.05)
+    plt.close()
+
+
+#==============================================================================
+#
+#==============================================================================
 lon_coords_grd, lat_coords_grd = convert_coords_fr_wgs84_to_utm32_(
     epgs_initial_str=utm32,
     epsg_final_str=wgs82,
@@ -731,7 +780,8 @@ for temp_agg in resample_frequencies:
 
     polygons = shape(shp_objects_all[0]['geometry'])
 
-    polygons_buffer = polygons.buffer(0.05)  # ca 5km
+    polygons_buffer = polygons.buffer(0.15)  # ca 15km
+
     # keep dwd stns within bound of bounding box
     id_stns = dwd_in_coords_df.index.to_list()
     x_stns = dwd_in_coords_df.loc[:, 'X'].values.flatten()
@@ -744,20 +794,55 @@ for temp_agg in resample_frequencies:
         first_coord=x_stns,
         second_coord=y_stns)
 
+    #==========================================================================
+    # # select DWD stations within and around polygon
+    #==========================================================================
     stns_to_keep = [stn_id for stn_id, x, y in zip(
-        id_stns, lon_stns, lat_stns) if polygons_buffer.contains(Point(x, y))]
+        id_stns, lon_stns, lat_stns)
+        if polygons_buffer.contains(Point(x, y))]
 
     x_stns_keep = dwd_in_coords_df.loc[stns_to_keep, 'X'].values.flatten()
     y_stns_keep = dwd_in_coords_df.loc[stns_to_keep, 'Y'].values.flatten()
 
+    #==========================================================================
+    # # select NETATMO stations within and around polygon
+    #==========================================================================
+    id_stns_netatmo = netatmo_in_coords_df.index.to_list()
+    x_stns_netatmo = netatmo_in_coords_df.loc[:, 'X'].values.flatten()
+    y_stns_netatmo = netatmo_in_coords_df.loc[:, 'Y'].values.flatten()
+
+    # convert to same coords as shapefile
+    lon_stns_netatmo, lat_stns_netatmo = convert_coords_fr_wgs84_to_utm32_(
+        epgs_initial_str=utm32,
+        epsg_final_str=wgs82,
+        first_coord=x_stns_netatmo,
+        second_coord=y_stns_netatmo)
+
+    stns_to_keep_netatmo = [stn_id for stn_id, x, y in zip(
+        id_stns_netatmo, lon_stns_netatmo, lat_stns_netatmo)
+        if polygons_buffer.contains(Point(x, y))]
+
+    x_stns_keep_netatmo = netatmo_in_coords_df.loc[
+        stns_to_keep_netatmo, 'X'].values.flatten()
+    y_stns_keep_netatmo = netatmo_in_coords_df.loc[
+        stns_to_keep_netatmo, 'Y'].values.flatten()
+
+#     plt.ioff()
+#     plt.scatter(x_stns_keep, y_stns_keep, c='r', marker='X')
+#     plt.scatter(x_stns_keep_netatmo, y_stns_keep_netatmo, c='b', marker='o')
+#     plt.scatter(grid_interp_df.X, grid_interp_df.Y)
+#     plt.show()
+
     # find most wet events
 
     dwd_ppt_stns_to_keep = dwd_in_ppt_vals_df.loc[:, stns_to_keep]
-    # for every station get highest 5 events
 
+    # for every station get highest 5 events
     stns_events_dict = {
-        stn: [dwd_in_ppt_vals_df.loc[:, stn].dropna().sort_values()[-3:].index]
+        stn: [dwd_in_ppt_vals_df.loc[
+            :, stn].dropna().sort_values()[-3:].index]
         for stn in stns_to_keep}
+
     # get single events and create a datetime index
     ix_dates = []
     for k, v in stns_events_dict.items():
@@ -766,10 +851,7 @@ for temp_agg in resample_frequencies:
                 if x_ not in ix_dates:
                     ix_dates.append(x_)
     ix_dates = pd.DatetimeIndex(ix_dates).sort_values()
-#     plt.ioff()
-#     plt.scatter(x_stns_keep, y_stns_keep, c='r', marker='X')
-#     plt.scatter(grid_interp_df.X, grid_interp_df.Y)
-#     plt.show()
+
     #==========================================================================
     # save results
     #==========================================================================
@@ -792,7 +874,7 @@ for temp_agg in resample_frequencies:
     #==========================================================================
     # # Go thourgh events ,interpolate all DWD for this event
     #==========================================================================
-    all_dwd_stns = dwd_in_vals_df.columns.tolist()
+    all_dwd_stns = stns_to_keep  # dwd_in_vals_df.columns.tolist()
 
     cmn_events = dwd_in_vals_df.index.intersection(
         ix_dates).intersection(netatmo_in_vals_df.index)
@@ -809,11 +891,15 @@ for temp_agg in resample_frequencies:
             print(event_date, '__', temp_agg)
 
             if plot_radolan:
-                temp_agg_int = int(temp_agg.split('m')[0]) + 10
+
+                temp_agg_int = int(temp_agg.split('m')[0]) / 60 - 1  # + 10
+
+                event_date_radolan = event_date - pd.Timedelta(minutes=10)
                 # since radar dates end with 50
-                start_radar_evt = event_date - \
-                    pd.Timedelta(minutes=temp_agg_int)
-                end_radar_evt = event_date - pd.Timedelta(minutes=10)
+                start_radar_evt = event_date_radolan - pd.Timedelta(
+                    hours=temp_agg_int)
+                # - pd.Timedelta(minutes=10)
+                end_radar_evt = event_date_radolan
 
                 radar_dates = pd.date_range(start=start_radar_evt,
                                             end=end_radar_evt,
@@ -929,8 +1015,8 @@ for temp_agg in resample_frequencies:
 #                     '0' + _stn_id_event_
 
             #print(event_date, ' getting data')
-            _ppt_event_ = dwd_in_ppt_vals_df.loc[event_date, stns_to_keep].max(
-            )
+            _ppt_event_ = dwd_in_ppt_vals_df.loc[
+                event_date, stns_to_keep].max()
             # dwd_in_extremes_df.loc[event_date, 1]
 
             #==============================================================
@@ -938,7 +1024,8 @@ for temp_agg in resample_frequencies:
             #==============================================================
 
             # edf dwd vals
-            edf_dwd_vals = dwd_in_vals_df.loc[event_date, :].dropna().values
+            edf_dwd_vals = dwd_in_vals_df.loc[
+                event_date, stns_to_keep].dropna().values
 
             ppt_dwd_vals = []
             dwd_xcoords = []
@@ -970,6 +1057,7 @@ for temp_agg in resample_frequencies:
                 vg_sill = float(vgs_model_dwd_ppt.split(" ")[0])
                 if vg_sill < 0.005:
                     vg_sill = 0.075
+
                 dwd_vals_var = np.var(ppt_dwd_vals)
                 vg_scaling_ratio = round(dwd_vals_var / vg_sill, 2)
 
@@ -985,7 +1073,7 @@ for temp_agg in resample_frequencies:
                 #vg_scaling_ratio = 1
 
                 netatmo_df = netatmo_in_ppt_vals_df.loc[
-                    event_date, :].dropna(how='all')
+                    event_date, stns_to_keep_netatmo].dropna(how='all')
 
                 #==========================================================
                 # NO FILTER USED
@@ -1011,13 +1099,13 @@ for temp_agg in resample_frequencies:
                 ppt_netatmo_vals = np.round(np.array(
                     netatmo_ppt_vals_fr_dwd_interp).ravel(), 2)
 
-                netatmo_dwd_x_coords = np.concatenate([netatmo_xcoords0,
-                                                       dwd_xcoords])
-                netatmo_dwd_y_coords = np.concatenate([netatmo_ycoords0,
-                                                       dwd_ycoords])
-                netatmo_dwd_ppt_vals = np.round(np.hstack(
-                    (ppt_netatmo_vals,
-                     ppt_dwd_vals)), 2).ravel()
+#                 netatmo_dwd_x_coords = np.concatenate([netatmo_xcoords0,
+#                                                        dwd_xcoords])
+#                 netatmo_dwd_y_coords = np.concatenate([netatmo_ycoords0,
+#                                                        dwd_ycoords])
+#                 netatmo_dwd_ppt_vals = np.round(np.hstack(
+#                     (ppt_netatmo_vals,
+#                      ppt_dwd_vals)), 2).ravel()
 
                 #======================================================
                 # # Krigging PPT
@@ -1080,10 +1168,13 @@ for temp_agg in resample_frequencies:
 
                 print('\n**using Netatmo gd stns**')
 
+                netatmo_gd_stns = (
+                    netatmo_in_ppt_vals_df_gd.columns.intersection(
+                        stns_to_keep_netatmo))
                 netatmo_df_gd = netatmo_in_ppt_vals_df_gd.loc[
-                    event_date, :].dropna(how='all')
+                    event_date, netatmo_gd_stns].dropna(how='all')
                 netatmo_edf = netatmo_in_vals_df_gd.loc[
-                    event_date, :].dropna(how='all')
+                    event_date, netatmo_gd_stns].dropna(how='all')
                 print('NETATMO 1st FILTERED and 2nd Filter')
 
                 netatmo_xcoords = netatmo_in_coords_df.loc[
@@ -1487,9 +1578,9 @@ for temp_agg in resample_frequencies:
                 netatmo_ycoords = np.array(
                     y_netatmo_ppt_vals_fr_dwd_interp_gd).ravel()
 
-                xys = np.array([(x, y) for x, y in zip(
-                    netatmo_xcoords, netatmo_ycoords)])
-                uq = np.unique(xys)
+#                 xys = np.array([(x, y) for x, y in zip(
+#                     netatmo_xcoords, netatmo_ycoords)])
+#                 uq = np.unique(xys)
                 ppt_netatmo_vals_gd = np.round(np.array(
                     netatmo_ppt_vals_fr_dwd_interp_gd).ravel(), 2)
 
@@ -1641,12 +1732,21 @@ for temp_agg in resample_frequencies:
                     #                     radar_lat=df_ppt_radolan.ylat.values,
                     save_acc='%s' % catchment)
 
+                # plot saccter of interpolations
+                plt_dwd_vs_dwd_netatmo(interpolated_vals_dwd_only,
+                                       interpolated_vals_dwd_netatmo_unc,
+                                       save_acc='%s' % catchment,
+                                       out_plot_path=out_plots_path)
+
+                # save results to dataframe
                 interp_grid_netatmo_dwd.loc[
                     event_date, :] = interpolated_vals_dwd_netatmo_unc
 
                 interp_grid_dwd.loc[
                     event_date, :] = interpolated_vals_dwd_only
 
+                pass
+                print('dsd')
 interp_grid_netatmo_dwd.to_csv(
     os.path.join(out_plots_path,
                  '%s_interp_grid_netatmo_dwd.csv' % catchment),
