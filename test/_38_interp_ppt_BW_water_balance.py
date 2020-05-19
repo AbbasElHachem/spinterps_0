@@ -61,6 +61,7 @@ catchment = 'Plochingen'
 
 # catchment = 'Sub_Catch1'
 # catchment = 'Sub_Catch2'
+# catchment = 'Sub_Catch3'
 # =============================================================================
 
 main_dir = Path(r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes')
@@ -89,14 +90,16 @@ path_grid_interpolate = (r"X:\staff\elhachem\Shapefiles\Neckar_seperate"
 
 shp_objects_all = list(fiona.open(
     r"X:\staff\elhachem\Shapefiles\Neckar_seperate\%s.shp" % catchment))
+
 # open shapefile
 # shp_objects_all = list(fiona.open(
 #     r"X:\hiwi\ElHachem\Peru_Project\ancahs_dem\DEU_adm\DEU_adm1.shp"))
 # shp_objects_all = [shp for shp in shp_objects_all
 #                    if shp['properties']['NAME_1'] == 'Baden-W�rttemberg']
-# mas for BW data
 
+# out directory
 
+out_dir = Path(r'X:\staff\elhachem\2020_04_28_BW_Water_Balance')
 #==============================================================================
 # # NETATMO FIRST FILTER
 #==============================================================================
@@ -121,7 +124,7 @@ path_to_netatmo_gd_stns = (main_dir / r'plots_NetAtmo_ppt_DWD_ppt_correlation_' 
 #==============================================================================
 #
 #==============================================================================
-resample_frequencies = ['60min']
+resample_frequencies = ['1440min']
 # '120min', '180min', '60min',  '360min',
 #                         '720min',
 title_ = r'ppt_bw_water_balance_%s' % catchment
@@ -132,16 +135,6 @@ title_ = r'ppt_bw_water_balance_%s' % catchment
 #==============================================================================
 strt_date = '2015-01-01 00:00:00'
 end_date = '2019-09-01 00:00:00'
-
-# min_valid_stns = 20
-
-drop_stns = []
-mdr = 0.9
-perm_r_list_ = [1, 2]
-fit_vgs = ['Sph', 'Exp']  # 'Sph',
-fil_nug_vg = 'Nug'  # 'Nug'
-n_best = 4
-ngp = 5
 
 
 idx_time_fmt = '%Y-%m-%d %H:%M:%S'
@@ -200,14 +193,14 @@ df_gd_stns = pd.read_csv(path_to_netatmo_gd_stns,
 
 
 #==============================================================================
-#
+# NEEDED FUNCTIONS
 #==============================================================================
 
 
 def create_mask(shpfile, lon1, lat1):
     mask = np.ones_like(lon1, dtype=np.bool)
     # first['geometry']['coordinates']
-    for n, i_poly_all in enumerate(shpfile):
+    for _, i_poly_all in enumerate(shpfile):
         i_poly = i_poly_all['geometry']['coordinates']
         if 0 < len(i_poly) <= 1:
             p = path.Path(np.array(i_poly)[0])
@@ -230,7 +223,7 @@ def create_mask(shpfile, lon1, lat1):
 
 
 #==============================================================================
-# NEEDED FUNCTIONS
+#
 #==============================================================================
 
 
@@ -315,8 +308,6 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
 
     plt.ioff()
 
-#     bound_ppt = [0., 1, 2, 4, 8, 10, 15, 20, 25, 30]  # , 40, 45]
-
     interval_ppt = np.linspace(0.05, 0.95)
     colors_ppt = plt.get_cmap('jet_r')(interval_ppt)
     cmap_ppt = LinearSegmentedColormap.from_list('name', colors_ppt)
@@ -328,9 +319,9 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
     _fontsize = 8
     color_fontsize = 12
     # Remove the middle 10% of the RdBu_r colormap
-    interval = np.hstack([np.linspace(0.0, 0.35), np.linspace(0.7, 1)])
-    colors = plt.get_cmap('PiYG')(interval)  #
-    cmap_diff = LinearSegmentedColormap.from_list('diff', colors)
+    # interval = np.hstack([np.linspace(0.0, 0.35), np.linspace(0.7, 1)])
+    # colors = plt.get_cmap('PiYG')(interval)  #
+    # cmap_diff = LinearSegmentedColormap.from_list('diff', colors)
 
     # Concatenating colormaps
     cmap_diff = LinearSegmentedColormap.from_list(
@@ -386,9 +377,9 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
     # radolan
     ax_rad = fig.add_subplot(gs[:1, 4:6])
 
-    im_rad = ax_rad.scatter(x_coords_grd, y_coords_grd,
-                            c=radar_data, cmap=cmap_ppt, s=30, marker=',',
-                            vmin=min_val, norm=norm_ppt, vmax=max_val)
+    _ = ax_rad.scatter(x_coords_grd, y_coords_grd,
+                       c=radar_data, cmap=cmap_ppt, s=30, marker=',',
+                       vmin=min_val, norm=norm_ppt, vmax=max_val)
     ax_rad.legend(title='c)', loc='upper left',  # Radolan
                   frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
 
@@ -438,12 +429,12 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
 
     # dwd-radolan
     ax_rad2 = fig.add_subplot(gs[1:, 3:5])
-    im6 = ax_rad2.scatter(x_coords_grd, y_coords_grd,
-                          c=vals_to_plot_dwd_min_radolan,
-                          marker=',', s=30, cmap=cmap_diff,
-                          vmin=bound_diff[0],
-                          norm=norm_diff,
-                          vmax=bound_diff[-1])
+    _ = ax_rad2.scatter(x_coords_grd, y_coords_grd,
+                        c=vals_to_plot_dwd_min_radolan,
+                        marker=',', s=30, cmap=cmap_diff,
+                        vmin=bound_diff[0],
+                        norm=norm_diff,
+                        vmax=bound_diff[-1])
     ax_rad2.legend(title='f)', loc='upper left',  # (c)-(b)
                    frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
 
@@ -513,8 +504,10 @@ def get_radar_intense_events(radar_files_loc, intense_events_df_index_lst):
         #     file = file + '.gz'
 
         event_date_raw = file.split('\\')[-1].split('-')[2]
-        event_date_str = ('20' + event_date_raw[:2] + '-' + event_date_raw[2:4] +
-                          '-' + event_date_raw[4:6] + ' ' + event_date_raw[6:8] +
+        event_date_str = ('20' + event_date_raw[:2] + '-' +
+                          event_date_raw[2:4] +
+                          '-' + event_date_raw[4:6] + ' ' +
+                          event_date_raw[6:8] +
                           ':' + event_date_raw[8:] + ':00')
 
         event_date_ix = pd.DatetimeIndex([event_date_str])
@@ -554,8 +547,10 @@ def plt_dwd_vs_dwd_netatmo(interpolated_vals_dwd_only,
              c='grey', alpha=0.5)
 
     plt.grid(alpha=0.75)
-    plt.xlabel('DWD Interpolation')
-    plt.ylabel('DWD-Netatmo Interpolation')
+    plt.xlabel('DWD Interpolation Mean=%0.2f mm'
+               % np.mean(interpolated_vals_dwd_only))
+    plt.ylabel('DWD-Netatmo Interpolation Mean=%0.2f mm'
+               % np.mean(interpolated_vals_dwd_netatmo_unc))
     plt.title(
         'Event Date: %s Temp Agg %s'
         % (str(event_date), temp_agg))
@@ -575,6 +570,60 @@ def plt_dwd_vs_dwd_netatmo(interpolated_vals_dwd_only,
         bbox_inches='tight',
         pad_inches=0.05)
     plt.close()
+
+#==============================================================================
+#
+#==============================================================================
+
+
+def plt_cdf_interpolations(interpolated_vals_dwd_only,
+                           interpolated_vals_dwd_netatmo_unc,
+                           save_acc,
+                           out_plot_path):
+    fig = plt.figure(figsize=(12, 8), dpi=100)
+    ax = fig.add_subplot(111)
+
+    event_dwd = interpolated_vals_dwd_only
+    event_dwd_netatmo = interpolated_vals_dwd_netatmo_unc
+    max_val = max(event_dwd.max(),
+                  event_dwd_netatmo.max())
+
+    dwd_ppt, dwd_edf = build_edf_fr_vals(event_dwd)
+    dwd_netatmo_ppt, dwd_netatmo_edf = build_edf_fr_vals(event_dwd_netatmo)
+
+    # max_val = max(event_dwd.max(),
+    #              event_dwd_netatmo.max())
+
+    ax.scatter(dwd_ppt, dwd_edf, color='r', alpha=0.75,
+               marker='X', s=10, label='DWD')
+    ax.scatter(dwd_netatmo_ppt, dwd_netatmo_edf, color='b', s=10,
+               alpha=0.75, marker='o', label='DWD-Netatmo')
+    # ax.plot([0, max_val],
+    #         [0, max_val],
+    #         c='grey', alpha=0.5)
+    ax.grid(alpha=0.75)
+    ax.set_xlabel('PPT [mm/%s]' % temp_agg)
+    ax.set_ylabel('F(x)')
+    ax.legend(loc='lower right')
+    ax.set_xlim([-0.1, max_val + 1])
+    ax.set_ylim([-0.1, 1 + 0.1])
+    plt.title(
+        'Event Date: %s Temp Agg %s'
+        % (str(event_date), temp_agg))
+    # plt.axis('equal')
+
+    plt.tight_layout(True)
+
+    plt.savefig((
+        out_plot_path / (
+            'cdf_%s_%s_%s_event' %
+            (save_acc, temp_agg,
+             str(event_date).replace(
+                 '-', '_').replace(':',
+                                   '_').replace(' ', '_')))),
+        papertype='a4',
+        bbox_inches='tight',
+        pad_inches=0.05)
 
 
 #==============================================================================
@@ -596,7 +645,7 @@ for temp_agg in resample_frequencies:
     dir_path = title_ + '_' + _acc_ + '_' + temp_agg
 
     #dir_path = title_ + temp_agg
-    out_plots_path = in_filter_path / dir_path
+    out_plots_path = out_dir / dir_path
 
     if not os.path.exists(out_plots_path):
         os.mkdir(out_plots_path)
@@ -744,7 +793,7 @@ for temp_agg in resample_frequencies:
 
     # DWD Extremes
     #=========================================================================
-    dwd_in_extremes_df = pd.read_csv(path_dwd_extremes_df,  # path_dwd_extremes_df
+    dwd_in_extremes_df = pd.read_csv(path_dwd_extremes_df,
                                      index_col=0,
                                      sep=';',
                                      parse_dates=True,
@@ -1099,14 +1148,6 @@ for temp_agg in resample_frequencies:
                 ppt_netatmo_vals = np.round(np.array(
                     netatmo_ppt_vals_fr_dwd_interp).ravel(), 2)
 
-#                 netatmo_dwd_x_coords = np.concatenate([netatmo_xcoords0,
-#                                                        dwd_xcoords])
-#                 netatmo_dwd_y_coords = np.concatenate([netatmo_ycoords0,
-#                                                        dwd_ycoords])
-#                 netatmo_dwd_ppt_vals = np.round(np.hstack(
-#                     (ppt_netatmo_vals,
-#                      ppt_dwd_vals)), 2).ravel()
-
                 #======================================================
                 # # Krigging PPT
                 #======================================================
@@ -1330,8 +1371,7 @@ for temp_agg in resample_frequencies:
                         netatmo_wet_bad.values,
                             x_coords_bad_netatmo_wet,
                             y_coords_bad_netatmo_wet):
-                        #                         print('Trying to correct %s bad wet '
-                        #                               % stn_)
+
                         # coords of stns self
                         stn_coords = np.array([(netatmo_x_stn,
                                                 netatmo_y_stn)])
@@ -1715,6 +1755,7 @@ for temp_agg in resample_frequencies:
                 dwd_min_netatmo = (interpolated_vals_netatmo_only -
                                    interpolated_vals_dwd_only)
 
+                # plot RADOLAN AND INTERPOLATIONS
                 plt.ioff()
 
                 plot_all_interplations_subplots(
@@ -1732,8 +1773,13 @@ for temp_agg in resample_frequencies:
                     #                     radar_lat=df_ppt_radolan.ylat.values,
                     save_acc='%s' % catchment)
 
-                # plot saccter of interpolations
+                # plot scatter of interpolations
                 plt_dwd_vs_dwd_netatmo(interpolated_vals_dwd_only,
+                                       interpolated_vals_dwd_netatmo_unc,
+                                       save_acc='%s' % catchment,
+                                       out_plot_path=out_plots_path)
+                # plot CDF of interpolations
+                plt_cdf_interpolations(interpolated_vals_dwd_only,
                                        interpolated_vals_dwd_netatmo_unc,
                                        save_acc='%s' % catchment,
                                        out_plot_path=out_plots_path)
@@ -1745,8 +1791,7 @@ for temp_agg in resample_frequencies:
                 interp_grid_dwd.loc[
                     event_date, :] = interpolated_vals_dwd_only
 
-                pass
-                print('dsd')
+
 interp_grid_netatmo_dwd.to_csv(
     os.path.join(out_plots_path,
                  '%s_interp_grid_netatmo_dwd.csv' % catchment),
