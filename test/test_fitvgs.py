@@ -85,9 +85,9 @@ def get_ppt_paths():
     #     in_vals_df_loc = os.path.join(
     #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
     #         r'all_netatmo_ppt_data_daily_.csv')
-    #     in_vals_df_loc = os.path.join(
-    #         r'F:\download_DWD_data_recent',
-    #         r'all_dwd_hourly_ppt_data_combined_2014_2019_.csv')
+    in_vals_df_loc = os.path.join(
+        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+        r'ppt_all_dwd_60min_.csv')
 
     # CDF VALUES
     #     in_vals_df_loc = os.path.join(
@@ -104,22 +104,23 @@ def get_ppt_paths():
 
 #     in_vals_df_loc = os.path.join(r"X:\staff\elhachem\2020_10_03_Rheinland_Pfalz"
 #                                   r"\edf_ppt_all_dwd_60min_.csv")
-    
-    in_vals_df_loc = (r'/run/media/abbas/EL Hachem 2019/home_office'
-                      r'/2020_10_03_Rheinland_Pfalz/edf_ppt_all_dwd_60min_.csv')
-    
+
+#     in_vals_df_loc = (r'/run/media/abbas/EL Hachem 2019/home_office'
+#                       r'/2020_10_03_Rheinland_Pfalz/edf_ppt_all_dwd_60min_.csv')
+
     # Cold - Warm season distributions DWD
 #     in_vals_df_loc = os.path.join(
 #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
 #         r'df_dwd_distributions_cold_season_hourly.csv')
 
     # COORDS
-#     in_stn_coords_df_loc = os.path.join(
-#         r"X:\staff\elhachem\2020_10_03_Rheinland_Pfalz\dwd_coords_in_around_RH_utm32.csv")
     in_stn_coords_df_loc = os.path.join(
-        r'/run/media/abbas/EL Hachem 2019/home_office'
-        r'/2020_10_03_Rheinland_Pfalz/dwd_coords_in_around_RH_utm32.csv')
-    
+        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW',
+        r"station_coordinates_names_hourly_only_in_BW_utm32.csv")
+# #     in_stn_coords_df_loc = os.path.join(
+# #         r'/run/media/abbas/EL Hachem 2019/home_office'
+# #         r'/2020_10_03_Rheinland_Pfalz/dwd_coords_in_around_RH_utm32.csv')
+#
 #     in_stn_coords_df_loc = os.path.join(
 #         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes\NetAtmo_BW\netatmo_bw_1hour_coords_utm32.csv")
 
@@ -137,25 +138,25 @@ def get_ppt_paths():
 
     # DWD extremes
 
-#     path_to_dwd_ppt_extreme = (
-#         r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
-#         r"\NetAtmo_BW"
-#         r"\dwd_60min_maximum_100_event.csv")
+    path_to_dwd_ppt_extreme = (
+        r"X:\hiwi\ElHachem\Prof_Bardossy\Extremes"
+        r"\NetAtmo_BW"
+        r"\dwd_60min_maximum_100_event.csv")
 #     path_to_dwd_ppt_extreme = (
 #         r"X:\staff\elhachem\2020_10_03_Rheinland_Pfalz"
 #         r"\dwd_hourly_special_events_5mm_.csv")
-    
-    path_to_dwd_ppt_extreme = (
-        r"/run/media/abbas/EL Hachem 2019/home_office/Data_Bardossy/EventsRLP.csv") 
+
+#     path_to_dwd_ppt_extreme = (
+#         r"/run/media/abbas/EL Hachem 2019/home_office/Data_Bardossy/EventsRLP.csv")
 #     path_to_dwd_ppt_extreme = (
 #         r"X:\staff\elhachem\Data\DWD_BW_Data"
 #         r"\neckar_clim_data_20km_buff_new"
 #         r"\Wannweil_Echaz_2015_2019_hourly_hi_discharge_time_steps.csv")
 
-#     out_dir = r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo'
+    out_dir = r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo'
     # out_dir = r'X:\staff\elhachem\2020_10_03_Rheinland_Pfalz'
-    out_dir = (r"/run/media/abbas/EL Hachem 2019/home_office") 
-    
+#     out_dir = (r"/run/media/abbas/EL Hachem 2019/home_office")
+
     return (in_vals_df_loc, in_stn_coords_df_loc,
             out_dir,
             path_to_netatmo_gd_stns_file,
@@ -165,26 +166,26 @@ def get_ppt_paths():
 
 def main():
 
-    #     main_dir = Path(
-    #         r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo')
-
     main_dir = Path(
-        r"/run/media/abbas/EL Hachem 2019/home_office")
-        # r'X:\staff\elhachem\2020_10_03_Rheinland_Pfalz')
+        r'X:\hiwi\ElHachem\Prof_Bardossy\Extremes\kriging_ppt_netatmo')
+
+#     main_dir = Path(
+#         r"/run/media/abbas/EL Hachem 2019/home_office")
+    # r'X:\staff\elhachem\2020_10_03_Rheinland_Pfalz')
     os.chdir(main_dir)
 
     vg_vars = ['ppt']  # ['ppt']
 
     strt_date = '2017-01-01'
     end_date = '2019-12-31'
-    min_valid_stns = 10
+    min_valid_stns = 5
 
     drop_stns = []
-    mdr = 0.8
+    mdr = 0.5
     perm_r_list = [1, 2]
     fit_vgs = ['Sph', 'Exp']
     fil_nug_vg = 'Nug'  # 'Nug'
-    n_best = 4
+    n_best = 2
     ngp = 5
     figs_flag = True
 
@@ -192,7 +193,7 @@ def main():
 
     use_netatmo_good_stns = False
 
-    DWD_stations = False
+    DWD_stations = True
 
     n_cpus = 4
 
@@ -264,15 +265,15 @@ def main():
             in_vals_df = in_vals_df.loc[
                 in_vals_df.index.intersection(df_extremes.index), :]
 
-#         if DWD_stations:
-#             # added by Abbas, for DWD stations
-#
-#             stndwd_ix = ['0' * (5 - len(str(stn_id))) + str(stn_id)
-#                          if len(str(stn_id)) < 5 else str(stn_id)
-#                          for stn_id in in_coords_df.index]
-            #stndwd_ix = [stn for stn in stndwd_ix if stn in in_vals_df.columns]
+        if DWD_stations:
+            #             # added by Abbas, for DWD stations
+            #
+            stndwd_ix = ['0' * (5 - len(str(stn_id))) + str(stn_id)
+                         if len(str(stn_id)) < 5 else str(stn_id)
+                         for stn_id in in_coords_df.index]
+            stndwd_ix = [stn for stn in stndwd_ix if stn in in_vals_df.columns]
 
-#             in_coords_df.index = stndwd_ix
+            in_coords_df.index = stndwd_ix
 
         in_coords_df.index = list(map(str, in_coords_df.index))
 
@@ -313,19 +314,19 @@ def main():
 
 if __name__ == '__main__':
 
-#     _save_log_ = False
-#     if _save_log_:
-#         from datetime import datetime
-#         from std_logger import StdFileLoggerCtrl
-# 
-#         # save all console activity to out_log_file
-#         out_log_file = os.path.join(
-#             r'C:\Users\hachem\Desktop\fd\\%s_log_%s.log' % (
-#                 # r'P:\Synchronize\python_script_logs\\%s_log_%s.log' % (
-#                 os.path.basename(__file__),
-#                 datetime.now().strftime('%Y%m%d%H%M%S')))
-# 
-#         log_link = StdFileLoggerCtrl(out_log_file)
+    #     _save_log_ = False
+    #     if _save_log_:
+    #         from datetime import datetime
+    #         from std_logger import StdFileLoggerCtrl
+    #
+    #         # save all console activity to out_log_file
+    #         out_log_file = os.path.join(
+    #             r'C:\Users\hachem\Desktop\fd\\%s_log_%s.log' % (
+    #                 # r'P:\Synchronize\python_script_logs\\%s_log_%s.log' % (
+    #                 os.path.basename(__file__),
+    #                 datetime.now().strftime('%Y%m%d%H%M%S')))
+    #
+    #         log_link = StdFileLoggerCtrl(out_log_file)
 
     print('#### Started on %s ####\n' % time.asctime())
     START = timeit.default_timer()  # to get the runtime of the program
