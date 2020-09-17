@@ -29,6 +29,8 @@ import matplotlib.gridspec as gridspec
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib_scalebar.scalebar import ScaleBar
+
 from spinterps import (OrdinaryKriging, OrdinaryKrigingWithScaledVg)
 from scipy import spatial
 
@@ -302,7 +304,8 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
 
     #cmap_diff = plt.get_cmap('PiYG')
     norm_diff = mcolors.BoundaryNorm(bound_diff, cmap_diff.N)
-
+    plt.close()
+    plt.ioff()
     fig = plt.figure(figsize=(12, 8), constrained_layout=False, dpi=400)
     gs = gridspec.GridSpec(2, 7, width_ratios=[1, 1, 1, 1, 1, 1, 1])
 
@@ -374,7 +377,7 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
                 vmax=bound_diff[-1])
     ax5.legend(title='d)', loc='upper left',
                frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
-
+#    np.diff(y_coords_grd).max()
     # dwd-netatmo
     ax6 = fig.add_subplot(gs[1:, 3:5])
     im6 = ax6.scatter(x_coords_grd, y_coords_grd,
@@ -397,6 +400,30 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
     cb1.set_ticks(bound_diff)
     cb1.ax.tick_params(labelsize=_fontsize)
     plt.setp(plt.gcf().get_axes(), xticks=[], yticks=[])
+#
+#     from mpl_toolkits.axes_grid1.anchored_artists import (AnchoredSizeBar)
+#
+#     asb  = AnchoredSizeBar(ax1.transData, 3, '3 units', 4, pad=0.5,
+#                       sep=5, borderpad=0.5, frameon=False,
+#                       size_vertical=0.5, color='white')
+#     ax1.add_artist(asb)
+
+#     scalebar = ScaleBar(dx=1, units='km',  # length_fraction=0.1,
+#                         location='lower center', frameon=True,
+#                         dimension='si-length',
+#                         height_fraction=0.005,  # label='[m]',
+#                         fixed_value=25,
+#                         fixed_units='km',
+#                         pad=-2, color='k')  # 1 pixel = 0.2 meter
+
+    scalebar = ScaleBar(1,
+                        location='lower center',
+                        frameon=True,
+                        height_fraction=0.015,
+                        #label='scale bar',
+                        pad=-2, color='k')  # 1 pixel = 0.2 meter
+
+    ax1.add_artist(scalebar)
 
 #     fig.patch.set_visible(False)
     ax1.axis('off'), ax2.axis('off'), ax3.axis('off')
@@ -406,7 +433,7 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
     # plt.show()
     plt.savefig((
         out_plot_path / (
-                '%s_%s_%s_event_test_dwd_ref' %
+                '%s_%s_%s_event_test_dwd_re2f' %
                 (save_acc, temp_agg,
                  str(event_date).replace(
                      '-', '_').replace(':',

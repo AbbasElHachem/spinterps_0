@@ -323,9 +323,6 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
     _fontsize = 8
     color_fontsize = 12
     # Remove the middle 10% of the RdBu_r colormap
-    interval = np.hstack([np.linspace(0.0, 0.35), np.linspace(0.7, 1)])
-    colors = plt.get_cmap('PiYG')(interval)  #
-    cmap_diff = LinearSegmentedColormap.from_list('diff', colors)
 
     # Concatenating colormaps
     cmap_diff = LinearSegmentedColormap.from_list(
@@ -419,13 +416,11 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
                frameon=False, fontsize=_fontsize)._legend_box.align = 'left'
 
     # colorbar
-#     cax0 = fig.add_subplot(gs[:1, 6:7])
+
     cax0 = fig.add_subplot(gs[:1, 8:9])
 
     divider0 = make_axes_locatable(cax0)
     cax20 = divider0.append_axes("left", size="8%", pad=0.00001)
-#     divider0 = make_axes_locatable(ax3)
-#     cax0 = divider0.append_axes("right", size="5%", pad=0.15)
 
     cb0 = fig.colorbar(im3, ax=ax3, cax=cax20, norm=norm_ppt,
                        ticks=bound_ppt, label=clbr_label,
@@ -483,11 +478,10 @@ def plot_all_interplations_subplots(vals_to_plot_dwd_netatmo,
     cb1.ax.tick_params(labelsize=color_fontsize)
     plt.setp(plt.gcf().get_axes(), xticks=[], yticks=[])
 
-#     fig.patch.set_visible(False)
     ax1.axis('off'), ax2.axis('off'), ax3.axis('off')
     ax5.axis('off'), ax6.axis('off'), ax_rad.axis('off')
     cax.axis('off'), cax0.axis('off'), ax_rad2.axis('off')
-#     plt.tight_layout()
+
     # plt.show()
     plt.savefig((
         out_plot_path / (
